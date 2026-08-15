@@ -7,6 +7,37 @@
 // Call: /api/filings?symbols=IREN,CRWV,NBIS
 
 const FORMS = ['8-K', '10-Q', '10-K', 'S-1', '424B5', 'SC 13D', 'SC 13G'];
+
+/* 8-K item codes, which are the most informative thing EDGAR gives us about what a
+   filing actually contains. Only the ones that matter to delivery tracking are named. */
+const ITEM_MEANING = {
+  '1.01': 'Entry into a material agreement',
+  '1.02': 'Termination of a material agreement',
+  '2.01': 'Completion of an acquisition or disposition',
+  '2.02': 'Results of operations',
+  '2.03': 'Creation of a direct financial obligation',
+  '3.02': 'Unregistered sale of equity',
+  '5.02': 'Director or officer change',
+  '7.01': 'Regulation FD disclosure',
+  '8.01': 'Other events'
+};
+
+/** Best available human description, never just the form name repeated. */
+function pickDescription(rec, i) {
+  const form = String(rec.form[i] || '').toUpperCase();
+  const desc = String(rec.primaryDocDescription?.[i] || '').trim();
+  if (desc && desc.toUpperCase() !== form) return desc;
+
+  const items = String(rec.items?.[i] || '').trim();
+  if (items) {
+    const named = items.split(/[,;]\s*/)
+      .map(code => ITEM_MEANING[code.trim()])
+      .filter(Boolean);
+    if (named.length) return named.join(' · ');
+    return `Items ${items}`;
+  }
+  return '';
+}
 let tickerMapCache = null;
 let tickerMapAt = 0;
 
@@ -68,7 +99,12 @@ export default async function handler(req, res) {
             company: entry.name,
             form: rec.form[i],
             filed: rec.filingDate[i],
-            description: rec.primaryDocDescription[i] || rec.items?.[i] || '',
+            // primaryDocDescription is frequently just the form name again ("8-K"),
+            // which rendered as "8-K — 8-K". Prefer the 8-K item codes, which say
+            // what actually happened, and let the client fall back to a plain
+            // description of the form rather than repeating it.
+            description: pickDescription(rec, i),
+            items: rec.items?.[i] || '',
             url: `https://www.sec.gov/Archives/edgar/data/${Number(entry.cik)}/${acc}/${rec.primaryDocument[i]}`
           });
         }

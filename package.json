@@ -1,6 +1,17 @@
 {
   "name": "t2c",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "description": "T2C — Time to Compute. AI infrastructure delivery intelligence.",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node --test",
+    "check": "node --check src/app.js && node build.js",
+    "dev": "node build.js && node serve.js",
+    "verify": "npm run test && npm run build && node scripts/audit.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }
