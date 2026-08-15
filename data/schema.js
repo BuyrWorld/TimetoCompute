@@ -109,16 +109,23 @@ export const GATES = [
   { id: 'utilityAgreement', order: 1, label: 'Utility agreement', definition: 'Executed electric service or energy-services agreement with the supplier.' },
   { id: 'interconnection', order: 2, label: 'Interconnection approved', definition: 'Grid interconnection study complete and connection approved.' },
   { id: 'zoning', order: 3, label: 'Zoning approved', definition: 'Local land-use consent granted for data-centre use.' },
-  { id: 'environmental', order: 4, label: 'Environmental approval', definition: 'Environmental permits and assessments granted.' },
-  { id: 'buildingPermits', order: 5, label: 'Building permits', definition: 'Construction permits issued.' },
-  { id: 'financing', order: 6, label: 'Financing committed', definition: 'Capital committed and available to build.' },
-  { id: 'longLeadOrdered', order: 7, label: 'Long-lead equipment ordered', definition: 'Transformers, switchgear, generators and chillers on order.' },
-  { id: 'constructionStarted', order: 8, label: 'Construction started', definition: 'Physical construction under way on site.' },
-  { id: 'utilityEnergised', order: 9, label: 'Utility energised', definition: 'Grid power delivered to the site.' },
-  { id: 'criticalItEnergised', order: 10, label: 'Critical IT energised', definition: 'IT load live and drawing power in the hall.' },
-  { id: 'customerContracted', order: 11, label: 'Customer contracted', definition: 'A paying customer has signed for the capacity.' },
-  { id: 'customerAccepted', order: 12, label: 'Customer accepted', definition: 'Capacity formally accepted under the customer agreement.' },
-  { id: 'revenueCommenced', order: 13, label: 'Billing / revenue commenced', definition: 'The company has disclosed that billing or revenue generation has begun.' }
+  {
+    id: 'regulatoryApproval', order: 4, label: 'Regulatory approval',
+    definition:
+      'Federal or state authorisation for the transaction or the asset — a FERC order, a state utility ' +
+      'commission approval. Distinct from zoning and from environmental permits, and frequently narrower ' +
+      'than it appears: approval to acquire a power plant is not approval to build a data centre on it.'
+  },
+  { id: 'environmental', order: 5, label: 'Environmental approval', definition: 'Environmental permits and assessments granted.' },
+  { id: 'buildingPermits', order: 6, label: 'Building permits', definition: 'Construction permits issued.' },
+  { id: 'financing', order: 7, label: 'Financing committed', definition: 'Capital committed and available to build.' },
+  { id: 'longLeadOrdered', order: 8, label: 'Long-lead equipment ordered', definition: 'Transformers, switchgear, generators and chillers on order.' },
+  { id: 'constructionStarted', order: 9, label: 'Construction started', definition: 'Physical construction under way on site.' },
+  { id: 'utilityEnergised', order: 10, label: 'Utility energised', definition: 'Grid power delivered to the site.' },
+  { id: 'criticalItEnergised', order: 11, label: 'Critical IT energised', definition: 'IT load live and drawing power in the hall.' },
+  { id: 'customerContracted', order: 12, label: 'Customer contracted', definition: 'A paying customer has signed for the capacity.' },
+  { id: 'customerAccepted', order: 13, label: 'Customer accepted', definition: 'Capacity formally accepted under the customer agreement.' },
+  { id: 'revenueCommenced', order: 14, label: 'Billing / revenue commenced', definition: 'The company has disclosed that billing or revenue generation has begun.' }
 ];
 
 export const GATE_BY_ID = Object.fromEntries(GATES.map(g => [g.id, g]));
@@ -262,4 +269,74 @@ export function gate({ id, status = 'notDisclosed', effectiveAt = null, sourceId
   if (!GATE_BY_ID[id]) throw new Error(`Unknown gate: ${id}`);
   if (!GATE_STATUS[status]) throw new Error(`Unknown gate status: ${status}`);
   return { id, status, effectiveAt, sourceIds, confidence, verifiedAt, notes };
+}
+
+/**
+ * A scheduled milestone: when a company says a gate will be reached.
+ *
+ * Almost all delivery guidance is a WINDOW — "second half of 2027", "Q1 2028" —
+ * not a date. Storing "H2 2027" as 2027-12-31 would manufacture precision the
+ * company never gave, so a window is stored as a window and rendered as one.
+ *
+ * Schedules are append-only per gate. Two entries for the same gate with
+ * different announcedAt dates ARE the target-change history: the earliest is the
+ * original target, the latest is the current one, and the difference is a slip.
+ */
+export const SCHEDULE_KIND = {
+  exact: { label: 'Confirmed date' },
+  window: { label: 'Guided window' },
+  notDisclosed: { label: 'Not disclosed' }
+};
+
+/** Common guidance windows, so "H2 2027" maps to real bounds in one place. */
+export function windowFor(label) {
+  const m = String(label).trim().match(/^(H[12]|Q[1-4]|FY)?\s*(\d{4})$/i);
+  if (!m) return null;
+  const [, period, year] = m;
+  const y = Number(year);
+  const p = (period || '').toUpperCase();
+  const range = {
+    H1: ['01-01', '06-30'], H2: ['07-01', '12-31'],
+    Q1: ['01-01', '03-31'], Q2: ['04-01', '06-30'],
+    Q3: ['07-01', '09-30'], Q4: ['10-01', '12-31'],
+    '': ['01-01', '12-31'], FY: ['01-01', '12-31']
+  }[p];
+  if (!range) return null;
+  return { start: `${y}-${range[0]}`, end: `${y}-${range[1]}` };
+}
+
+export function schedule({
+  gate: gateId,
+  label = null,
+  exact = null,
+  start = null,
+  end = null,
+  announcedAt,
+  sourceIds = [],
+  confidence = 'unknown',
+  verifiedAt = null,
+  notes = null,
+  /**
+   * Names a sub-unit of the project — an individual building, phase or tranche.
+   * A scoped schedule must NEVER be scored against the project-level gate: Lake
+   * Mariner's CB-4 rent-commencement guidance measured against the pre-existing
+   * 102 MW produced "early by 1 day", which is an artifact, not a finding. Scoped
+   * milestones are displayed but only score once that sub-unit has its own actual.
+   */
+  scope = null
+}) {
+  if (!GATE_BY_ID[gateId]) throw new Error(`Unknown gate in schedule: ${gateId}`);
+  if (!announcedAt) throw new Error(`Schedule for ${gateId} needs announcedAt — a target with no stated date is not a target`);
+
+  // A label like "H2 2027" resolves to bounds; an explicit start/end wins.
+  const derived = !start && !end && label ? windowFor(label) : null;
+  const s = start || derived?.start || null;
+  const e = end || derived?.end || null;
+
+  const kind = exact ? 'exact' : (s && e) ? 'window' : 'notDisclosed';
+  return {
+    gate: gateId, kind, exact, start: s, end: e,
+    label: label || (exact ? exact : null),
+    announcedAt, sourceIds, confidence, verifiedAt, notes, scope
+  };
 }

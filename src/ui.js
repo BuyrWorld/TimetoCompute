@@ -8,7 +8,8 @@ import { COMPANIES } from '../data/companies.js';
 import { PROJECTS_BY_COMPANY, CONTRACTS, COUNTRY_NAMES } from '../data/projects.js';
 import { CATALYST_STATUS, CATALYST_CATEGORIES, CATALYSTS } from '../data/catalysts.js';
 import {
-  companyView, headlineKpis, byCountry, ledger, aggregate, isKnown, gateSummary, dataHealth
+  companyView, headlineKpis, byCountry, ledger, aggregate, isKnown, gateSummary, dataHealth,
+  timeline, deliveryRecord
 } from './lib/compute.js';
 import {
   esc, mw, mwWithStatus, pct, usdBn, date, hostOf, NOT_DISCLOSED, windowLabel, countdown, statusLabel, basisLabel
@@ -437,6 +438,73 @@ export function catalystPanel(items = CATALYSTS) {
     <div class="stamp">Historical reactions to comparable past events would appear here. They require daily
       price history, which the connected data plan does not provide — see
       <a href="/methodology/#reactions">methodology</a>.</div>
+  </section>`;
+}
+
+/* ================= delivery timeline ================= */
+
+const OUTCOME = {
+  withinWindow: { tone: 'ok', glyph: '●', label: 'Delivered within the guided window' },
+  early: { tone: 'ok', glyph: '▲', label: 'Early' },
+  onTarget: { tone: 'ok', glyph: '●', label: 'On target' },
+  late: { tone: 'bad', glyph: '▼', label: 'Late' },
+  pending: { tone: 'unknown', glyph: '○', label: 'Not yet reached' }
+};
+
+/**
+ * What was promised against what happened. A guided window that was met reads as
+ * "within the guided window" rather than a spurious day count against an arbitrary
+ * window edge — the company hit its guidance, and that is the whole finding.
+ */
+export function timelinePanel(project) {
+  const rows = timeline(project);
+  if (!rows.length) return '';
+  return `<div class="tl">
+    ${rows.map(r => {
+      const o = OUTCOME[r.outcome] || OUTCOME.pending;
+      const g = GATES.find(x => x.id === r.gate);
+      const target = r.current.kind === 'window'
+        ? r.current.label
+        : r.current.exact ? date(r.current.exact) : NOT_DISCLOSED;
+      return `<div class="tlrow">
+        <div class="tlgate">${esc(g ? g.label : r.gate)}${r.current.scope ? `<span class="tlscope">${esc(r.current.scope)}</span>` : ''}</div>
+        <div class="tldates">
+          <span class="tlt"><b>Target</b> ${esc(target)}</span>
+          <span class="tlt"><b>Actual</b> ${r.actual ? esc(date(r.actual)) : `<span class="nd">${NOT_DISCLOSED}</span>`}</span>
+        </div>
+        <div class="tlout">${pill(o.tone, o.glyph, r.days !== null && r.days !== undefined
+          ? `${o.label} by ${r.days} days` : o.label)}</div>
+        ${r.targetMoved ? `<div class="tlmoved">${pill('bad', '▲', `Target moved ${r.targetMoved.days > 0 ? 'later' : 'earlier'} by ${Math.abs(r.targetMoved.days)} days`)}
+          <span class="tlnote">${esc(r.targetMoved.fromLabel)} → ${esc(r.targetMoved.toLabel)}</span></div>` : ''}
+        ${r.current.notes ? `<div class="tlnote">${esc(r.current.notes)}</div>` : ''}
+        <div class="tlsrc">${sourceChips(r.current.sourceIds)}<span class="asof">guided ${esc(date(r.current.announcedAt))}</span></div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/** Portfolio delivery performance. Withholds a hit rate below the minimum sample. */
+export function deliveryRecordPanel() {
+  const r = deliveryRecord();
+  return `<section class="panel" id="delivery-record">
+    <div class="ph"><h2>Delivery against guidance</h2>
+      <span class="meta">${r.projectsWithSchedule} of ${r.projectsTotal} projects carry a guided date</span></div>
+    <div class="keynote">This is the measurement the site exists for: how long secured power actually
+      takes to become invoicing compute. It needs a promised date and a delivered date, and companies
+      publish far fewer of the first than you would expect.</div>
+    <div class="health">
+      <div class="hcell"><div class="hv">${r.scheduledCount}</div><div class="hl">Guided milestones</div>
+        <div class="hh">Dates or windows a company has actually stated</div></div>
+      <div class="hcell"><div class="hv">${r.completedCount}</div><div class="hl">Reached and scoreable</div>
+        <div class="hh">Both a target and an actual exist</div></div>
+      <div class="hcell"><div class="hv">${r.pendingCount}</div><div class="hl">Still outstanding</div>
+        <div class="hh">Guided, not yet reached</div></div>
+      <div class="hcell"><div class="hv">${r.late}</div><div class="hl">Missed the window</div>
+        <div class="hh">Delivered after the guided end date</div></div>
+    </div>
+    <div class="stamp">${r.sufficient
+      ? `Across ${r.completedCount} scoreable milestones, ${r.onTimeOrEarly} were delivered on time or early.`
+      : `<b>No delivery hit rate is published.</b> Only ${r.completedCount} milestone${r.completedCount === 1 ? ' has' : 's have'} both a guided date and a delivered date — below the ${r.minimumSample} needed for a rate that means anything. It will appear here as more milestones land.`}</div>
   </section>`;
 }
 

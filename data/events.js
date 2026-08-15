@@ -140,6 +140,20 @@ export const EVENTS = [
       'pipeline figure is retained as historical rather than carried forward as a current value.'
   },
 
+  {
+    id: 'wulf-2026-07-29-ferc-morgantown', companyId: 'terawulf', projectId: 'wulf-chesapeake',
+    metric: null, eventType: 'stage-change',
+    previousValue: null, newValue: null, unit: null,
+    announcedAt: '2026-07-29', effectiveAt: '2026-07-29',
+    sourceIds: ['ferc-ec26-58-morgantown'], confidence: 'confirmed', significance: 'medium',
+    summary: 'FERC authorised the acquisition of Morgantown Power LLC (Docket EC26-58-000).',
+    implication:
+      'The first regulator-sourced record on the site, and a useful warning about headline approvals: ' +
+      'FERC states the order covers the ownership transfer only. Data centre development, new generation, ' +
+      'gas infrastructure, battery storage and any change to PJM participation each require separate ' +
+      'review. Company guidance still contemplates data centre operations only in 2030.'
+  },
+
   /* ---------------- Keel ---------------- */
   {
     id: 'keel-2026-q2-split', companyId: 'keel', projectId: null,

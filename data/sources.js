@@ -165,6 +165,23 @@ export const SOURCES = [
       'operational generation with potential future campus scale of up to 1 GW.'
   }),
 
+  S('ferc-ec26-58-morgantown', {
+    title: 'FERC Order authorising acquisition of Morgantown Power LLC — 196 FERC ¶ 61,075, Docket EC26-58-000',
+    url: 'https://elibrary.ferc.gov/eLibrary/filelist?accession_number=20260729-3047',
+    publisher: 'Federal Energy Regulatory Commission',
+    sourceType: 'regulator',
+    publishedAt: '2026-07-29',
+    effectiveAt: '2026-07-29',
+    isPrimary: true,
+    pageOrSection: 'Docket EC26-58-000, accession 20260729-3047',
+    supportingExcerpt:
+      'Authorises Chesapeake Data LLC, a wholly owned TeraWulf subsidiary, to acquire 100% of Morgantown ' +
+      'Power LLC from Lanyard Power Holdings LLC, finding the transfer consistent with the public interest. ' +
+      'Morgantown Power owns four operating oil-fired generating units totalling approximately 216 MW. ' +
+      'The authorisation covers the ownership transfer ONLY: data centre development, new generation, gas ' +
+      'infrastructure, battery storage and changes to PJM participation each require separate review.'
+  }),
+
   /* ---------------- Keel Infrastructure ---------------- */
   S('keel-10k-bitfarms', {
     title: 'Bitfarms / Keel Infrastructure annual report (Form 10-K)',

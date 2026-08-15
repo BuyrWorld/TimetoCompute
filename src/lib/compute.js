@@ -143,6 +143,106 @@ export function gateSummary(project) {
   };
 }
 
+/* ================= delivery schedule ================= */
+
+const days = (a, b) => Math.round(
+  (Date.parse(`${String(b).slice(0, 10)}T00:00:00Z`) - Date.parse(`${String(a).slice(0, 10)}T00:00:00Z`)) / 86400000
+);
+
+/** All schedules for one gate, oldest first — this IS the target-change history. */
+export function schedulesForGate(project, gateId) {
+  return (project.schedules || [])
+    .filter(s => s.gate === gateId)
+    .sort((a, b) => String(a.announcedAt).localeCompare(String(b.announcedAt)));
+}
+
+/**
+ * Compare what was promised against what happened.
+ *
+ * A guided window is not a date. When the actual lands inside the window the
+ * company hit its guidance and the answer is "within the guided window" — not a
+ * spurious "43 days early" measured against an arbitrary window edge. Only a
+ * miss produces a number, measured from the edge that was missed.
+ */
+export function slip(project, gateId) {
+  const history = schedulesForGate(project, gateId);
+  if (!history.length) return null;
+
+  const original = history[0];
+  const current = history[history.length - 1];
+  const g = (project.gates || []).find(x => x.id === gateId);
+  const actual = g && g.status === 'complete' ? g.effectiveAt : null;
+
+  // A target that moved between announcements is itself the finding.
+  let targetMoved = null;
+  if (history.length > 1) {
+    const from = original.exact || original.end;
+    const to = current.exact || current.end;
+    if (from && to && from !== to) {
+      targetMoved = { fromLabel: original.label, toLabel: current.label, days: days(from, to) };
+    }
+  }
+
+  // A schedule naming a sub-unit (a building, a tranche) cannot be scored against
+  // the project-level gate — the gate's actual belongs to a different sub-unit.
+  if (current.scope) {
+    return { original, current, actual: null, targetMoved, outcome: 'pending', days: null, scoped: true };
+  }
+  if (!actual) {
+    return { original, current, actual: null, targetMoved, outcome: 'pending', days: null };
+  }
+
+  if (current.kind === 'exact') {
+    const d = days(current.exact, actual);
+    return {
+      original, current, actual, targetMoved,
+      outcome: d === 0 ? 'onTarget' : d > 0 ? 'late' : 'early', days: Math.abs(d)
+    };
+  }
+  if (current.kind === 'window') {
+    if (actual < current.start) return { original, current, actual, targetMoved, outcome: 'early', days: days(actual, current.start) };
+    if (actual > current.end) return { original, current, actual, targetMoved, outcome: 'late', days: days(current.end, actual) };
+    return { original, current, actual, targetMoved, outcome: 'withinWindow', days: null };
+  }
+  return { original, current, actual, targetMoved, outcome: 'pending', days: null };
+}
+
+/** Every scheduled milestone on a project, with its outcome. */
+export function timeline(project) {
+  const gateIds = [...new Set((project.schedules || []).map(s => s.gate))];
+  return gateIds
+    .map(id => ({ gate: id, ...slip(project, id) }))
+    .sort((a, b) => (GATE_BY_ID[a.gate]?.order ?? 0) - (GATE_BY_ID[b.gate]?.order ?? 0));
+}
+
+/**
+ * Portfolio-wide delivery performance. This is the number the whole product is
+ * for — and it stays honest about how few completed milestones exist to measure.
+ */
+export function deliveryRecord() {
+  const rows = [];
+  for (const p of PROJECTS) {
+    for (const t of timeline(p)) {
+      if (t.outcome === 'pending') continue;
+      rows.push({ project: p.id, projectName: p.name, companyId: p.companyId, ...t });
+    }
+  }
+  const scheduled = PROJECTS.flatMap(p => (p.schedules || []).map(s => ({ project: p.id, ...s })));
+  return {
+    completed: rows,
+    completedCount: rows.length,
+    scheduledCount: scheduled.length,
+    pendingCount: scheduled.length - rows.length,
+    onTimeOrEarly: rows.filter(r => r.outcome !== 'late').length,
+    late: rows.filter(r => r.outcome === 'late').length,
+    /** A hit rate on fewer than three outcomes is noise, so it is withheld. */
+    sufficient: rows.length >= 3,
+    minimumSample: 3,
+    projectsWithSchedule: PROJECTS.filter(p => (p.schedules || []).length).length,
+    projectsTotal: PROJECTS.length
+  };
+}
+
 /** Company rollup used by the capacity table and company pages. */
 export function companyView(company) {
   const measures = Object.fromEntries(Object.keys(METRICS).map(k => [k, getMeasure(company, k)]));

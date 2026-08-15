@@ -9,7 +9,7 @@
  * three different things depending on whether it is gross site capacity, energised
  * utility capacity, or critical IT under construction.
  */
-import { gate } from './schema.js';
+import { gate, schedule } from './schema.js';
 
 const V = '2026-08-15';
 
@@ -36,6 +36,13 @@ export const PROJECTS = [
     capacityMw: 50, powerBasis: 'critical-it', valueStatus: 'actual', confidence: 'confirmed',
     sourceIds: ['iren-horizon1-delivery'], asOf: '2026-08-13',
     note: 'Delivered to and accepted by Microsoft on 13 August 2026.',
+    schedules: [
+      schedule({
+        gate: 'customerAccepted', label: '2026', announcedAt: '2026-03-31',
+        sourceIds: ['iren-q3-fy26-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
+        notes: '"Horizon 1-4 on track for delivery by year-end" — a window covering all four tranches, not a date for Horizon 1 alone.'
+      })
+    ],
     gates: [
       gate({ id: 'constructionStarted', status: 'complete', confidence: 'confirmed', sourceIds: ['iren-8k-microsoft'], verifiedAt: V }),
       gate({ id: 'criticalItEnergised', status: 'complete', effectiveAt: '2026-08-13', confidence: 'confirmed', sourceIds: ['iren-horizon1-delivery'], verifiedAt: V }),
@@ -51,6 +58,13 @@ export const PROJECTS = [
     note:
       'Remaining Microsoft tranches — the balance of the 200 MW contract after Horizon 1\'s 50 MW. ' +
       'Planned, not delivered, and held separately from accepted capacity.',
+    schedules: [
+      schedule({
+        gate: 'customerAccepted', label: '2026', announcedAt: '2026-03-31',
+        sourceIds: ['iren-q3-fy26-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
+        notes: '"Horizon 1-4 on track for delivery by year-end."'
+      })
+    ],
     gates: [
       gate({ id: 'customerContracted', status: 'complete', confidence: 'confirmed', sourceIds: ['iren-8k-microsoft'], verifiedAt: V }),
       gate({ id: 'constructionStarted', status: 'inProgress', confidence: 'reported', sourceIds: ['iren-q3-fy26-results'], verifiedAt: V }),
@@ -113,7 +127,26 @@ export const PROJECTS = [
     id: 'wulf-lake-mariner', companyId: 'terawulf', name: 'Lake Mariner, New York', country: 'US', flag: '🇺🇸',
     capacityMw: 438, powerBasis: 'critical-it', valueStatus: 'actual', confidence: 'confirmed',
     sourceIds: ['wulf-q2-2026-results'], asOf: '2026-06-30',
-    note: '102 MW revenue-generating critical IT plus 336 MW additional critical IT under construction.',
+    note:
+      '102 MW revenue-generating critical IT plus 336 MW additional critical IT under construction ' +
+      'across CB-4 and CB-5. CB-3 delivery completed in early July 2026.',
+    schedules: [
+      schedule({
+        gate: 'revenueCommenced', scope: 'CB-4', label: 'H2 2026', announcedAt: '2026-08-11',
+        sourceIds: ['wulf-q2-2026-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
+        notes: 'CB-4: "phased delivery and rent commencement expected during the second half of 2026".'
+      }),
+      schedule({
+        gate: 'criticalItEnergised', scope: 'CB-5', label: 'Q1 2027', announcedAt: '2026-08-11',
+        sourceIds: ['wulf-q2-2026-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
+        notes: 'CB-5: "targeted to begin phased delivery in early 2027". Recorded as Q1 as the narrowest defensible reading of "early".'
+      }),
+      schedule({
+        gate: 'customerAccepted', scope: 'CB-3', exact: '2026-07-31', label: 'Early July 2026',
+        announcedAt: '2026-08-11', sourceIds: ['wulf-q2-2026-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
+        notes: '"Completed delivery of CB-3 in early July" 2026. Already delivered; recorded for the record, not as an outstanding target.'
+      })
+    ],
     gates: [
       gate({ id: 'utilityEnergised', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V }),
       gate({ id: 'criticalItEnergised', status: 'complete', effectiveAt: '2026-06-30', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V, notes: '102 MW.' }),
@@ -129,6 +162,18 @@ export const PROJECTS = [
     note:
       'Approximately 401 MW critical IT on a 20-year initial lease, approximately $19bn contracted ' +
       'revenue over the initial term. Initial capacity expected H2 2027, full delivery early 2028.',
+    schedules: [
+      schedule({
+        gate: 'criticalItEnergised', label: 'H2 2027', announcedAt: '2026-08-04',
+        sourceIds: ['wulf-anthropic-lease', 'wulf-q2-2026-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
+        notes: '"Initial delivery expected in the second half of 2027".'
+      }),
+      schedule({
+        gate: 'customerAccepted', label: 'H1 2028', announcedAt: '2026-08-04',
+        sourceIds: ['wulf-anthropic-lease', 'wulf-q2-2026-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
+        notes: '"Full delivery expected in early 2028". Recorded as H1 2028 — "early" is not a quarter.'
+      })
+    ],
     gates: [
       gate({ id: 'customerContracted', status: 'complete', effectiveAt: '2026-08-04', confidence: 'confirmed', sourceIds: ['wulf-anthropic-lease'], verifiedAt: V }),
       gate({ id: 'constructionStarted', status: 'notDisclosed' }),
@@ -142,8 +187,16 @@ export const PROJECTS = [
     capacityMw: 1000, powerBasis: 'gross-utility', valueStatus: 'potential', confidence: 'confirmed',
     sourceIds: ['wulf-kentucky-maryland'],
     note:
-      'Up to 1 GW of contracted electric service. This is power availability at the utility, not ' +
-      'customer-contracted critical IT, and is excluded from contracted-capacity totals.',
+      'Up to 1 GW of contracted electric service via Kentucky Power Company. This is power ' +
+      'availability at the utility, not customer-contracted critical IT, and is excluded from ' +
+      'contracted-capacity totals.',
+    schedules: [
+      schedule({
+        gate: 'criticalItEnergised', label: 'Q4 2028', announcedAt: '2026-08-11',
+        sourceIds: ['wulf-q2-2026-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
+        notes: '"Initial service expected in the fourth quarter of 2028".'
+      })
+    ],
     gates: [
       gate({ id: 'siteControl', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-kentucky-maryland'], verifiedAt: V }),
       gate({ id: 'utilityAgreement', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-kentucky-maryland'], verifiedAt: V, notes: 'Up to 1 GW contracted electric service.' }),
@@ -155,12 +208,40 @@ export const PROJECTS = [
     capacityMw: 210, powerBasis: 'gross-utility', valueStatus: 'actual', confidence: 'confirmed',
     sourceIds: ['wulf-kentucky-maryland'],
     note:
-      'Approximately 210 MW operational generation. A further campus scale of up to 1 GW is potential ' +
-      'only and is not current critical IT.',
+      'Approximately 210 MW operational generation at the Morgantown Generating Station. A further ' +
+      'campus scale of up to 1 GW is potential only and is not current critical IT.',
+    schedules: [
+      schedule({
+        gate: 'criticalItEnergised', label: '2030', announcedAt: '2026-08-11',
+        sourceIds: ['wulf-q2-2026-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
+        notes: '"Initial data center operations currently contemplated for 2030" — contemplated, not committed, and four years out.'
+      })
+    ],
     gates: [
-      gate({ id: 'siteControl', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-kentucky-maryland'], verifiedAt: V }),
-      gate({ id: 'utilityEnergised', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-kentucky-maryland'], verifiedAt: V, notes: '~210 MW operational generation.' }),
-      gate({ id: 'criticalItEnergised', status: 'notStarted' })
+      gate({
+        id: 'siteControl', status: 'conditional', effectiveAt: '2026-07-29', confidence: 'confirmed',
+        sourceIds: ['ferc-ec26-58-morgantown', 'wulf-kentucky-maryland'], verifiedAt: V,
+        notes:
+          'FERC authorised the acquisition of Morgantown Power LLC on 29 Jul 2026 (Docket EC26-58-000). ' +
+          'The order covers the ownership transfer only.'
+      }),
+      gate({
+        id: 'regulatoryApproval', status: 'inProgress', effectiveAt: '2026-07-29', confidence: 'confirmed',
+        sourceIds: ['ferc-ec26-58-morgantown'], verifiedAt: V,
+        notes:
+          'FERC states explicitly that data centre development, new generation, gas infrastructure, ' +
+          'battery storage and any change to PJM participation each require separate review. The federal ' +
+          'approval obtained is NOT approval to build a data centre.'
+      }),
+      gate({
+        id: 'utilityEnergised', status: 'complete', confidence: 'confirmed',
+        sourceIds: ['wulf-kentucky-maryland', 'ferc-ec26-58-morgantown'], verifiedAt: V,
+        notes:
+          'TeraWulf states approximately 210 MW of operational generation; the FERC order describes four ' +
+          'oil-fired units totalling approximately 216 MW. Both figures are recorded as published — the ' +
+          'small difference is not reconciled by either document.'
+      }),
+      gate({ id: 'criticalItEnergised', status: 'notStarted', notes: 'Data centre operations contemplated for 2030.' })
     ]
   },
 
@@ -193,8 +274,14 @@ export const PROJECTS = [
     gates: [
       gate({ id: 'siteControl', status: 'complete', confidence: 'confirmed', sourceIds: ['keel-investor-deck'], verifiedAt: V }),
       gate({ id: 'utilityAgreement', status: 'complete', confidence: 'confirmed', sourceIds: ['keel-investor-deck'], verifiedAt: V, notes: '350 MW contracted firm power.' }),
-      gate({ id: 'zoning', status: 'conditional', confidence: 'reported', sourceIds: ['keel-10q'], verifiedAt: V, notes: 'Conditional land development approval.' }),
-      gate({ id: 'environmental', status: 'inProgress', confidence: 'reported', sourceIds: ['keel-10q'], verifiedAt: V, notes: 'Environmental permits outstanding.' }),
+      gate({
+        id: 'zoning', status: 'complete', confidence: 'confirmed', sourceIds: ['keel-q2-2026-results'], verifiedAt: V,
+        notes: '"Secured zoning and land development approvals", with land development held conditionally.'
+      }),
+      gate({
+        id: 'environmental', status: 'inProgress', confidence: 'confirmed', sourceIds: ['keel-q2-2026-results'], verifiedAt: V,
+        notes: 'Environmental permit applications "progressing well"; the site is described as "nearing full permitting", which is not the same as permitted.'
+      }),
       gate({ id: 'constructionStarted', status: 'notStarted', notes: 'No evidence the data centre itself is under construction.' })
     ]
   },
@@ -218,6 +305,11 @@ export const PROJECTS = [
     gates: [
       gate({ id: 'siteControl', status: 'complete', confidence: 'confirmed', sourceIds: ['keel-investor-deck'], verifiedAt: V }),
       gate({ id: 'utilityEnergised', status: 'complete', confidence: 'reported', sourceIds: ['keel-investor-deck'], verifiedAt: V }),
+      gate({
+        id: 'longLeadOrdered', status: 'inProgress', confidence: 'confirmed',
+        sourceIds: ['keel-q2-2026-results'], verifiedAt: V,
+        notes: 'Accepted delivery of the first Vertiv modules, plus several additional long-lead-time items.'
+      }),
       gate({ id: 'customerContracted', status: 'notStarted', notes: 'No announced lease.' })
     ]
   },
@@ -281,7 +373,14 @@ export const PROJECTS = [
     sourceIds: ['apld-delta-forge-2'], asOf: '2026-08-05',
     note:
       '210 MW leased to a high investment-grade hyperscaler, approximately $5.2bn over a 15-year ' +
-      'initial term. Under construction with expected delivery in H1 2028.',
+      'initial term. Under construction, with initial operations anticipated in Q1 2028.',
+    schedules: [
+      schedule({
+        gate: 'criticalItEnergised', label: 'Q1 2028', announcedAt: '2026-08-05',
+        sourceIds: ['apld-delta-forge-2'], confidence: 'confirmed', verifiedAt: '2026-08-15',
+        notes: '"Initial operations are anticipated to commence in Q1 2028." The release is more precise than the H1 2028 previously recorded here.'
+      })
+    ],
     gates: [
       gate({ id: 'customerContracted', status: 'complete', effectiveAt: '2026-08-05', confidence: 'confirmed', sourceIds: ['apld-delta-forge-2'], verifiedAt: V }),
       gate({ id: 'constructionStarted', status: 'complete', confidence: 'confirmed', sourceIds: ['apld-delta-forge-2'], verifiedAt: V }),

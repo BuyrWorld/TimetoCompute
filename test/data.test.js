@@ -6,8 +6,9 @@ import { COMPANIES } from '../data/companies.js';
 import { PROJECTS, CONTRACTS } from '../data/projects.js';
 import { EVENTS } from '../data/events.js';
 import { CATALYSTS } from '../data/catalysts.js';
+import { windowFor, GATE_BY_ID } from '../data/schema.js';
 import { SOURCE_BY_ID } from '../data/sources.js';
-import { getMeasure, isKnown, aggregate, headlineKpis, byCountry, gateSummary, dataHealth } from '../src/lib/compute.js';
+import { getMeasure, isKnown, aggregate, headlineKpis, byCountry, gateSummary, dataHealth, slip, timeline, deliveryRecord } from '../src/lib/compute.js';
 
 const co = id => COMPANIES.find(c => c.id === id);
 
@@ -250,13 +251,41 @@ test('country rollup keeps power bases in separate columns', () => {
 
 test('gates advance independently — Panther Creek proves the case', () => {
   const p = PROJECTS.find(x => x.id === 'keel-panther-creek');
-  const g = gateSummary(p);
-  const byId = Object.fromEntries(g.rows.map(r => [r.id, r]));
+  const byId = Object.fromEntries(gateSummary(p).rows.map(r => [r.id, r]));
+  // Power and zoning are done; environment is not; the building has not started.
   assert.equal(byId.utilityAgreement.status, 'complete');
-  assert.equal(byId.zoning.status, 'conditional');
+  assert.equal(byId.zoning.status, 'complete');
   assert.equal(byId.environmental.status, 'inProgress');
   assert.equal(byId.constructionStarted.status, 'notStarted',
     'the data centre itself must not be marked under construction');
+});
+
+test('a regulatory approval is not scored wider than it is', () => {
+  // FERC authorised TeraWulf to BUY the Morgantown plant. That is not permission
+  // to build a data centre on it, and the gates must not imply otherwise.
+  const p = PROJECTS.find(x => x.id === 'wulf-chesapeake');
+  const byId = Object.fromEntries(gateSummary(p).rows.map(r => [r.id, r]));
+
+  assert.equal(byId.regulatoryApproval.status, 'inProgress',
+    'a narrow federal approval must not read as fully approved');
+  assert.equal(byId.regulatoryApproval.confidence, 'confirmed');
+  assert.equal(byId.regulatoryApproval.effectiveAt, '2026-07-29');
+  assert.match(byId.regulatoryApproval.notes, /separate review/i);
+  assert.equal(byId.criticalItEnergised.status, 'notStarted');
+
+  // and it is evidenced by the regulator itself, not only the company
+  const src = byId.regulatoryApproval.sourceIds.map(id => SOURCE_BY_ID[id]);
+  assert.ok(src.some(s => s.sourceType === 'regulator'), 'must cite the regulator');
+  assert.ok(src.every(s => s.isPrimary));
+});
+
+test('the source register now includes non-company primary sources', () => {
+  const types = new Set(Object.values(SOURCE_BY_ID).map(s => s.sourceType));
+  assert.ok(types.has('regulator'), 'a regulator source should be registered');
+  const ferc = SOURCE_BY_ID['ferc-ec26-58-morgantown'];
+  assert.equal(ferc.isPrimary, true);
+  assert.equal(ferc.publishedAt, '2026-07-29');
+  assert.match(ferc.url, /ferc\.gov/, 'should link the regulator, not a news copy');
 });
 
 test('customer acceptance always carries an acceptance source', () => {
@@ -284,4 +313,64 @@ test('data health reports coverage honestly', () => {
   assert.ok(h.confirmed > 0);
   assert.equal(h.unsourced, 0, 'no unsourced values should remain after the audit');
   assert.ok(h.notDisclosed > 0, 'undisclosed figures must be counted, not hidden');
+});
+
+/* ---------------- delivery schedules ---------------- */
+
+test('guided windows are stored as windows, never as false exact dates', () => {
+  for (const p of PROJECTS) {
+    for (const s of p.schedules || []) {
+      if (s.kind === 'window') {
+        assert.ok(s.start && s.end, `${p.id}/${s.gate} window without bounds`);
+        assert.equal(s.exact, null, `${p.id}/${s.gate} window must not carry an exact date`);
+        assert.ok(s.end > s.start);
+      }
+      assert.ok(s.announcedAt, `${p.id}/${s.gate} has no announcedAt`);
+      assert.ok(s.sourceIds.length, `${p.id}/${s.gate} has no source`);
+    }
+  }
+});
+
+test('window labels resolve to the right bounds', () => {
+  assert.deepEqual(windowFor('H2 2027'), { start: '2027-07-01', end: '2027-12-31' });
+  assert.deepEqual(windowFor('Q1 2028'), { start: '2028-01-01', end: '2028-03-31' });
+  assert.deepEqual(windowFor('2026'), { start: '2026-01-01', end: '2026-12-31' });
+  assert.equal(windowFor('early 2027'), null, 'vague wording must not resolve silently');
+});
+
+test('hitting a guided window reads as hit, not as a spurious day count', () => {
+  // IREN guided "Horizon 1-4 by year-end" and delivered Horizon 1 on 13 Aug 2026.
+  const p = PROJECTS.find(x => x.id === 'iren-horizon-1');
+  const s = slip(p, 'customerAccepted');
+  assert.equal(s.outcome, 'withinWindow');
+  assert.equal(s.days, null, 'a met window produces no day count');
+  assert.equal(s.actual, '2026-08-13');
+});
+
+test('a sub-unit schedule is never scored against the project-level gate', () => {
+  // Lake Mariner's CB-4 rent-commencement guidance measured against the
+  // pre-existing 102 MW produced "early by 1 day" — an artifact, not a finding.
+  const p = PROJECTS.find(x => x.id === 'wulf-lake-mariner');
+  for (const t of timeline(p)) {
+    assert.ok(t.current.scope, 'every Lake Mariner schedule names its building');
+    assert.equal(t.outcome, 'pending');
+    assert.equal(t.days, null);
+    assert.equal(t.scoped, true);
+  }
+});
+
+test('delivery hit rate is withheld below the minimum sample', () => {
+  const r = deliveryRecord();
+  assert.ok(r.scheduledCount > 0, 'schedules should exist');
+  assert.equal(r.completedCount, 1, 'only IREN Horizon 1 is currently scoreable');
+  assert.equal(r.sufficient, false, 'one outcome must not produce a published hit rate');
+  assert.equal(r.completedCount + r.pendingCount, r.scheduledCount);
+});
+
+test('every scheduled gate exists in the gate model', () => {
+  for (const p of PROJECTS) {
+    for (const s of p.schedules || []) {
+      assert.ok(GATE_BY_ID[s.gate], `${p.id} schedules unknown gate ${s.gate}`);
+    }
+  }
 });

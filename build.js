@@ -23,7 +23,7 @@ import {
   kpiStrip, kpiCards, ledgerPanel, capacityTable, contractsTable, countryPanel,
   evidenceKey, valueTypeKey, basisKey, gateTrack, evidenceChip, statusChip, basisChip,
   sourceChips, evidencedValue, evidenceDrawer, reconciliationPanel, catalystPanel,
-  dataHealthPanel, pill
+  dataHealthPanel, pill, timelinePanel, deliveryRecordPanel
 } from './src/ui.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -315,7 +315,7 @@ function homepage() {
       </section>
       ${dataHealthPanel(BUILD_STAMP)}`,
 
-    ledger: ledgerPanel(null, { heading: 'Delivery ledger', filters: true }) + `
+    ledger: deliveryRecordPanel() + ledgerPanel(null, { heading: 'Delivery ledger', filters: true }) + `
       <section class="panel">
         <div class="ph"><h2>What the evidence levels mean</h2></div>
         ${evidenceKey()}
@@ -452,6 +452,7 @@ function companyPage(c) {
       </div>
       <p class="projnote">${esc(p.note || '')}</p>
       ${gateTrack(p)}
+      ${timelinePanel(p)}
       <div class="projsrc">${sourceChips(p.sourceIds)}</div>
     </article>`).join('')
     : `<div class="empty"><h3>No site-level projects recorded</h3><p>This company reports fleet-wide rather than by site.</p></div>`;
