@@ -11,8 +11,12 @@ html[data-theme="light"]{
   --bg:#F1F1EE; --card:#FFFFFF; --card-2:#F8F8F5;
   --line:#D5D5CE; --line-2:#E6E6E0;
   --ink:#0A0A0A; --soft:#333333; --dim:#6A6A6A;
-  --accent:#465900; --chip:#D6FF00; --chip-ink:#0A0A0A;
-  --up:#136B3C; --down:#A81322; --warn:#8A5A00;
+  /* accent was #465900 — a dark olive that read brown next to the lime */
+  --accent:#1F6B45; --chip:#D6FF00; --chip-ink:#0A0A0A;
+  --up:#136B3C; --down:#A81322;
+  /* Delivery ramp — ordinal, one hue, light→dark = least→most real.
+     Validated: monotone L, gaps >=0.06, pale end 2.12:1 on white, hue spread 6deg. */
+  --d1:#84BF9E; --d2:#4FA377; --d3:#2A7D52; --d4:#14532F;
   --shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.05);
 }
 html[data-theme="dark"]{
@@ -20,7 +24,9 @@ html[data-theme="dark"]{
   --line:#303030; --line-2:#232323;
   --ink:#FFFFFF; --soft:#E2E2E2; --dim:#A0A0A0;
   --accent:#D6FF00; --chip:#D6FF00; --chip-ink:#0A0A0A;
-  --up:#3FD183; --down:#FF6B78; --warn:#FFC24D;
+  --up:#3FD183; --down:#FF6B78;
+  /* Dark steps are selected against #161616, not flipped from light. */
+  --d1:#3A6B4E; --d2:#55A47A; --d3:#78C99A; --d4:#A6EFC4;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.5);
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -99,15 +105,22 @@ main{padding:22px 0 80px}
 .newshero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--chip)}
 .newshero .lead{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:9px}
 .newshero .hl{font-size:clamp(20px,2.6vw,28px);font-weight:800;letter-spacing:-.025em;line-height:1.2}
+.newshero .heroimg{width:100%;max-height:230px;object-fit:cover;border-radius:4px;margin-bottom:15px;display:block;background:var(--card-2)}
 .newsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1px;background:var(--line-2)}
-.ncard{background:var(--card);padding:17px;text-decoration:none;display:flex;flex-direction:column;gap:9px;transition:background .15s,transform .15s;position:relative}
+.ncard{background:var(--card);text-decoration:none;display:flex;flex-direction:column;transition:background .15s,transform .15s;position:relative;overflow:hidden}
 .ncard:hover{background:var(--card-2);transform:translateY(-1px)}
-.ncard .hl{font-size:14.5px;font-weight:700;line-height:1.38}
+.ncard .nbody{padding:15px 17px 16px;display:flex;flex-direction:column;gap:9px;flex:1}
+/* Thumbnail is decorative — it collapses to nothing when the source has no image
+   or the fetch fails, so cards without art keep the same rhythm. */
+.nthumb{display:block;width:100%;aspect-ratio:16/9;overflow:hidden;background:var(--card-2);border-bottom:1px solid var(--line-2)}
+.nthumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
+.ncard:hover .nthumb img{transform:scale(1.04)}
+.ncard .hl{font-size:14.5px;font-weight:700;line-height:1.38;display:block}
 .ncard .mt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--dim);font-weight:600;margin-top:auto}
 .srcpill{background:var(--card-2);border:1px solid var(--line);padding:2px 7px;border-radius:3px}
 .symp{background:var(--chip);color:var(--chip-ink);padding:2px 7px;border-radius:3px;font-weight:800;font-size:11px}
 .fresh{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-weight:800}
-.fresh i{width:6px;height:6px;border-radius:50%;background:var(--chip);display:block}
+.fresh i{width:6px;height:6px;border-radius:50%;background:currentColor;display:block}
 @media(prefers-reduced-motion:no-preference){.fresh i{animation:pl 2s ease-in-out infinite}}
 @keyframes pl{0%,100%{opacity:1}50%{opacity:.3}}
 
@@ -141,7 +154,7 @@ main{padding:22px 0 80px}
 .crow{background:var(--card);padding:12px 17px;display:grid;grid-template-columns:64px 1fr 92px;gap:12px;align-items:center}
 .crow .ct{font-weight:800;font-size:13.5px}
 .crow .cb{height:16px;background:var(--line-2);border-radius:3px;overflow:hidden}
-.crow .cb i{display:block;height:100%;background:var(--chip);transition:width .6s ease}
+.crow .cb i{display:block;height:100%;background:var(--d3);transition:width .6s ease}
 .crow .cv{text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:14px}
 .crow .cv small{display:block;font-family:'Archivo',sans-serif;font-size:11px;color:var(--dim);font-weight:600}
 
@@ -168,7 +181,7 @@ select{cursor:pointer}
 /* odds */
 .big{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:clamp(52px,10vw,86px);line-height:.95;letter-spacing:-.045em;color:var(--ink)}
 .pbar{height:14px;background:var(--line-2);border-radius:3px;overflow:hidden;margin-top:14px;position:relative}
-.pbar i{display:block;height:100%;background:var(--chip);transition:width .5s ease}
+.pbar i{display:block;height:100%;background:var(--d3);transition:width .5s ease}
 .steps{counter-reset:s}
 .step{display:grid;grid-template-columns:30px 1fr;gap:13px;padding:14px 0;border-bottom:1px solid var(--line-2)}
 .step:last-child{border-bottom:none}
@@ -188,9 +201,17 @@ select{cursor:pointer}
 .stamp{font-size:11.5px;color:var(--dim);padding:12px 17px;border-top:1px solid var(--line-2);line-height:1.55}
 .stack{display:flex;height:11px;border-radius:2px;overflow:hidden;background:var(--line-2);min-width:120px}
 .stack i{display:block;height:100%}
-.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;font-weight:600;padding:12px 17px;border-bottom:1px solid var(--line-2)}
-.legend b{display:inline-flex;align-items:center;gap:6px;font-weight:600}
-.legend em{width:11px;height:11px;border-radius:2px;display:block;font-style:normal;border:1px solid var(--line)}
+/* ============ KEY ============
+   Every coloured fill on the site is one of four delivery states, so the key
+   defines them rather than just naming them. */
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:1px;background:var(--line-2);border-bottom:1px solid var(--line-2)}
+.key{background:var(--card);padding:13px 17px;display:grid;grid-template-columns:auto 1fr;gap:5px 10px;align-items:start}
+.key em{width:13px;height:13px;border-radius:3px;display:block;font-style:normal;margin-top:2px;grid-row:span 2}
+.key b{font-size:12.5px;font-weight:800;letter-spacing:-.01em}
+.key span{font-size:11.5px;color:var(--dim);line-height:1.5;grid-column:2}
+.keys.compact .key{padding:11px 14px}
+.keynote{font-size:11.5px;color:var(--dim);padding:11px 17px;border-bottom:1px solid var(--line-2);line-height:1.55;background:var(--card-2)}
+.keynote b{color:var(--ink);font-weight:700}
 
 .empty{padding:34px 20px;text-align:center}
 .empty h3{font-size:15px;font-weight:800;margin-bottom:7px}
@@ -199,6 +220,34 @@ select{cursor:pointer}
 .skel{height:12px;background:var(--line-2);border-radius:3px;margin:9px 0}
 @media(prefers-reduced-motion:no-preference){.skel{animation:sh 1.3s ease-in-out infinite}}
 @keyframes sh{0%,100%{opacity:.45}50%{opacity:.9}}
+/* live-price chip on the odds inputs */
+.livetag{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--card-2);border:1px solid var(--line);color:var(--dim)}
+.livetag.on{border-color:var(--d3);color:var(--d3)}
+.livetag i{width:6px;height:6px;border-radius:50%;background:currentColor;display:block}
+.resync{border:1px solid var(--line);background:var(--card-2);color:var(--ink);font-family:inherit;font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:3px;cursor:pointer}
+.resync:hover{border-color:var(--d3);color:var(--d3)}
+.resync[disabled]{opacity:.4;cursor:default}
+.oddshead{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:2px}
+.oddscmp{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--dim);font-weight:600}
+.oddscmp b{color:var(--ink);font-weight:700}
+
+/* ============ FOOTER ============ */
+.foot{background:#080808;border-top:2px solid var(--chip);position:relative;overflow:hidden;margin-top:56px}
+.footin{position:relative;z-index:2;padding:44px 0 34px}
+.footmark{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;padding-bottom:26px;border-bottom:1px solid #1E1E1E}
+.footmark img{height:58px;width:auto;display:block}
+.footmark p{color:#8E8E8E;font-size:13.5px;line-height:1.6;max-width:46ch}
+.footmark p b{color:var(--chip);font-weight:700}
+.footgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:26px;padding:26px 0 30px;border-bottom:1px solid #1E1E1E}
+.footcol h4{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--chip);margin-bottom:11px}
+.footcol li{list-style:none;font-size:13px;color:#9A9A9A;line-height:1.75}
+.footcol li b{color:#DDD;font-weight:700}
+.footcol a{color:#9A9A9A;text-decoration:none;border-bottom:1px solid #2E2E2E}
+.footcol a:hover{color:var(--chip);border-bottom-color:var(--chip)}
+.footbase{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding-top:22px;font-size:12px;color:#6E6E6E;line-height:1.6}
+.footbase .sep{margin-left:auto}
+@media(max-width:640px){.footbase .sep{margin-left:0}.footmark img{height:44px}}
+
 svg{display:block;width:100%;height:auto}
 .hide{display:none}
 </style>
@@ -244,6 +293,7 @@ svg{display:block;width:100%;height:auto}
     <div class="grid g23" style="margin-bottom:14px">
       <div class="panel">
         <div class="ph"><h2>Delivery by country</h2><span class="meta" id="geoMeta">Tap a row for sites</span></div>
+        <div class="keys compact" id="geoKey"></div>
         <div class="geo" id="geoList"></div>
         <div class="stamp" id="geoStamp"></div>
       </div>
@@ -295,12 +345,9 @@ svg{display:block;width:100%;height:auto}
   <section id="tab-capacity" class="hide">
     <div class="panel" style="margin-bottom:14px">
       <div class="ph"><h2>Capacity leaderboard</h2><span class="meta">Compiled from filings</span></div>
-      <div class="legend">
-        <b><em style="background:var(--chip)"></em> Switched on</b>
-        <b><em style="background:var(--accent)"></em> Contracted, not live</b>
-        <b><em style="background:var(--warn)"></em> In build</b>
-        <b><em style="background:var(--dim)"></em> Pipeline</b>
-      </div>
+      <div class="keys" id="capKey"></div>
+      <div class="keynote">The four states are a <b>sequence, not categories</b> — power moves down the list
+        one stage at a time, and the colour deepens as it does. Only the last one earns money.</div>
       <div class="tw"><table id="capTable"></table></div>
       <div class="stamp">Blanks mean not disclosed, not zero. Delivery rate is switched-on megawatts divided by contracted megawatts.</div>
     </div>
@@ -315,14 +362,15 @@ svg{display:block;width:100%;height:auto}
   <section id="tab-odds" class="hide">
     <div class="grid g32" style="margin-bottom:14px">
       <div class="panel">
-        <div class="ph"><h2>Inputs</h2></div>
+        <div class="ph"><h2>Inputs</h2>
+          <span class="meta"><button class="resync" id="resyncBtn" type="button">Reset to live</button></span></div>
         <div class="pb">
           <div class="frow">
-            <div class="field"><label>Company<span>Pick a ticker</span></label><select id="inTicker"></select></div>
-            <div class="field"><label>Price now<span>Auto-fills when live</span></label><input id="inSpot" type="number" step="0.01" value="44.06" /></div>
-            <div class="field"><label>Target<span>Price you want</span></label><input id="inTarget" type="number" step="0.5" value="72" /></div>
-            <div class="field"><label>By date<span>Deadline</span></label><input id="inDate" type="date" value="2026-12-31" /></div>
-            <div class="field"><label>Volatility<span>Yearly swing %</span></label><input id="inVol" type="number" step="5" value="90" /></div>
+            <div class="field"><label>Company<span>Switching resets every box below</span></label><select id="inTicker"></select></div>
+            <div class="field"><label>Price now <span id="spotTag"></span></label><input id="inSpot" type="number" step="0.01" /></div>
+            <div class="field"><label>Target<span>Price you want</span></label><input id="inTarget" type="number" step="0.5" /></div>
+            <div class="field"><label>By date<span>Deadline</span></label><input id="inDate" type="date" /></div>
+            <div class="field"><label>Volatility<span id="volTag">Yearly swing %</span></label><input id="inVol" type="number" step="5" /></div>
             <div class="field"><label>Drift<span>Your view, %/yr</span></label><input id="inDrift" type="number" step="5" value="0" /></div>
           </div>
         </div>
@@ -371,6 +419,53 @@ svg{display:block;width:100%;height:auto}
 
 </main>
 
+<!-- ============ FOOTER ============ -->
+<footer class="foot">
+  <canvas id="footnodes" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+  <div class="wrap footin">
+    <div class="footmark">
+      <img src="/Logo/logo-header.png" alt="T2C — Time to Compute" />
+      <p>The market prices the press release. We measure the <b>delivery</b> — secured
+         megawatts, contracted megawatts, and the far smaller number actually switched on.</p>
+    </div>
+
+    <div class="footgrid">
+      <div class="footcol">
+        <h4>What this tracks</h4>
+        <ul>
+          <li><b id="fPipe">—</b> pipeline secured</li>
+          <li><b id="fCon">—</b> under contract</li>
+          <li><b id="fLive">—</b> switched on</li>
+          <li><b id="fRate">—</b> delivery rate</li>
+        </ul>
+      </div>
+      <div class="footcol">
+        <h4>Where the data comes from</h4>
+        <ul>
+          <li><a href="https://www.sec.gov/edgar/search/" target="_blank" rel="noopener">SEC EDGAR</a> — filings, live</li>
+          <li><a href="https://finnhub.io" target="_blank" rel="noopener">Finnhub</a> — prices &amp; news, live</li>
+          <li>Capacity tables — compiled by hand from filings</li>
+          <li>Last compiled <b>15 Aug 2026</b></li>
+        </ul>
+      </div>
+      <div class="footcol">
+        <h4>How to read it</h4>
+        <ul>
+          <li>Blanks mean <b>not disclosed</b>, never zero</li>
+          <li>Percentages use <b>disclosed</b> capacity only</li>
+          <li>Nothing here is estimated or modelled</li>
+          <li>Odds are a maths exercise, not advice</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footbase">
+      <span>Not investment advice. Figures are compiled from public filings and may lag or contain errors.</span>
+      <span class="sep">© 2026 T2C — Time to Compute</span>
+    </div>
+  </div>
+</footer>
+
 <script>
 const $=id=>document.getElementById(id);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -378,8 +473,9 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ============ NODE NETWORK ============ */
-(function(){
-  const cv=$('nodes'), ctx=cv.getContext('2d');
+function nodeField(id,density,alpha){
+  const cv=$(id); if(!cv) return;
+  const ctx=cv.getContext('2d');
   let W=0,H=0,dpr=Math.min(window.devicePixelRatio||1,2),nodes=[],raf;
   const mouse={x:-9999,y:-9999};
   function size(){
@@ -387,7 +483,7 @@ const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     W=r.width;H=r.height;
     cv.width=W*dpr;cv.height=H*dpr;
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    const count=Math.round(clamp(W*H/13000,26,84));
+    const count=Math.round(clamp(W*H/density,14,84));
     nodes=Array.from({length:count},()=>({
       x:Math.random()*W,y:Math.random()*H,
       vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.28,
@@ -409,13 +505,13 @@ const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       for(let j=i+1;j<nodes.length;j++){
         const b=nodes[j],d=Math.hypot(a.x-b.x,a.y-b.y);
         if(d<LINK){
-          ctx.strokeStyle='rgba(214,255,0,'+(0.30*(1-d/LINK)).toFixed(3)+')';
+          ctx.strokeStyle='rgba(214,255,0,'+(alpha*(1-d/LINK)).toFixed(3)+')';
           ctx.lineWidth=1;
           ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
         }
       }
       const near=Math.hypot(a.x-mouse.x,a.y-mouse.y)<120;
-      ctx.fillStyle=near?'rgba(214,255,0,.95)':'rgba(214,255,0,.55)';
+      ctx.fillStyle=near?'rgba(214,255,0,.95)':'rgba(214,255,0,'+(alpha*1.85).toFixed(2)+')';
       ctx.beginPath();ctx.arc(a.x,a.y,near?a.r*1.7:a.r,0,Math.PI*2);ctx.fill();
     }
     if(!reduced) raf=requestAnimationFrame(draw);
@@ -427,7 +523,9 @@ const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.addEventListener('resize',()=>{cancelAnimationFrame(raf);size();draw();});
   size();draw();
   new ResizeObserver(()=>{cancelAnimationFrame(raf);size();draw();}).observe(cv.parentElement);
-})();
+}
+nodeField('nodes',13000,0.30);
+nodeField('footnodes',26000,0.16);
 
 /* theme + tabs */
 $('themeBtn').onclick=()=>{
@@ -494,8 +592,27 @@ const CON=[
 {c:'APLD',cust:'Delta Forge 2',mw:null,yrs:null,val:null,del:null,chips:'Tenant-supplied. Implies ~$1.7m/MW/yr'}
 ];
 
-const STATUS_COL={live:'var(--chip)',build:'var(--warn)',pipeline:'var(--dim)'};
+/* ============ THE KEY ============
+   One ordered ramp, defined once and reused by every fill on the site: the
+   further down the list, the closer the power is to earning. */
+const KEY=[
+  {k:'live',     col:'var(--d4)', lbl:'Switched on',
+   def:'Powered, running and earning revenue today. The only number that reflects money actually coming in.'},
+  {k:'contract', col:'var(--d3)', lbl:'Contracted, not live',
+   def:'A customer has signed and committed to pay, but the hardware is not delivering yet.'},
+  {k:'build',    col:'var(--d2)', lbl:'In build',
+   def:'Construction under way — power, cooling and steel going in. No customer revenue from it yet.'},
+  {k:'pipeline', col:'var(--d1)', lbl:'Pipeline',
+   def:'Grid power secured or land optioned. Nothing built, nothing signed. The least certain figure a company quotes.'}
+];
+const STATUS_COL={live:'var(--d4)',build:'var(--d2)',pipeline:'var(--d1)'};
 const STATUS_LBL={live:'Switched on',build:'In build',pipeline:'Pipeline'};
+function drawKeys(){
+  const cell=k=>`<div class="key"><em style="background:${k.col}"></em><b>${k.lbl}</b><span>${k.def}</span></div>`;
+  // The country panel only ever plots three of the four states.
+  $('geoKey').innerHTML=KEY.filter(k=>k.k!=='contract').map(cell).join('');
+  $('capKey').innerHTML=KEY.map(cell).join('');
+}
 
 /* ============ GEO ============ */
 function drawGeo(){
@@ -570,6 +687,11 @@ function drawGeo(){
     <div class="hkpi"><div class="n">${tl.toFixed(0)} MW</div><div class="l">Switched on</div><div class="e">Earning today</div></div>
     <div class="hkpi"><div class="n white">${tc?((tl/tc)*100).toFixed(0):'—'}%</div><div class="l">Delivery rate</div><div class="e">Live ÷ contracted</div></div>
     <div class="hkpi"><div class="n">${Object.keys(COUNTRY).length}</div><div class="l">Countries</div><div class="e">With named sites</div></div>`;
+
+  $('fPipe').textContent=(tp/1000).toFixed(1)+' GW';
+  $('fCon').textContent=tc.toFixed(0)+' MW';
+  $('fLive').textContent=tl.toFixed(0)+' MW';
+  $('fRate').textContent=tc?((tl/tc)*100).toFixed(0)+'%':'—';
 }
 
 /* ============ LIVE FEEDS ============ */
@@ -606,8 +728,10 @@ async function loadQuotes(){
     $('quoteMeta').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     setConn('cQuote','ok','Prices live');
     drawTape(q);
-    const t=$('inTicker').value;
-    if(q[t]&&q[t].price!=null){$('inSpot').value=Number(q[t].price).toFixed(2);drawOdds();}
+    LASTQ=q;
+    // Refresh the calculator against the new prices, but never clobber a figure
+    // the user has typed over themselves.
+    syncTicker(false);
   }catch(e){
     $('quoteWrap').innerHTML=emptyBlock('Prices not connected','Deploy <code>/api/quote.js</code> and set <code>FINNHUB_KEY</code> in Vercel. This panel stays empty rather than showing invented numbers.');
     $('quoteMeta').textContent='Offline';setConn('cQuote','off','Prices off');
@@ -626,14 +750,23 @@ function drawTape(q){
 }
 
 let NEWS=[],newsFilter='ALL';
+/* Publisher images are third-party and often 404 or hotlink-block. Drop the whole
+   frame on error so a card never shows a broken-image box or an empty grey slab. */
+const IMGFAIL="this.parentElement.remove()";
+const thumb=(n,cls)=>n.image
+  ? `<span class="${cls}"><img src="${esc(n.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="${IMGFAIL}" /></span>`
+  : '';
 function newsCard(n){
   return `<a class="ncard" href="${esc(n.url)}" target="_blank" rel="noopener">
-    <div class="hl">${esc(n.headline)}</div>
-    <div class="mt">
-      ${(n.symbols||[]).slice(0,3).map(s=>`<span class="symp">${esc(s)}</span>`).join('')}
-      <span class="srcpill">${esc(n.source||'')}</span>
-      ${n.datetime&&(Date.now()-n.datetime*1000)<7200000?`<span class="fresh"><i></i>${ago(n.datetime)}</span>`:`<span>${ago(n.datetime)}</span>`}
-    </div></a>`;
+    ${thumb(n,'nthumb')}
+    <span class="nbody">
+      <span class="hl">${esc(n.headline)}</span>
+      <span class="mt">
+        ${(n.symbols||[]).slice(0,3).map(s=>`<span class="symp">${esc(s)}</span>`).join('')}
+        <span class="srcpill">${esc(n.source||'')}</span>
+        ${n.datetime&&(Date.now()-n.datetime*1000)<7200000?`<span class="fresh"><i></i>${ago(n.datetime)}</span>`:`<span>${ago(n.datetime)}</span>`}
+      </span>
+    </span></a>`;
 }
 function renderNews(){
   const items=newsFilter==='ALL'?NEWS:NEWS.filter(n=>(n.symbols||[]).includes(newsFilter));
@@ -646,6 +779,7 @@ function renderNews(){
   const top=items[0];
   $('newsHero').innerHTML=`<a class="newshero" href="${esc(top.url)}" target="_blank" rel="noopener">
     <div class="lead">Lead story</div>
+    ${top.image?`<img class="heroimg" src="${esc(top.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />`:''}
     <div class="hl">${esc(top.headline)}</div>
     <div class="mt" style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--dim);font-weight:600">
       ${(top.symbols||[]).slice(0,4).map(s=>`<span class="symp">${esc(s)}</span>`).join('')}
@@ -683,8 +817,10 @@ async function loadFilings(){
     const items=d.items||[];
     $('filingList').innerHTML=items.length?'<div class="newsgrid">'+items.slice(0,48).map(f=>`
       <a class="ncard" href="${esc(f.url)}" target="_blank" rel="noopener">
-        <div class="hl">${esc(f.form)} — ${esc(f.description||f.company||'')}</div>
-        <div class="mt"><span class="symp">${esc(f.symbol)}</span><span class="srcpill">SEC EDGAR</span><span>${esc(f.filed)}</span></div>
+        <span class="nbody">
+          <span class="hl">${esc(f.form)} — ${esc(f.description||f.company||'')}</span>
+          <span class="mt"><span class="symp">${esc(f.symbol)}</span><span class="srcpill">SEC EDGAR</span><span>${esc(f.filed)}</span></span>
+        </span>
       </a>`).join('')+'</div>':emptyBlock('No recent filings','Nothing new from these companies in the window queried.');
     $('filingMeta').textContent=items.length+' filings';setConn('cFilings','ok','Filings live');
   }catch(e){
@@ -708,9 +844,9 @@ function drawCapacity(){
       <td style="font-weight:800">${fmtMW(c.live)}</td>
       <td>${rate==null?'<span style="color:var(--dim)">—</span>':'<b>'+(rate*100).toFixed(0)+'%</b>'}</td>
       <td><div class="stack">
-        <i style="background:var(--chip);width:${lw}%"></i><i style="background:var(--accent);width:${cw}%"></i>
-        <i style="background:var(--warn);width:${bw}%"></i>
-        <i style="background:var(--dim);width:${Math.max(p(base)-lw-cw-bw,0)}%"></i></div>
+        <i style="background:var(--d4);width:${lw}%"></i><i style="background:var(--d3);width:${cw}%"></i>
+        <i style="background:var(--d2);width:${bw}%"></i>
+        <i style="background:var(--d1);width:${Math.max(p(base)-lw-cw-bw,0)}%"></i></div>
         <span class="sub2">${c.note}</span></td>
       <td style="font-size:11.5px;color:var(--dim)">${c.checked}</td></tr>`;
   }
@@ -768,6 +904,60 @@ const qt=(S0,s,T,mu,z)=>S0*Math.exp((mu-0.5*s*s)*T+z*s*Math.sqrt(T));
 
 $('inTicker').innerHTML=WATCH.map(s=>`<option value="${s}"${s==='IREN'?' selected':''}>${s} — ${NAMES[s]}</option>`).join('');
 
+/* ============ CALCULATOR STATE ============
+   The inputs used to be hard-coded to IREN's price, a $72 target and a flat 90%
+   volatility, and switching ticker changed none of them — so every company after
+   the first was priced off the wrong share. Each box now derives from live data
+   and resets on ticker change, unless the user has overridden it by hand. */
+let LASTQ={}, DIRTY={spot:false,target:false,vol:false,date:false};
+
+/* Fallback annualised volatility, used only until a live high/low arrives. */
+const VOL_BASE={IREN:90,CRWV:85,NBIS:75,WULF:95,KEEL:100,APLD:85,CIFR:90,NVDA:45};
+
+/* Parkinson estimator: the day's high-low range carries more information about
+   volatility than a close-to-close move, and it is all the quote route returns.
+   One day is a noisy sample though — a quiet session put NVDA at 15%, which is
+   less than half its real level — so it is blended toward the typical figure
+   rather than trusted outright. */
+function estVol(v,base){
+  if(!v||!(v.high>0)||!(v.low>0)||v.high<=v.low) return null;
+  const hl=Math.log(v.high/v.low);
+  const park=Math.sqrt(hl*hl/(4*Math.LN2))*Math.sqrt(252)*100;
+  return clamp(Math.round(park*0.4+base*0.6),20,220);
+}
+/* A target one typical yearly swing above spot, rounded to something human. */
+function niceTarget(spot,volPct){
+  const raw=spot*(1+clamp(volPct/100,.15,1.2)*0.55);
+  const step=raw>=500?50:raw>=100?10:raw>=25?5:raw>=10?1:0.5;
+  return +(Math.round(raw/step)*step).toFixed(2);
+}
+const isoIn=days=>new Date(Date.now()+days*86400000).toISOString().slice(0,10);
+
+function syncTicker(reset){
+  const t=$('inTicker').value, v=LASTQ[t];
+  const live=v&&v.price!=null;
+  if(reset) DIRTY={spot:false,target:false,vol:false,date:false};
+
+  if(live&&!DIRTY.spot) $('inSpot').value=Number(v.price).toFixed(2);
+  else if(reset&&!live) $('inSpot').value='';
+
+  const base=VOL_BASE[t]??80, est=live?estVol(v,base):null, vol=est??base;
+  if(!DIRTY.vol) $('inVol').value=vol;
+  $('volTag').textContent=DIRTY.vol ? 'Your figure'
+    : est!=null ? 'Today’s range + typical' : 'Typical for this share';
+
+  if(!DIRTY.date&&(reset||!$('inDate').value)) $('inDate').value=isoIn(90);
+
+  const spot=+$('inSpot').value;
+  if(!DIRTY.target&&spot>0) $('inTarget').value=niceTarget(spot,+$('inVol').value||vol);
+
+  $('spotTag').innerHTML=live
+    ? `<span class="livetag on"><i></i>Live${DIRTY.spot?' · overridden':''}</span>`
+    : `<span class="livetag">Prices offline — type one</span>`;
+  $('resyncBtn').disabled=!(DIRTY.spot||DIRTY.target||DIRTY.vol||DIRTY.date);
+  drawOdds();
+}
+
 let DIST={};
 function drawOdds(){
   const S0=+$('inSpot').value,B=+$('inTarget').value;
@@ -787,6 +977,7 @@ function drawOdds(){
   const mv=(B/S0-1)*100, logD=Math.log(B/S0), sT=s*Math.sqrt(T), sd=logD/sT;
 
   $('qLine').textContent=`Touching $${B} before ${new Date($('inDate').value).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`;
+  $('oddsTicker').innerHTML=`<span class="oddscmp"><b>${$('inTicker').value}</b> $${S0.toFixed(2)} → $${B} · ${days}d</span>`;
   $('bigOdds').textContent=(pt*100).toFixed(0)+'%';
   $('oddsBar').style.width=(pt*100)+'%';
   const w=pt>.7?'comfortably more likely than not':pt>.55?'slightly more likely than not'
@@ -838,7 +1029,8 @@ function drawDist(){
   const m=mu-0.5*s*s, mean=Math.log(S0)+m*T, sd=s*Math.sqrt(T);
   const base=H-pb, amp=H-pt_-pb;
   const css=getComputedStyle(document.documentElement);
-  const chip=css.getPropertyValue('--chip').trim()||'#D6FF00';
+  // The shaded region is data, so it takes a ramp step; lime is only 1.16:1 on white.
+  const chip=css.getPropertyValue('--d3').trim()||'#2A7D52';
   const dim=css.getPropertyValue('--dim').trim()||'#888';
   const ink=css.getPropertyValue('--ink').trim()||'#000';
   const line=css.getPropertyValue('--line-2').trim()||'#ddd';
@@ -895,12 +1087,26 @@ function showTerm(k){
 document.querySelectorAll('.term').forEach(b=>{b.onclick=()=>showTerm(b.dataset.t);});
 showTerm(Object.keys(TERMS)[0]);
 
-['inSpot','inTarget','inDate','inVol','inDrift'].forEach(i=>$(i).addEventListener('input',drawOdds));
-$('inTicker').addEventListener('change',drawOdds);
+/* Typing in a box marks it as the user's, so the 60-second price refresh stops
+   overwriting it. "Reset to live" hands control back. */
+Object.entries({inSpot:'spot',inTarget:'target',inVol:'vol',inDate:'date'}).forEach(([id,flag])=>{
+  $(id).addEventListener('input',()=>{
+    DIRTY[flag]=true;
+    $('resyncBtn').disabled=false;
+    if(flag==='spot') $('spotTag').innerHTML='<span class="livetag">Your figure</span>';
+    if(flag==='vol') $('volTag').textContent='Your figure';
+    drawOdds();
+  });
+});
+$('inDrift').addEventListener('input',drawOdds);
+$('inTicker').addEventListener('change',()=>syncTicker(true));
+$('resyncBtn').onclick=()=>syncTicker(true);
 
 function refreshAll(){loadQuotes();loadNews();loadFilings();}
 $('refreshBtn').onclick=refreshAll;
-drawGeo();drawCapacity();drawContracts();drawSetup();drawOdds();refreshAll();
+drawKeys();drawGeo();drawCapacity();drawContracts();drawSetup();
+syncTicker(true);
+refreshAll();
 setInterval(loadQuotes,60000);setInterval(loadNews,300000);
 </script>
 </body>

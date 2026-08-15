@@ -42,6 +42,8 @@ export default async function handler(req, res) {
             url: a.url,
             source: a.source,
             datetime: a.datetime,
+            // Finnhub sometimes returns "" or a placeholder; only pass real URLs.
+            image: /^https?:\/\//.test(a.image || '') ? a.image : null,
             symbols: [sym]
           });
         }
@@ -64,6 +66,7 @@ export default async function handler(req, res) {
             url: a.url,
             source: a.source,
             datetime: a.datetime,
+            image: /^https?:\/\//.test(a.image || '') ? a.image : null,
             symbols: []
           });
         }
