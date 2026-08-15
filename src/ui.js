@@ -7,9 +7,10 @@ import { SOURCE_BY_ID } from '../data/sources.js';
 import { COMPANIES } from '../data/companies.js';
 import { PROJECTS_BY_COMPANY, CONTRACTS, COUNTRY_NAMES } from '../data/projects.js';
 import { CATALYST_STATUS, CATALYST_CATEGORIES, CATALYSTS } from '../data/catalysts.js';
+import { PROFILE_BY_ID, PLATFORM_LABEL, chiefExecutives } from '../data/profiles.js';
 import {
   companyView, headlineKpis, byCountry, ledger, aggregate, isKnown, gateSummary, dataHealth,
-  timeline, deliveryRecord
+  timeline, deliveryRecord, briefing, companySnapshots
 } from './lib/compute.js';
 import {
   esc, mw, mwWithStatus, pct, usdBn, date, hostOf, NOT_DISCLOSED, windowLabel, countdown, statusLabel, basisLabel
@@ -529,4 +530,183 @@ export function dataHealthPanel(buildStamp) {
     <div class="stamp">Static data built <b>${esc(buildStamp)}</b>. Live feed status is shown in the header;
       analyst coverage is reported in the Scenarios view.</div>
   </section>`;
+}
+
+/* ================= company profile / About ================= */
+
+const PLATFORM_GLYPH = { linkedin: 'in', x: '𝕏', youtube: '▶', instagram: '◙', facebook: 'f', other: '↗' };
+
+/**
+ * Official links. Every social here was found linked from a company-controlled
+ * domain; anything unverified simply does not render, rather than showing an
+ * empty "Not available" row.
+ */
+export function officialLinks(profile) {
+  const btn = (url, label, glyph, text) =>
+    `<a class="olink" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(label)}">
+      <span class="oglyph" aria-hidden="true">${glyph}</span><span>${esc(text)}</span></a>`;
+
+  const items = [
+    btn(profile.websiteUrl, `${profile.legalName} official website`, '⌂', 'Website'),
+    profile.investorRelationsUrl ? btn(profile.investorRelationsUrl, `${profile.legalName} investor relations`, '§', 'Investor relations') : '',
+    profile.secFilingsUrl ? btn(profile.secFilingsUrl, `${profile.legalName} SEC filings`, '¶', 'SEC filings') : '',
+    ...(profile.socials || []).map(s =>
+      btn(s.url, s.label, PLATFORM_GLYPH[s.platform] || '↗',
+        `${PLATFORM_LABEL[s.platform] || s.platform}${s.handle ? ' · ' + s.handle : ''}`))
+  ].filter(Boolean);
+
+  return `<div class="olinks">${items.join('')}</div>`;
+}
+
+export function leadershipCards(profile) {
+  const chiefs = chiefExecutives(profile);
+  if (!chiefs.length) {
+    return `<div class="empty"><h3>Leadership not recorded</h3>
+      <p>No current chief executive has been verified against an official source.</p></div>`;
+  }
+  const coLed = chiefs.length > 1;
+  return `${coLed ? `<div class="keynote">This company is led by <b>co-chief executives</b>. Both are recorded; neither is presented as the sole CEO.</div>` : ''}
+    <div class="execgrid">${chiefs.map(e => `<article class="execcard">
+      <div class="execname">${esc(e.name)}</div>
+      <div class="exectitle">${esc(e.title)}</div>
+      ${e.roleStartedAt ? `<div class="execmeta">In role since ${esc(date(e.roleStartedAt))}</div>` : ''}
+      ${e.biography ? `<p class="execbio">${esc(e.biography)}</p>` : ''}
+      <div class="execsrc">${sourceChips(e.sourceIds)}<span class="asof">verified ${esc(date(e.verifiedAt))}</span></div>
+    </article>`).join('')}</div>`;
+}
+
+export function aboutPanel(profile) {
+  const hq = [profile.headquarters?.city, profile.headquarters?.region, profile.headquarters?.country]
+    .filter(Boolean).join(', ') || NOT_DISCLOSED;
+  const fact = (label, value) =>
+    `<dt>${esc(label)}</dt><dd>${value || `<span class="nd">${NOT_DISCLOSED}</span>`}</dd>`;
+
+  return `<section class="panel" id="about">
+    <div class="ph"><h2>About ${esc(profile.tradingName)}</h2>
+      <span class="meta">Last verified ${esc(date(profile.verifiedAt))}</span></div>
+    <div class="pb">
+      <p class="lede note">${esc(profile.shortDescription)}</p>
+      <p class="note">${esc(profile.longDescription)}</p>
+    </div>
+
+    <div class="ph"><h3>Company facts</h3></div>
+    <div class="pb"><dl class="facts">
+      ${fact('Legal name', esc(profile.legalName))}
+      ${fact('Ticker / exchange', `${esc(profile.ticker)}${profile.exchange ? ' · ' + esc(profile.exchange) : ''}`)}
+      ${fact('Founded', profile.foundedYear ? String(profile.foundedYear) : null)}
+      ${fact('Headquarters', esc(hq))}
+      ${fact('Business model', esc(MODELS[profile.businessModel]?.label || profile.businessModel))}
+      ${fact('Last verified', esc(date(profile.verifiedAt)))}
+    </dl></div>
+
+    <div class="ph"><h3>Who leads it</h3></div>
+    <div class="pb">${leadershipCards(profile)}</div>
+
+    <div class="ph"><h3>What it sells</h3></div>
+    <div class="pb"><ul class="plainlist">
+      ${(profile.primaryProductsOrServices || []).map(s => `<li>${esc(s)}</li>`).join('')}
+    </ul></div>
+
+    <div class="ph"><h3>How it makes money</h3></div>
+    <div class="pb"><p class="note">${esc(MODELS[profile.businessModel]?.definition || '')}</p></div>
+
+    <div class="ph"><h3>Where it operates</h3></div>
+    <div class="pb">
+      <ul class="plainlist">${(profile.geographicFootprint || []).map(g => `<li>${esc(g)}</li>`).join('')}</ul>
+      <p class="hintnote">Operating presence as disclosed. This is not the same as future pipeline —
+        a named location may hold nothing but secured power.</p>
+    </div>
+
+    ${(profile.disclosedKeyCustomers || []).length ? `
+    <div class="ph"><h3>Publicly disclosed customers</h3></div>
+    <div class="pb"><ul class="plainlist">
+      ${profile.disclosedKeyCustomers.map(c => `<li>${esc(c)}</li>`).join('')}
+    </ul>
+    <p class="hintnote">Only customers the company has named publicly. Several tracked companies
+      describe counterparties only as "investment-grade hyperscaler", and those are not guessed at here.</p></div>` : ''}
+
+    <div class="ph"><h3>Official links</h3></div>
+    <div class="pb">${officialLinks(profile)}
+      <p class="hintnote">Social accounts are shown only where the link was found on a company-controlled
+        domain. A verification badge alone is not treated as evidence.</p></div>
+  </section>`;
+}
+
+/* ================= homepage: market in 30 seconds ================= */
+
+export function briefingCards() {
+  return `<div class="brief">` + briefing().map(c => {
+    if (!c.available) {
+      return `<article class="bcard bcard-off">
+        <div class="bkicker">${esc(c.kicker)}</div>
+        <p class="bunavail">${esc(c.unavailableReason || 'Not enough sourced data yet.')}</p>
+        ${c.actionHref ? `<a class="baction" href="${esc(c.actionHref)}">${esc(c.actionLabel)} →</a>` : ''}
+      </article>`;
+    }
+    return `<article class="bcard">
+      <div class="bkicker">${esc(c.kicker)}</div>
+      <div class="bco"><b>${esc(c.ticker || '')}</b> ${esc(c.company || '')}</div>
+      ${c.figure ? `<div class="bfig">${esc(c.figure)}</div>` : ''}
+      <p class="bsent">${esc(c.sentence)}</p>
+      <div class="bmeta">
+        ${c.dateLabel ? `<span class="asof">${c.isWindow ? 'from ' : ''}${esc(date(c.dateLabel))}</span>` : ''}
+        ${sourceChips(c.sourceIds)}
+      </div>
+      <a class="baction" href="${esc(c.actionHref)}">${esc(c.actionLabel)} →</a>
+    </article>`;
+  }).join('') + `</div>`;
+}
+
+/* ================= homepage: company snapshot cards ================= */
+
+/**
+ * A readable card per company, before any dense table. Plain-English labels lead;
+ * the precise technical term sits in the tooltip.
+ */
+export function snapshotCards() {
+  return `<div class="snaps">` + companySnapshots().map(s => {
+    const c = s.company;
+    const p = PROFILE_BY_ID[c.id];
+    const health = s.evidence.total
+      ? Math.round((s.evidence.confirmed / s.evidence.total) * 100) : 0;
+    const energised = isKnown(s.energised)
+      ? mwWithStatus(s.energised.valueMw, s.energised.valueStatus) : NOT_DISCLOSED;
+    const contracted = isKnown(s.contracted)
+      ? mwWithStatus(s.contracted.valueMw, s.contracted.valueStatus)
+      : (c.contractedLabel || NOT_DISCLOSED);
+    const next = s.nextCatalyst;
+    const when = next ? (next.expectedAt ? date(next.expectedAt)
+      : windowLabel(next.expectedWindowStart, next.expectedWindowEnd)) : null;
+
+    return `<article class="snap" data-ticker="${esc(c.ticker)}">
+      <header class="snaphead">
+        <div>
+          <a class="snapname" href="/companies/${esc(c.slug)}/">${esc(c.name)}</a>
+          <div class="snaptick mono">${esc(c.ticker)} · ${esc(MODELS[c.model].label)}</div>
+        </div>
+        <div class="snapprice mono" data-price="${esc(c.ticker)}"><span class="skel" style="width:64px;height:16px"></span></div>
+      </header>
+
+      <dl class="snapstats">
+        <dt title="Energised critical IT — data-centre capacity live and drawing power">Capacity switched on</dt>
+        <dd>${esc(energised)}</dd>
+        <dt title="Customer-contracted capacity — compute a paying customer has signed for">Customers have signed for</dt>
+        <dd>${esc(contracted)}</dd>
+        <dt title="The furthest delivery gate with evidence behind it">Delivery stage</dt>
+        <dd>${s.stage ? esc(s.stage.short) : `<span class="nd">${NOT_DISCLOSED}</span>`}</dd>
+        <dt>Next catalyst</dt>
+        <dd>${next ? `${esc(when)}<span class="sub">${esc(next.title)}</span>` : `<span class="nd">None dated</span>`}</dd>
+      </dl>
+
+      <div class="snaphealth" title="Share of this company's disclosed figures backed by a linked primary document">
+        <div class="hbar"><i style="width:${health}%"></i></div>
+        <span>${health}% sourced · ${s.evidence.notDisclosed} not disclosed</span>
+      </div>
+
+      <div class="snapacts">
+        <a class="cta small primary" href="/companies/${esc(c.slug)}/">View company</a>
+        <button class="cta small ghost snapcompare" type="button" data-add="${esc(c.ticker)}">Compare</button>
+      </div>
+    </article>`;
+  }).join('') + `</div>`;
 }

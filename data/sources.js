@@ -11,6 +11,69 @@ export const AUDIT_CUTOFF = '2026-08-15';
 const S = (id, o) => ({ id, accessedAt: AUDIT_CUTOFF, ...o });
 
 export const SOURCES = [
+
+  /* ---------------- Company profiles, leadership and official links ----------------
+     Each of these is an official company-controlled page. Socials were verified by
+     extracting the links FROM these domains on the accessed date, not by searching
+     for handles — an account we could not find linked from an official site is not
+     displayed at all. */
+  S('iren-official-site', {
+    title: 'IREN Limited — official website',
+    url: 'https://iren.com/', publisher: 'IREN Limited', sourceType: 'company-profile',
+    publishedAt: '2026-08-15', isPrimary: true,
+    supportingExcerpt: 'Official site footer links to linkedin.com/company/iren, x.com/IREN_Ltd and youtube.com/@iren_co.'
+  }),
+  S('crwv-exec-management', {
+    title: 'CoreWeave — Executive Management',
+    url: 'https://investors.coreweave.com/governance/executive-management/default.aspx',
+    publisher: 'CoreWeave, Inc.', sourceType: 'company-profile', publishedAt: '2026-08-15', isPrimary: true,
+    supportingExcerpt: 'Official investor-relations governance page listing executive management, including Michael Intrator as Chief Executive Officer.'
+  }),
+  S('nbis-volozh-profile', {
+    title: 'Nebius Group — Arkady Volozh',
+    url: 'https://nebius.com/board-of-directors/arkady-volozh',
+    publisher: 'Nebius Group N.V.', sourceType: 'company-profile', publishedAt: '2026-08-15', isPrimary: true,
+    supportingExcerpt: 'Official company profile page for Arkady Volozh, founder and Chief Executive Officer.'
+  }),
+  S('wulf-about', {
+    title: 'TeraWulf — About Us',
+    url: 'https://www.terawulf.com/about', publisher: 'TeraWulf Inc.', sourceType: 'company-profile',
+    publishedAt: '2026-08-15', isPrimary: true,
+    supportingExcerpt: 'Official about page describing the leadership team, including Paul B. Prager as co-founder, Chairman and Chief Executive Officer.'
+  }),
+  S('keel-gagnon-appointment', {
+    title: 'Bitfarms Appoints Ben Gagnon as Chief Executive Officer',
+    url: 'https://investor.bitfarms.com/news-releases/news-release-details/bitfarms-appoints-ben-gagnon-chief-executive-officer',
+    publisher: 'Bitfarms Ltd (now Keel Infrastructure)', sourceType: 'company-ir',
+    publishedAt: '2024-07-08', effectiveAt: '2024-07-08', isPrimary: true,
+    supportingExcerpt: 'Official appointment release naming Ben Gagnon Chief Executive Officer.'
+  }),
+  S('keel-rebrand-release', {
+    title: 'Bitfarms Officially Rebrands as Keel Infrastructure; Completes U.S. Redomiciliation',
+    url: 'https://investor.bitfarms.com/news-releases/news-release-details/bitfarms-officially-rebrands-keel-infrastructure-completes-us',
+    publisher: 'Keel Infrastructure', sourceType: 'company-ir',
+    publishedAt: '2026-04-01', effectiveAt: '2026-04-01', isPrimary: true,
+    supportingExcerpt: 'Rebrand from Bitfarms to Keel Infrastructure and redomiciliation from Canada to the United States; common stock began trading as KEEL on Nasdaq and TSX on 6 April 2026.'
+  }),
+  S('apld-exec-team', {
+    title: 'Applied Digital — Executive Team',
+    url: 'https://ir.applieddigital.com/company-information/executive-team',
+    publisher: 'Applied Digital Corporation', sourceType: 'company-profile', publishedAt: '2026-08-15', isPrimary: true,
+    supportingExcerpt: 'Official investor-relations executive team page listing Wes Cummins as Chairman and Chief Executive Officer.'
+  }),
+  S('cifr-team', {
+    title: 'Cipher Mining — Executive Management',
+    url: 'https://www.ciphermining.com/team', publisher: 'Cipher Mining Inc.', sourceType: 'company-profile',
+    publishedAt: '2026-08-15', isPrimary: true,
+    supportingExcerpt: 'Official executive management page listing Tyler Page as Chief Executive Officer.'
+  }),
+  S('nvda-board', {
+    title: 'NVIDIA — Board of Directors',
+    url: 'https://www.nvidia.com/en-us/about-nvidia/board-of-directors/',
+    publisher: 'NVIDIA Corporation', sourceType: 'company-profile', publishedAt: '2026-08-15', isPrimary: true,
+    supportingExcerpt: 'Official board page listing Jensen Huang as founder, President and Chief Executive Officer.'
+  }),
+
   /* ---------------- CoreWeave ---------------- */
   S('crwv-q2-2026-release', {
     title: 'CoreWeave Reports Strong Second Quarter 2026 Results',

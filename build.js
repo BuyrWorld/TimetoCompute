@@ -13,6 +13,7 @@ import { COMPANIES, WATCH_TICKERS, TICKER_NAMES } from './data/companies.js';
 import { CONTRACTS_BY_COMPANY, COUNTRY_NAMES } from './data/projects.js';
 import { CORRECTIONS } from './data/events.js';
 import { CATALYSTS_BY_COMPANY } from './data/catalysts.js';
+import { PROFILE_BY_ID, PROFILES, chiefExecutives } from './data/profiles.js';
 import { companyView, ledger, aggregate, isKnown, gateSummary } from './src/lib/compute.js';
 import { runChecks } from './src/lib/validate.js';
 import { esc, mw, pct, date, hostOf, NOT_DISCLOSED, statusLabel } from './src/lib/format.js';
@@ -23,7 +24,8 @@ import {
   kpiStrip, kpiCards, ledgerPanel, capacityTable, contractsTable, countryPanel,
   evidenceKey, valueTypeKey, basisKey, gateTrack, evidenceChip, statusChip, basisChip,
   sourceChips, evidencedValue, evidenceDrawer, reconciliationPanel, catalystPanel,
-  dataHealthPanel, pill, timelinePanel, deliveryRecordPanel
+  dataHealthPanel, pill, timelinePanel, deliveryRecordPanel,
+  briefingCards, snapshotCards, aboutPanel, officialLinks, leadershipCards
 } from './src/ui.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -41,15 +43,25 @@ if (!checks.ok) {
 }
 console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
 
+/**
+ * Six top-level views, ordered by what an ordinary visitor wants first.
+ * Specialist material lives under Research rather than competing for the top bar.
+ */
 const NAV = [
   { id: 'overview', label: 'Overview' },
-  { id: 'ledger', label: 'Delivery ledger' },
-  { id: 'capacity', label: 'Capacity' },
-  { id: 'intelligence', label: 'Intelligence' },
-  { id: 'filings', label: 'Filings' },
-  { id: 'scenarios', label: 'Scenarios' },
-  { id: 'compare', label: 'Compare' }
+  { id: 'companies', label: 'Companies' },
+  { id: 'compare', label: 'Compare' },
+  { id: 'catalysts', label: 'Catalysts' },
+  { id: 'forecasts', label: 'Forecasts' },
+  { id: 'research', label: 'Research' }
 ];
+
+/** Old hash routes keep working. Shared links must not rot. */
+const HASH_ALIASES = {
+  odds: 'forecasts', scenarios: 'forecasts',
+  ledger: 'research', capacity: 'research', intelligence: 'research',
+  filings: 'research', geography: 'research', 'data-health': 'research'
+};
 
 function head({ title, description, canonical, structured = null }) {
   return `<meta charset="utf-8" />
@@ -73,7 +85,8 @@ function head({ title, description, canonical, structured = null }) {
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="/Logo/logo-header.png" />
 <link rel="stylesheet" href="/styles.css" />
-${structured ? `<script type="application/ld+json">${JSON.stringify(structured)}</script>` : ''}`;
+${(Array.isArray(structured) ? structured : [structured]).filter(Boolean)
+  .map(s => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n')}`;
 }
 
 /** Feed status is filled in by the client once it knows the market session. */
@@ -144,7 +157,8 @@ ${header()}
 ${body}
 ${footer()}
 <script type="application/json" id="t2c-config">${JSON.stringify({
-    tickers: WATCH_TICKERS, names: TICKER_NAMES, maxCompare: MAX_TICKERS, buildStamp: BUILD_STAMP
+    tickers: WATCH_TICKERS, names: TICKER_NAMES, maxCompare: MAX_TICKERS, buildStamp: BUILD_STAMP,
+    tabs: NAV.map(n => n.id), hashAliases: HASH_ALIASES
   })}</script>
 <script src="/app.js" defer></script>
 </body>
@@ -157,11 +171,12 @@ function hero() {
   return `<section class="hero">
   <canvas id="flow" aria-hidden="true"></canvas>
   <div class="wrap heroin">
-    <h1 class="tagline">The market prices the press release. We measure the <u>delivery</u>.</h1>
-    <p class="taglinesub">Track the journey from secured power to customer-accepted, invoicing AI compute.</p>
+    <h1 class="tagline">See which AI infrastructure companies are <u>actually delivering</u>.</h1>
+    <p class="taglinesub">Track power, customer contracts, construction, customer acceptance, analyst
+      expectations and upcoming catalysts — all linked to the underlying evidence.</p>
     <div class="heroacts">
-      <a class="cta primary" href="#ledger">Explore the delivery ledger</a>
-      <a class="cta ghost" href="/methodology/">View methodology</a>
+      <a class="cta primary" href="#compare">Compare companies</a>
+      <a class="cta ghost" href="#catalysts">See upcoming catalysts</a>
     </div>
   </div>
   <div class="wrap"><div class="kstrip">${kpiStrip()}</div></div>
@@ -294,34 +309,77 @@ function compareView() {
 
 function homepage() {
   const views = {
+    /* 1. What changed, who is delivering, what happens next — before any table. */
     overview: `
+      <section class="panel brief-panel">
+        <div class="ph"><h2>The market in 30 seconds</h2>
+          <span class="meta">Derived from sourced records</span></div>
+        ${briefingCards()}
+      </section>
+
+      <section class="panel">
+        <div class="ph"><h2>Who is delivering</h2>
+          <span class="meta">${COMPANIES.length} tracked companies</span></div>
+        <div class="keynote">Each card leads with capacity that is actually switched on, not power a
+          company controls on paper. Select <b>Compare</b> on up to three to put them side by side.</div>
+        ${snapshotCards()}
+      </section>
+
+      <section class="panel">
+        <div class="ph"><h2>Compare up to three companies</h2><span class="meta">Side by side</span></div>
+        <div class="pb"><p class="note">Pick any three of the tracked companies to compare delivery,
+          contracted capacity and evidence coverage on one screen.</p>
+          <div class="heroacts"><a class="cta primary" href="#compare">Open comparison</a></div></div>
+      </section>
+
+      ${ledgerPanel(4, { heading: 'Latest verified changes' })}
+
+      <section class="panel">
+        <div class="ph"><h2>Research and evidence</h2><span class="meta">For the detail</span></div>
+        <div class="pb"><p class="note">Every figure on this site carries its source, its measurement
+          basis and the date it was verified. The full records, the delivery ledger, the capacity tables
+          and the corrections log all live under Research.</p>
+          <div class="heroacts">
+            <a class="cta ghost" href="#research">Open research</a>
+            <a class="cta ghost" href="/methodology/">Read the methodology</a>
+          </div></div>
+      </section>`,
+
+    /* 2. Companies — snapshots plus the watchlist prices. */
+    companies: `
+      <section class="panel">
+        <div class="ph"><h2>Tracked companies</h2><span class="meta" id="quoteMeta">—</span></div>
+        <div class="keynote">Six companies have sourced delivery records. Cipher and NVIDIA are carried on
+          the watchlist for price and news context only — their company profiles are available, but
+          <b>detailed delivery tracking is not yet available</b> for them.</div>
+        ${snapshotCards()}
+      </section>
+      <section class="panel">
+        <div class="ph"><h2>Watchlist prices</h2><span class="meta">Including watch-only tickers</span></div>
+        <div id="quoteWrap"></div>
+      </section>`,
+
+    compare: compareView(),
+
+    catalysts: catalystPanel() + `
+      <section class="panel">
+        <div class="ph"><h2>Scheduled events</h2><span class="meta">From the provider calendar</span></div>
+        <div id="liveCatalystList"></div>
+      </section>`,
+
+    forecasts: scenariosView(),
+
+    /* 3. Research — everything specialist, in one place. */
+    research: `
       <section class="panel">
         <div class="ph"><h2>Where the megawatts actually are</h2><span class="meta">Confirmed disclosure only</span></div>
         ${kpiCards()}
         <div class="stamp">Every card states its measurement basis, its contributors and its exclusions.
-          A <b>≥</b> means at least this much: contributing companies disclose components rather than an
-          exhaustive total. Undisclosed figures are excluded, never treated as zero.</div>
+          A <b>≥</b> means at least this much. Undisclosed figures are excluded, never treated as zero.</div>
       </section>
       ${reconciliationPanel()}
-      ${ledgerPanel(4, { heading: 'Latest verified changes' })}
-      ${countryPanel()}
-      <section class="panel">
-        <div class="ph"><h2>Watchlist</h2><span class="meta" id="quoteMeta">—</span></div>
-        <div id="quoteWrap"></div>
-      </section>
-      <section class="panel">
-        <div class="ph"><h2>Latest intelligence</h2><span class="meta">Live feed</span></div>
-        <div id="newsMini"></div>
-      </section>
-      ${dataHealthPanel(BUILD_STAMP)}`,
-
-    ledger: deliveryRecordPanel() + ledgerPanel(null, { heading: 'Delivery ledger', filters: true }) + `
-      <section class="panel">
-        <div class="ph"><h2>What the evidence levels mean</h2></div>
-        ${evidenceKey()}
-      </section>`,
-
-    capacity: `
+      ${deliveryRecordPanel()}
+      ${ledgerPanel(null, { heading: 'Delivery ledger', filters: true })}
       <section class="panel">
         <div class="ph"><h2>Capacity by company</h2><span class="meta">Every value with its evidence</span></div>
         ${evidenceKey()}
@@ -329,7 +387,6 @@ function homepage() {
           is never added to critical IT load</b>, and targets never enter a current total.</div>
         <div class="scrollnote">Scroll sideways for all columns →</div>
         ${capacityTable()}
-        <div class="stamp">${NOT_DISCLOSED} means the company has not published the figure. It never means zero.</div>
       </section>
       <section class="panel">
         <div class="ph"><h2>What the value types mean</h2></div>
@@ -341,29 +398,21 @@ function homepage() {
         ${contractsTable()}
         <div class="stamp">Per-megawatt figures are <b>not comparable across business models</b>, so this
           table does not rank them. A conditional maximum is shown as conditional, never as committed revenue.</div>
-      </section>`,
-
-    intelligence: `
+      </section>
+      ${countryPanel()}
       <section class="panel">
         <div class="ph"><h2>Intelligence</h2><span class="meta" id="newsMeta">—</span></div>
         <div class="filters" id="newsFilters"></div>
         <div id="newsHero"></div>
         <div id="newsList"></div>
-        <div class="stamp">Headlines link to the original publisher and open in a new tab. News can help
-          discover an event but <b>can never make a capacity value confirmed</b>. T2C does not draw a
-          materiality conclusion from a story it has not linked.</div>
-      </section>`,
-
-    filings: `
+        <div class="stamp">News can help discover an event but <b>can never make a capacity value
+          confirmed</b>. T2C does not draw a materiality conclusion from a story it has not linked.</div>
+      </section>
       <section class="panel">
         <div class="ph"><h2>SEC filings</h2><span class="meta" id="filingMeta">—</span></div>
-        <div class="keynote">8-K filings are where delivery milestones, new contracts and capacity
-          acquisitions get confirmed first, usually ahead of the news.</div>
         <div id="filingList"></div>
-      </section>`,
-
-    scenarios: scenariosView(),
-    compare: compareView()
+      </section>
+      ${dataHealthPanel(BUILD_STAMP)}`
   };
 
   const body = `${hero()}
@@ -412,6 +461,49 @@ ${NAV.map(n => `<div id="view-${n.id}" role="tabpanel" aria-labelledby="tab-${n.
       ]
     }
   });
+}
+
+
+/**
+ * Organization structured data. sameAs carries ONLY socials verified from an
+ * official company domain, and a CEO appears only when the record is current and
+ * carries an official source — an unverified officer is simply omitted.
+ */
+function organizationLd(profile) {
+  if (!profile) return null;
+  const chiefs = chiefExecutives(profile).filter(e => (e.sourceIds || []).length && e.verifiedAt);
+  const sameAs = (profile.socials || [])
+    .filter(s => s.verifiedThroughOfficialSite && s.url)
+    .map(s => s.url);
+  const addr = profile.headquarters || {};
+  const ld = {
+    '@context': 'https://schema.org',
+    '@type': 'Corporation',
+    name: profile.legalName,
+    alternateName: profile.tradingName,
+    url: profile.websiteUrl,
+    description: profile.shortDescription,
+    tickerSymbol: profile.ticker
+  };
+  if (profile.exchange) {
+    ld.identifier = { '@type': 'PropertyValue', propertyID: 'tickerSymbol', value: profile.ticker };
+  }
+  if (addr.city || addr.country) {
+    ld.address = {
+      '@type': 'PostalAddress',
+      addressLocality: addr.city || undefined,
+      addressRegion: addr.region || undefined,
+      addressCountry: addr.country || undefined
+    };
+  }
+  if (profile.foundedYear) ld.foundingDate = String(profile.foundedYear);
+  if (chiefs.length) {
+    ld.employee = chiefs.map(e => ({ '@type': 'Person', name: e.name, jobTitle: e.title }));
+    // schema.org allows a single ceo-like role; only assert it for a sole CEO.
+    if (chiefs.length === 1) ld.founder = undefined;
+  }
+  if (sameAs.length) ld.sameAs = sameAs;
+  return ld;
 }
 
 /* ================= company pages ================= */
@@ -543,6 +635,8 @@ function companyPage(c) {
     </article>`).join('')}</div>
   </section>` : ''}
 
+  ${PROFILE_BY_ID[c.id] ? aboutPanel(PROFILE_BY_ID[c.id]) : ''}
+
   <section class="panel">
     <div class="ph"><h2>Sources</h2><span class="meta">${sources.length} documents</span></div>
     <div class="pb">${sources.length ? `<ul class="srclist">${sources.map(s => `<li>
@@ -560,7 +654,7 @@ function companyPage(c) {
       `and accepted megawatts, each figure carrying its measurement basis and primary source.`,
     canonical: `${SITE}/companies/${c.slug}/`,
     body,
-    structured: {
+    structured: [organizationLd(PROFILE_BY_ID[c.id]), {
       '@context': 'https://schema.org',
       '@type': 'Dataset',
       name: `${c.name} AI infrastructure delivery record`,
@@ -581,7 +675,44 @@ function companyPage(c) {
           '@type': 'PropertyValue', name: METRICS[k].label, unitText: m.unit, value: m.valueMw,
           description: `${POWER_BASIS[m.powerBasis].label}, as of ${m.asOf}`
         }))
-    }
+    }].filter(Boolean)
+  });
+}
+
+/**
+ * Watch-only tickers get a real, sourced company profile but no invented delivery
+ * records. The page says so plainly rather than rendering an empty capacity table.
+ */
+function watchOnlyPage(profile) {
+  const body = `<main class="wrap">
+  <p class="crumb"><a href="/">T2C</a> / <a href="/#companies">Companies</a> / ${esc(profile.tradingName)}</p>
+  <div class="chead">
+    <div><h1>${esc(profile.tradingName)}</h1>
+      <div class="tick">${esc(profile.ticker)}${profile.exchange ? ' · ' + esc(profile.exchange) : ''}</div></div>
+    <div class="right">${pill('unknown', '○', 'Watchlist only')}
+      <div class="tick">Last verified ${esc(date(profile.verifiedAt))}</div></div>
+  </div>
+  <section class="panel">
+    <div class="ph"><h2>Delivery tracking</h2></div>
+    <div class="pb"><div class="unavail compact">
+      <h3>Detailed delivery tracking not yet available</h3>
+      <p>${esc(profile.tradingName)} is carried on the watchlist for price and news context. T2C does not
+        yet maintain sourced infrastructure-delivery records for it, and none have been invented to fill
+        this page.</p>
+      <p class="unavail-note">The company profile below is verified against official sources.</p>
+    </div></div>
+  </section>
+  ${aboutPanel(profile)}
+</main>`;
+
+  return page({
+    title: `${profile.legalName} (${profile.ticker}) — company profile | T2C`,
+    description:
+      `${profile.legalName} company profile: leadership, business model, official investor-relations ` +
+      `links and verified social accounts. Delivery tracking is not yet maintained for this ticker.`,
+    canonical: `${SITE}/companies/${profile.id}/`,
+    body,
+    structured: [organizationLd(profile)].filter(Boolean)
   });
 }
 
@@ -775,6 +906,10 @@ let bytes = 0;
 bytes += write('index.html', homepage());
 bytes += write('methodology/index.html', methodologyPage());
 for (const c of COMPANIES) bytes += write(`companies/${c.slug}/index.html`, companyPage(c));
+// Watch-only tickers: a real profile, an honest "not tracked" delivery state.
+for (const p of PROFILES.filter(x => x.deliveryTracked === false)) {
+  bytes += write(`companies/${p.id}/index.html`, watchOnlyPage(p));
+}
 
 bytes += write('privacy/index.html', simplePage('privacy', 'Privacy',
   'What T2C collects — and what it does not.',
@@ -824,6 +959,8 @@ const urls = [
   { loc: SITE + '/', priority: '1.0', freq: 'hourly' },
   { loc: SITE + '/methodology/', priority: '0.9', freq: 'weekly' },
   ...COMPANIES.map(c => ({ loc: `${SITE}/companies/${c.slug}/`, priority: '0.8', freq: 'weekly' })),
+  ...PROFILES.filter(p => p.deliveryTracked === false)
+    .map(p => ({ loc: `${SITE}/companies/${p.id}/`, priority: '0.5', freq: 'monthly' })),
   { loc: SITE + '/privacy/', priority: '0.2', freq: 'yearly' },
   { loc: SITE + '/terms/', priority: '0.2', freq: 'yearly' },
   { loc: SITE + '/contact/', priority: '0.3', freq: 'yearly' }
@@ -845,8 +982,8 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  fs.readFileSync(path.join(ROOT, 'src', 'styles.css'), 'utf8') + '\n' +
-  fs.readFileSync(path.join(ROOT, 'src', 'components.css'), 'utf8'));
+  ['styles.css', 'components.css', 'profile.css']
+    .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
 fs.cpSync(path.join(ROOT, 'Logo'), path.join(OUT, 'Logo'), { recursive: true });
 

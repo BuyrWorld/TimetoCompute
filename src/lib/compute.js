@@ -344,3 +344,110 @@ export function dataHealth() {
     catalysts: CATALYSTS.length
   };
 }
+
+/* ================= homepage briefing ================= */
+
+/**
+ * The four things an ordinary visitor should learn in ten seconds. Every card is
+ * derived from the records — nothing here is written by hand — and any card whose
+ * data does not exist returns `available: false` so the UI can say so plainly.
+ */
+export function briefing({ now = new Date() } = {}) {
+  const cards = [];
+
+  // 1. Latest major delivery — the most recent high-significance delivery event.
+  const delivery = ledger({})
+    .filter(e => ['customer-accepted', 'revenue-commenced', 'capacity-change'].includes(e.eventType))
+    .filter(e => e.significance === 'high')[0];
+  if (delivery) {
+    const c = COMPANIES.find(x => x.id === delivery.companyId);
+    cards.push({
+      id: 'delivery', kicker: 'Latest major delivery', available: true,
+      company: c?.name, ticker: c?.ticker, slug: c?.slug,
+      figure: delivery.newValue !== null && delivery.newValue !== undefined
+        ? (delivery.unit === '$bn' ? `$${delivery.newValue}bn` : `${delivery.newValue} MW`) : null,
+      sentence: delivery.summary,
+      dateLabel: delivery.effectiveAt || delivery.announcedAt,
+      sourceIds: delivery.sourceIds,
+      actionLabel: 'See the ledger', actionHref: '#research'
+    });
+  } else cards.push({ id: 'delivery', kicker: 'Latest major delivery', available: false });
+
+  // 2. Next catalyst — soonest dated event still ahead of us.
+  const today = now.toISOString().slice(0, 10);
+  const upcoming = CATALYSTS
+    .filter(c => c.status !== 'completed' && c.status !== 'cancelled')
+    .map(c => ({ c, when: c.expectedAt || c.expectedWindowStart }))
+    .filter(x => x.when && x.when >= today)
+    .sort((a, b) => a.when.localeCompare(b.when))[0];
+  if (upcoming) {
+    const co = COMPANIES.find(x => x.id === upcoming.c.companyId);
+    cards.push({
+      id: 'catalyst', kicker: 'Next tracked catalyst', available: true,
+      company: co?.name, ticker: upcoming.c.ticker, slug: co?.slug,
+      figure: null,
+      sentence: upcoming.c.title,
+      dateLabel: upcoming.when,
+      isWindow: !upcoming.c.expectedAt,
+      sourceIds: upcoming.c.sourceIds,
+      actionLabel: 'See all catalysts', actionHref: '#catalysts'
+    });
+  } else cards.push({ id: 'catalyst', kicker: 'Next tracked catalyst', available: false });
+
+  // 3. Analyst upside — genuinely unavailable on the current data plan.
+  cards.push({
+    id: 'analyst', kicker: 'Highest median analyst upside', available: false,
+    unavailableReason:
+      'Analyst price targets are not available on the connected data plan, so no upside ranking is shown. ' +
+      'T2C does not publish an unattributed target.',
+    actionLabel: 'How analyst data works', actionHref: '/methodology/#analysts'
+  });
+
+  // 4. Largest confirmed operational footprint, on a single comparable basis.
+  const energised = aggregate('energisedCriticalItMw', { basis: 'critical-it' });
+  const top = [...energised.included].sort((a, b) => b.value - a.value)[0];
+  if (top) {
+    const c = COMPANIES.find(x => x.ticker === top.ticker);
+    cards.push({
+      id: 'footprint', kicker: 'Largest confirmed operating capacity', available: true,
+      company: c?.name, ticker: top.ticker, slug: c?.slug,
+      figure: top.value >= 1000 ? `${(top.value / 1000).toFixed(1)} GW` : `${top.value} MW`,
+      sentence:
+        `Data-centre capacity switched on and drawing power, measured as critical IT load. ` +
+        `${energised.contributorCount} of ${energised.companyCount} tracked companies disclose this on a comparable basis.`,
+      dateLabel: top.asOf,
+      sourceIds: top.sourceIds,
+      actionLabel: 'Compare companies', actionHref: '#compare'
+    });
+  } else cards.push({ id: 'footprint', kicker: 'Largest confirmed operating capacity', available: false });
+
+  return cards;
+}
+
+/** One readable snapshot per tracked company, for the homepage cards. */
+export function companySnapshots() {
+  return COMPANIES.map(c => {
+    const v = companyView(c);
+    const energised = getMeasure(c, 'energisedCriticalItMw');
+    const contracted = getMeasure(c, 'customerContractedMw');
+    const next = v.catalysts
+      .filter(x => x.status !== 'completed')
+      .sort((a, b) => String(a.expectedAt || a.expectedWindowStart || '')
+        .localeCompare(String(b.expectedAt || b.expectedWindowStart || '')))[0] || null;
+    const records = allRecords(c);
+    const known = records.filter(isKnown);
+    return {
+      company: c,
+      stage: v.stage,
+      energised,
+      contracted,
+      nextCatalyst: next,
+      evidence: {
+        confirmed: known.filter(m => m.confidence === 'confirmed').length,
+        total: known.length,
+        notDisclosed: records.length - known.length,
+        lastVerifiedAt: v.lastVerifiedAt
+      }
+    };
+  });
+}

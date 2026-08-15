@@ -8,11 +8,18 @@ import { COMPANIES } from '../../data/companies.js';
 import { PROJECTS, CONTRACTS } from '../../data/projects.js';
 import { EVENTS, CORRECTIONS } from '../../data/events.js';
 import { CATALYSTS, CATALYST_STATUS, CATALYST_CATEGORIES } from '../../data/catalysts.js';
+import { PROFILES } from '../../data/profiles.js';
 import { allRecords, getMeasure, isKnown, aggregate, headlineKpis } from './compute.js';
 import { MAX_TICKERS, normaliseSelection } from './compare.js';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
-const PRIMARY_TYPES = ['sec-filing', 'company-ir', 'customer-announcement', 'utility', 'regulator', 'planning-record'];
+// A company-controlled page (leadership, about, official site) is primary evidence
+// for WHO runs the company and WHICH accounts are official — but never for a
+// capacity figure, which still requires a filing or a regulator record.
+const PRIMARY_TYPES = [
+  'sec-filing', 'company-ir', 'customer-announcement', 'utility', 'regulator',
+  'planning-record', 'company-profile'
+];
 
 export function runChecks() {
   const errors = [], warnings = [];
@@ -216,6 +223,77 @@ export function runChecks() {
     }
   }
 
+  /* ---------- company profiles, leadership and socials ---------- */
+  const profileIds = new Set();
+  for (const p of PROFILES) {
+    const where = p.ticker;
+    if (profileIds.has(p.id)) fail(`Duplicate profile id ${p.id}`);
+    profileIds.add(p.id);
+
+    if (!p.legalName || !p.ticker || !p.websiteUrl) fail(`${where}: profile missing legalName/ticker/websiteUrl`);
+    for (const u of [p.websiteUrl, p.investorRelationsUrl, p.secFilingsUrl].filter(Boolean)) {
+      try { new URL(u); } catch { fail(`${where}: malformed profile URL ${u}`); }
+    }
+    for (const id of p.sourceIds || []) if (!known(id)) fail(`${where}: profile cites unknown source ${id}`);
+    if (!ISO.test(p.verifiedAt)) fail(`${where}: profile verifiedAt must be YYYY-MM-DD`);
+
+    // A description must not smuggle in unsourced numeric claims.
+    const numeric = /\b\d[\d,.]*\s*(MW|GW|bn|billion|million|%)\b/i;
+    for (const field of ['shortDescription', 'longDescription']) {
+      if (numeric.test(p[field] || '')) {
+        fail(`${where}: ${field} contains a numeric claim — figures belong in sourced capacity records`);
+      }
+    }
+
+    // Customers may only be named where a source already discloses the relationship.
+    if ((p.disclosedKeyCustomers || []).length && !(p.sourceIds || []).length) {
+      fail(`${where}: names customers with no source`);
+    }
+
+    /* ---- leadership ---- */
+    const current = (p.leadership || []).filter(e => e.isCurrent);
+    for (const e of p.leadership || []) {
+      const w = `${where}/${e.name}`;
+      if (!e.name || !e.title || !e.roleType) fail(`${w}: executive missing name/title/roleType`);
+      if (!['ceo', 'co-ceo', 'executive-chair', 'cfo', 'founder', 'other'].includes(e.roleType)) {
+        fail(`${w}: unknown roleType ${e.roleType}`);
+      }
+      // an expired record can never remain current
+      if (e.roleEndedAt && e.isCurrent) fail(`${w}: has roleEndedAt but is still marked current`);
+      if (e.roleStartedAt && !ISO.test(e.roleStartedAt)) fail(`${w}: bad roleStartedAt`);
+      if (e.isCurrent) {
+        if (!(e.sourceIds || []).length) fail(`${w}: current executive with no official source`);
+        if (!e.verifiedAt) fail(`${w}: current executive without verifiedAt`);
+        const official = (e.sourceIds || []).map(id => SOURCE_BY_ID[id]).filter(Boolean);
+        if (!official.some(s => s.isPrimary)) fail(`${w}: current executive not sourced to an official document`);
+      }
+      for (const id of e.sourceIds || []) if (!known(id)) fail(`${w}: cites unknown source ${id}`);
+    }
+
+    // Two chief executives are legal only as an explicit co-CEO structure.
+    const chiefs = current.filter(e => ['ceo', 'co-ceo'].includes(e.roleType));
+    const soleCeos = chiefs.filter(e => e.roleType === 'ceo');
+    if (soleCeos.length > 1) {
+      fail(`${where}: ${soleCeos.length} records claim sole CEO — use roleType "co-ceo" for a shared structure`);
+    }
+    if (chiefs.length > 1 && chiefs.some(e => e.roleType === 'ceo')) {
+      fail(`${where}: mixes a sole CEO with another chief executive`);
+    }
+
+    /* ---- socials ---- */
+    for (const s of p.socials || []) {
+      const w = `${where}/${s.platform}`;
+      if (!s.url) fail(`${w}: social with no URL`);
+      try { new URL(s.url); } catch { fail(`${w}: malformed social URL ${s.url}`); }
+      if (!s.verifiedThroughOfficialSite) {
+        fail(`${w}: social account not verified through an official site — it must not be displayed`);
+      }
+      if (!s.sourceId || !known(s.sourceId)) fail(`${w}: social missing a valid source`);
+      if (!ISO.test(s.lastCheckedAt || '')) fail(`${w}: social missing lastCheckedAt`);
+      if (!s.label) fail(`${w}: social missing an accessible label`);
+    }
+  }
+
   /* ---------- comparison ---------- */
   if (normaliseSelection(['IREN', 'CRWV', 'NBIS', 'WULF']).length > MAX_TICKERS) {
     fail(`Comparison allowed more than ${MAX_TICKERS} tickers`);
@@ -238,7 +316,12 @@ export function runChecks() {
       ...PROJECTS.flatMap(p => [...(p.sourceIds || []), ...(p.gates || []).flatMap(g => g.sourceIds || [])]),
       ...CONTRACTS.flatMap(k => k.sourceIds || []),
       ...EVENTS.flatMap(e => e.sourceIds || []),
-      ...CATALYSTS.flatMap(c => c.sourceIds || [])
+      ...CATALYSTS.flatMap(c => c.sourceIds || []),
+      ...PROFILES.flatMap(p => [
+        ...(p.sourceIds || []),
+        ...(p.leadership || []).flatMap(e => e.sourceIds || []),
+        ...(p.socials || []).map(x => x.sourceId)
+      ])
     ];
     return !used.includes(s.id);
   });

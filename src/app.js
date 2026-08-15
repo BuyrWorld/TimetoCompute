@@ -60,9 +60,18 @@
   });
 
   /* ============ TABS ============ */
-  var TABS = ['overview', 'ledger', 'capacity', 'intelligence', 'filings', 'scenarios', 'compare'];
-  function showTab(name, push) {
-    if (TABS.indexOf(name) === -1) name = 'overview';
+  var TABS = CFG.tabs || ['overview', 'companies', 'compare', 'catalysts', 'forecasts', 'research'];
+  var ALIASES = CFG.hashAliases || {};
+
+  /* Old hash routes must keep working — #odds opens Forecasts, #ledger and
+     #capacity open Research. A shared link from six months ago should not 404. */
+  function resolveTab(name) {
+    if (TABS.indexOf(name) !== -1) return name;
+    if (ALIASES[name]) return ALIASES[name];
+    return 'overview';
+  }
+  function showTab(rawName, push) {
+    var name = resolveTab(rawName);
     TABS.forEach(function (t) {
       var sec = $('view-' + t);
       if (sec) sec.hidden = t !== name;
@@ -70,7 +79,7 @@
       if (btn) btn.setAttribute('aria-selected', String(t === name));
     });
     if (push && location.hash !== '#' + name) history.pushState({ tab: name }, '', '#' + name);
-    if (name === 'scenarios') { drawOdds(); }
+    if (name === 'forecasts') { drawOdds(); }
     if (name === 'compare') renderCompare();
   }
   document.querySelectorAll('.tab[data-tab]').forEach(function (b) {
@@ -262,10 +271,12 @@
           (d.feed && d.feed.realtime === false ? ' · may be delayed' : '');
       }
       drawTape(q);
+      paintSnapshots(q);
       syncTicker(false);
       renderCompare();
     }).catch(function () {
       FEED.quotes = 'off'; renderFeed();
+      paintSnapshots(null);
       if (wrap) wrap.innerHTML = emptyBlock('Prices unavailable',
         'The quote feed did not respond. Capacity, ledger and contract data are static and unaffected.');
       if ($('quoteMeta')) $('quoteMeta').textContent = 'Offline';
@@ -866,6 +877,68 @@
       }).join('') + '</div>';
     }
   }
+
+
+  /* ============ ANALYTICS ============
+     Anonymous, non-sensitive product events. No vendor is contacted: events land on
+     window.t2cEvents and, if a dataLayer already exists, are pushed there too. This
+     adds no third-party script and no identifiers. */
+  window.t2cEvents = window.t2cEvents || [];
+  function track(name, detail) {
+    var evt = { name: name, at: new Date().toISOString(), detail: detail || {} };
+    window.t2cEvents.push(evt);
+    if (Array.isArray(window.dataLayer)) window.dataLayer.push({ event: 't2c_' + name, t2c: evt.detail });
+  }
+
+  /* ============ SNAPSHOT CARDS ============ */
+  function paintSnapshots(q) {
+    document.querySelectorAll('.snapprice[data-price]').forEach(function (el) {
+      var t = el.dataset.price, v = q && q[t];
+      if (!v || v.price == null) { el.innerHTML = '<span class="nd">—</span>'; return; }
+      var col = v.change > 0 ? 'var(--up)' : v.change < 0 ? 'var(--down)' : 'var(--dim)';
+      var dir = v.change > 0 ? '▲' : v.change < 0 ? '▼' : '■';
+      el.innerHTML = '$' + Number(v.price).toFixed(2) +
+        '<span class="chg" style="color:' + col + '">' + dir + ' ' +
+        Math.abs(Number(v.changePct || 0)).toFixed(2) + '%</span>';
+    });
+  }
+
+  // "Compare" on a snapshot card adds the ticker and jumps to the comparison.
+  document.querySelectorAll('.snapcompare').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.dataset.add;
+      if (CMP.indexOf(t) === -1) {
+        if (CMP.length >= MAX_COMPARE) {
+          b.textContent = 'Max ' + MAX_COMPARE;
+          setTimeout(function () { b.textContent = 'Compare'; }, 1600);
+          return;
+        }
+        CMP.push(t);
+        persistCmp();
+        track('ticker_added_to_compare', { ticker: t, from: 'snapshot' });
+      }
+      var box = $('cmpChips');
+      if (box) {
+        box.querySelectorAll('input[name="compare"]').forEach(function (i) {
+          i.checked = CMP.indexOf(i.value) !== -1;
+        });
+      }
+      syncCmpDisabled();
+      renderCompare();
+      showTab('compare', true);
+      track('compare_started', { tickers: CMP.slice() });
+    });
+  });
+
+  document.querySelectorAll('.snapname, .olink').forEach(function (el) {
+    el.addEventListener('click', function () {
+      if (el.classList.contains('olink')) track('official_social_clicked', { href: el.getAttribute('href') });
+      else track('company_opened', { href: el.getAttribute('href') });
+    });
+  });
+  document.querySelectorAll('details.ev').forEach(function (d) {
+    d.addEventListener('toggle', function () { if (d.open) track('source_drawer_opened', {}); });
+  });
 
   /* ============ wiring ============ */
   if ($('inTicker')) {

@@ -7,6 +7,7 @@ import { PROJECTS, CONTRACTS } from '../data/projects.js';
 import { EVENTS } from '../data/events.js';
 import { CATALYSTS } from '../data/catalysts.js';
 import { windowFor, GATE_BY_ID } from '../data/schema.js';
+import { PROFILES, PROFILE_BY_TICKER, chiefExecutives } from '../data/profiles.js';
 import { SOURCE_BY_ID } from '../data/sources.js';
 import { getMeasure, isKnown, aggregate, headlineKpis, byCountry, gateSummary, dataHealth, slip, timeline, deliveryRecord } from '../src/lib/compute.js';
 
@@ -423,4 +424,112 @@ test('every confirmed measure cites at least one source carrying a quoted excerp
   }
   assert.deepEqual(missing, [],
     `confirmed figures whose sources carry no quoted excerpt:\n${missing.join('\n')}`);
+});
+
+/* ---------------- company profiles, leadership, socials ---------------- */
+
+test('every tracked ticker has a company profile', () => {
+  const { WATCH_TICKERS } = require_watch();
+  for (const t of WATCH_TICKERS) {
+    assert.ok(PROFILE_BY_TICKER[t], `no profile for ${t}`);
+  }
+  assert.equal(PROFILES.length, 8, 'all eight tickers in the universe need a profile');
+});
+function require_watch() {
+  return { WATCH_TICKERS: ['IREN', 'CRWV', 'NBIS', 'WULF', 'KEEL', 'APLD', 'CIFR', 'NVDA'] };
+}
+
+test('every current executive is sourced and verified', () => {
+  for (const p of PROFILES) {
+    const chiefs = chiefExecutives(p);
+    assert.ok(chiefs.length, `${p.ticker} has no current chief executive`);
+    for (const e of chiefs) {
+      assert.ok(e.sourceIds.length, `${p.ticker}/${e.name} has no source`);
+      assert.ok(e.verifiedAt, `${p.ticker}/${e.name} has no verifiedAt`);
+      const srcs = e.sourceIds.map(id => SOURCE_BY_ID[id]);
+      assert.ok(srcs.every(Boolean), `${p.ticker}/${e.name} cites an unknown source`);
+      assert.ok(srcs.some(s => s.isPrimary), `${p.ticker}/${e.name} not sourced officially`);
+      assert.equal(e.isCurrent, true);
+      assert.equal(e.roleEndedAt, null);
+    }
+  }
+});
+
+test('co-CEO structures are preserved, not flattened', () => {
+  const iren = PROFILE_BY_TICKER.IREN;
+  const chiefs = chiefExecutives(iren);
+  assert.equal(chiefs.length, 2, 'IREN is co-led and both must appear');
+  assert.ok(chiefs.every(e => e.roleType === 'co-ceo'), 'both must be typed co-ceo, not ceo');
+  const names = chiefs.map(e => e.name).sort();
+  assert.deepEqual(names, ['Daniel Roberts', 'Will Roberts']);
+
+  // a single-CEO company still resolves to exactly one
+  assert.equal(chiefExecutives(PROFILE_BY_TICKER.CRWV).length, 1);
+  assert.equal(chiefExecutives(PROFILE_BY_TICKER.CRWV)[0].roleType, 'ceo');
+});
+
+test('no company claims two sole CEOs', () => {
+  for (const p of PROFILES) {
+    const sole = chiefExecutives(p).filter(e => e.roleType === 'ceo');
+    assert.ok(sole.length <= 1, `${p.ticker} claims ${sole.length} sole CEOs`);
+  }
+});
+
+test('every social account is verified through an official site', () => {
+  let count = 0;
+  for (const p of PROFILES) {
+    for (const s of p.socials || []) {
+      count++;
+      assert.equal(s.verifiedThroughOfficialSite, true, `${p.ticker}/${s.platform} unverified`);
+      assert.ok(s.sourceId && SOURCE_BY_ID[s.sourceId], `${p.ticker}/${s.platform} has no valid source`);
+      assert.ok(s.label && s.label.includes('on '), `${p.ticker}/${s.platform} needs an accessible label`);
+      assert.match(s.url, /^https:\/\//, `${p.ticker}/${s.platform} must be an https URL`);
+      assert.ok(s.lastCheckedAt, `${p.ticker}/${s.platform} missing lastCheckedAt`);
+    }
+  }
+  assert.ok(count >= 12, `expected a meaningful number of verified socials, got ${count}`);
+});
+
+test('a company with no verifiable LinkedIn simply has none', () => {
+  // CoreWeave: only X was found linked from its official domain. The absence is
+  // correct behaviour — a guessed handle would be worse than nothing.
+  const crwv = PROFILE_BY_TICKER.CRWV;
+  const platforms = crwv.socials.map(s => s.platform);
+  assert.ok(platforms.includes('x'));
+  assert.ok(!platforms.includes('linkedin'), 'an unverified LinkedIn must not be invented');
+});
+
+test('profile descriptions carry no unsourced numeric claims', () => {
+  const numeric = /\b\d[\d,.]*\s*(MW|GW|bn|billion|million|%)\b/i;
+  for (const p of PROFILES) {
+    assert.ok(!numeric.test(p.shortDescription), `${p.ticker} shortDescription has a numeric claim`);
+    assert.ok(!numeric.test(p.longDescription), `${p.ticker} longDescription has a numeric claim`);
+  }
+});
+
+test('watch-only tickers are flagged and carry no invented delivery data', () => {
+  const { COMPANY_BY_TICKER } = COMPANIES.reduce((a, c) => {
+    a.COMPANY_BY_TICKER[c.ticker] = c; return a;
+  }, { COMPANY_BY_TICKER: {} });
+  for (const t of ['CIFR', 'NVDA']) {
+    const p = PROFILE_BY_TICKER[t];
+    assert.equal(p.deliveryTracked, false, `${t} must be flagged as not delivery-tracked`);
+    assert.equal(COMPANY_BY_TICKER[t], undefined, `${t} must have no capacity record`);
+    // but it must still have a real, sourced profile
+    assert.ok(chiefExecutives(p).length, `${t} still needs a verified CEO`);
+    assert.ok(p.websiteUrl);
+  }
+});
+
+test('disclosed customers only appear where a source exists', () => {
+  for (const p of PROFILES) {
+    if ((p.disclosedKeyCustomers || []).length) {
+      assert.ok(p.sourceIds.length, `${p.ticker} names customers without a source`);
+    }
+  }
+  // Applied Digital names CoreWeave but not the unnamed hyperscalers
+  const apld = PROFILE_BY_TICKER.APLD;
+  assert.deepEqual(apld.disclosedKeyCustomers, ['CoreWeave']);
+  assert.ok(!apld.disclosedKeyCustomers.some(c => /hyperscaler/i.test(c)),
+    'an unnamed counterparty must not be guessed at');
 });
