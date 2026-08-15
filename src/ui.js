@@ -8,6 +8,7 @@ import { COMPANIES } from '../data/companies.js';
 import { PROJECTS_BY_COMPANY, CONTRACTS, COUNTRY_NAMES } from '../data/projects.js';
 import { CATALYST_STATUS, CATALYST_CATEGORIES, CATALYSTS } from '../data/catalysts.js';
 import { PROFILE_BY_ID, PLATFORM_LABEL, chiefExecutives } from '../data/profiles.js';
+import { companyTile, deliveryFunnel, businessModelDiagram, journeyStrip, footprintDots } from './lib/illustrations.js';
 import {
   companyView, headlineKpis, byCountry, ledger, aggregate, isKnown, gateSummary, dataHealth,
   timeline, deliveryRecord, briefing, companySnapshots
@@ -709,4 +710,50 @@ export function snapshotCards() {
       </div>
     </article>`;
   }).join('') + `</div>`;
+}
+
+/* ================= visual storybook ================= */
+
+/**
+ * The company story told in pictures before the tables. Order matters: what the
+ * company is, how far it has actually got, how the power narrows, what it owns,
+ * and where it operates.
+ */
+export function storybook(view) {
+  const c = view.company;
+  const p = PROFILE_BY_ID[c.id];
+  const conv = view.conversion;
+
+  return `<section class="panel story" id="story">
+    <div class="ph"><h2>${esc(c.name)} at a glance</h2>
+      <span class="meta">Every figure below is sourced</span></div>
+
+    <div class="storyhead">
+      ${companyTile(c, { size: 64 })}
+      <div>
+        <p class="storylede">${esc(p ? p.shortDescription : c.summary)}</p>
+        <div class="storychips">
+          ${pill('unknown', '◇', MODELS[c.model].label)}
+          ${view.stage ? pill('ok', '●', `Reached: ${view.stage.short}`) : pill('unknown', '○', 'No stage evidenced')}
+          ${conv ? pill('unknown', '%', `${pct(conv.ratio)} of controlled power switched on`) : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="ph"><h3>How far it has actually got</h3>
+      <span class="meta">Select a step for its evidence</span></div>
+    <div class="pb">${journeyStrip(view)}</div>
+
+    <div class="ph"><h3>Where the power goes</h3></div>
+    <div class="pb">${deliveryFunnel(view)}</div>
+
+    <div class="ph"><h3>What it owns, and what the customer brings</h3></div>
+    <div class="pb">${businessModelDiagram(c.model)}</div>
+
+    ${view.projects.length ? `<div class="ph"><h3>Where it operates</h3>
+      <span class="meta">${view.projects.length} recorded sites</span></div>
+    <div class="pb">${footprintDots(view.projects)}
+      <p class="hintnote">A filled dot is a site with a published capacity figure; an outlined dot is a
+        site named in filings without one. Positions are schematic, not geographic.</p></div>` : ''}
+  </section>`;
 }

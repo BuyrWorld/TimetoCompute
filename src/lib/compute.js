@@ -243,6 +243,59 @@ export function deliveryRecord() {
   };
 }
 
+/**
+ * Furthest delivery stage a company has evidence for.
+ *
+ * Derived from two independent kinds of evidence: a completed project gate, or a
+ * company-wide metric with a value. Using gates alone would under-report a company
+ * that discloses fleet-wide rather than per site; using metrics alone would miss a
+ * site that has passed a gate without a published megawatt figure.
+ */
+/** The metric that independently demonstrates a gate, where one exists. */
+const METRIC_FOR_GATE = {
+  utilityAgreement: 'securedPowerMw',
+  constructionStarted: 'constructionMw',
+  criticalItEnergised: 'energisedCriticalItMw',
+  customerContracted: 'customerContractedMw',
+  customerAccepted: 'customerAcceptedMw',
+  revenueCommenced: 'revenueLiveMw'
+};
+
+/** Short, plain-English labels for the stages a reader actually cares about. */
+const STAGE_SHORT = {
+  utilityAgreement: 'Power secured',
+  zoning: 'Permitted',
+  constructionStarted: 'Building',
+  utilityEnergised: 'Grid live',
+  criticalItEnergised: 'Switched on',
+  customerContracted: 'Customer signed',
+  customerAccepted: 'Accepted',
+  revenueCommenced: 'Invoicing'
+};
+
+export function currentStage(company, projects = PROJECTS_BY_COMPANY[company.id] || []) {
+  const done = new Set(
+    projects.flatMap(p => (p.gates || []).filter(g => g.status === 'complete').map(g => g.id))
+  );
+  let best = null;
+  for (const g of GATES) {
+    const metric = METRIC_FOR_GATE[g.id];
+    const m = metric ? getMeasure(company, metric) : null;
+    const byMetric = m && isKnown(m) && m.valueMw > 0;
+    if (byMetric || done.has(g.id)) {
+      best = { id: g.id, order: g.order, label: g.label, short: STAGE_SHORT[g.id] || g.label };
+    }
+  }
+  return best;
+}
+
+export function nextStage(company) {
+  const cur = currentStage(company);
+  const idx = cur ? cur.order : -1;
+  const g = GATES.find(x => x.order > idx && STAGE_SHORT[x.id]);
+  return g ? { id: g.id, order: g.order, label: g.label, short: STAGE_SHORT[g.id] } : null;
+}
+
 /** Company rollup used by the capacity table and company pages. */
 export function companyView(company) {
   const measures = Object.fromEntries(Object.keys(METRICS).map(k => [k, getMeasure(company, k)]));
@@ -261,6 +314,8 @@ export function companyView(company) {
     targets: company.targets || [],
     historical: company.historical || [],
     sourceIds: [...sourceIds],
+    stage: currentStage(company),
+    next: nextStage(company),
     conversion: deliveryConversion(company),
     catalysts: CATALYSTS.filter(c => c.companyId === company.id),
     lastVerifiedAt: verified.length ? verified[verified.length - 1] : null,

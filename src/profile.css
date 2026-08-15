@@ -82,3 +82,68 @@ body { font-size: 17px; line-height: 1.55; }
   .olinks{flex-direction:column}
   .olink{width:100%}
 }
+
+/* ============================================================
+   Visual storybook — schematic illustrations on company pages.
+   Flat fills, thin strokes, theme variables. No gradients, no glow.
+   ============================================================ */
+
+.story .ph h3{font-size:13.5px}
+.storyhead{display:flex;gap:16px;align-items:flex-start;padding:16px;border-bottom:1px solid var(--line-2)}
+.ctile{flex:none;border-radius:7px}
+.storylede{font-size:16px;color:var(--soft);line-height:1.6;max-width:68ch}
+.storychips{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+
+.illus{margin:0}
+.illus svg{width:100%;height:auto;display:block}
+.illus figcaption{font-size:12.5px;color:var(--dim);line-height:1.6;margin-top:11px;max-width:74ch}
+
+/* ---- interactive journey ---- */
+.journey{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0}
+.jstep{position:relative}
+.jbtn{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:7px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);
+  padding:13px 14px;cursor:pointer;font-family:inherit;text-align:left;min-height:88px;
+  transition:border-color .14s,background .14s}
+.jbtn:hover{border-color:var(--ok);background:var(--surface-3)}
+.jicon{width:26px;height:26px;display:inline-flex;color:var(--unknown)}
+.jicon svg{width:100%;height:100%}
+.jlabel{font-size:13px;font-weight:800;line-height:1.25}
+.jstate{font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+.jstep-done .jbtn{border-color:var(--ok);background:var(--ok-bg)}
+.jstep-done .jicon{color:var(--ok)}
+.jstep-done .jstate{color:var(--ok)}
+.jstep-pending .jbtn{border-style:dashed}
+.jdetail{background:var(--surface-3);border:1px solid var(--line);border-top:none;
+  border-radius:0 0 var(--radius) var(--radius);padding:11px 14px;font-size:12.5px;color:var(--soft);line-height:1.55}
+.jdetail p{margin:0}
+.jsrc{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+/* the arrow between steps only reads on wide layouts */
+@media(min-width:900px){
+  .jstep:not(:last-child)::after{content:"";position:absolute;right:-6px;top:44px;width:4px;height:1px;background:var(--line)}
+}
+
+/* ---- footprint dots ---- */
+.footprint{display:flex;gap:22px;flex-wrap:wrap}
+.fpcountry{min-width:96px}
+.fphead{font-size:11.5px;font-family:'IBM Plex Mono',monospace;color:var(--dim);display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.fphead b{color:var(--ink);margin-left:auto}
+.fpdots{display:flex;gap:5px;flex-wrap:wrap;max-width:120px}
+.fpdot{width:13px;height:13px;border-radius:3px;background:var(--ok);opacity:.8;display:block}
+.fpdot-unknown{background:none;border:1px dashed var(--unknown);opacity:1}
+
+@media(max-width:640px){
+  .storyhead{flex-direction:column;gap:12px}
+  .journey{grid-template-columns:1fr 1fr}
+  .footprint{gap:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .jbtn{transition:none}
+}
+
+/* The global `svg{width:100%}` rule would stretch the identity tile to fill its
+   flex row. Tiles are fixed-size marks, not responsive figures. */
+.ctile{width:56px;height:56px;flex:none}
+.storyhead .ctile{width:64px;height:64px}
+.fpflag{font-size:14px}
+.fphead{gap:8px}

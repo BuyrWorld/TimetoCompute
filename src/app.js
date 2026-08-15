@@ -940,6 +940,19 @@
     d.addEventListener('toggle', function () { if (d.open) track('source_drawer_opened', {}); });
   });
 
+
+  /* ============ STORYBOOK JOURNEY ============
+     Each step expands to its evidence, so a reader can go from the picture to the
+     primary document without leaving the page. */
+  document.querySelectorAll('.jbtn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var panel = document.getElementById(b.getAttribute('aria-controls'));
+      var open = b.getAttribute('aria-expanded') === 'true';
+      b.setAttribute('aria-expanded', String(!open));
+      if (panel) panel.hidden = open;
+      if (!open) track('journey_step_opened', { step: b.querySelector('.jlabel').textContent });
+    });
+  });
   /* ============ wiring ============ */
   if ($('inTicker')) {
     ['inSpot', 'inTarget', 'inVol', 'inDate'].forEach(function (id) {

@@ -9,7 +9,7 @@ import { CATALYSTS } from '../data/catalysts.js';
 import { windowFor, GATE_BY_ID } from '../data/schema.js';
 import { PROFILES, PROFILE_BY_TICKER, chiefExecutives } from '../data/profiles.js';
 import { SOURCE_BY_ID } from '../data/sources.js';
-import { getMeasure, isKnown, aggregate, headlineKpis, byCountry, gateSummary, dataHealth, slip, timeline, deliveryRecord } from '../src/lib/compute.js';
+import { getMeasure, isKnown, aggregate, headlineKpis, byCountry, gateSummary, dataHealth, slip, timeline, deliveryRecord, companyView } from '../src/lib/compute.js';
 
 const co = id => COMPANIES.find(c => c.id === id);
 
@@ -532,4 +532,35 @@ test('disclosed customers only appear where a source exists', () => {
   assert.deepEqual(apld.disclosedKeyCustomers, ['CoreWeave']);
   assert.ok(!apld.disclosedKeyCustomers.some(c => /hyperscaler/i.test(c)),
     'an unnamed counterparty must not be guessed at');
+});
+
+/* ---------------- delivery stage (regression) ---------------- */
+
+test('every company resolves a delivery stage', () => {
+  // companyView stopped setting `stage` during a refactor, so every "Delivery
+  // stage" on the site silently rendered as unknown. Guard it.
+  for (const c of COMPANIES) {
+    const v = companyView(c);
+    assert.ok(v.stage, `${c.ticker} resolved no delivery stage`);
+    assert.ok(v.stage.short && v.stage.label, `${c.ticker} stage missing labels`);
+    assert.equal(typeof v.stage.order, 'number');
+  }
+});
+
+test('stage reflects the furthest evidenced gate', () => {
+  const stage = t => companyView(COMPANIES.find(c => c.ticker === t)).stage.id;
+  // TeraWulf and Applied Digital both disclose revenue-generating capacity.
+  assert.equal(stage('WULF'), 'revenueCommenced');
+  assert.equal(stage('APLD'), 'revenueCommenced');
+  // IREN has acceptance but has not disclosed billing.
+  assert.equal(stage('IREN'), 'customerAccepted');
+  // Keel has energised grid power but nothing switched on as critical IT.
+  assert.equal(stage('KEEL'), 'utilityEnergised');
+});
+
+test('the next stage is always ahead of the current one', () => {
+  for (const c of COMPANIES) {
+    const v = companyView(c);
+    if (v.next) assert.ok(v.next.order > v.stage.order, `${c.ticker} next stage is not ahead`);
+  }
 });

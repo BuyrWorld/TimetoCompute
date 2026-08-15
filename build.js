@@ -25,7 +25,7 @@ import {
   evidenceKey, valueTypeKey, basisKey, gateTrack, evidenceChip, statusChip, basisChip,
   sourceChips, evidencedValue, evidenceDrawer, reconciliationPanel, catalystPanel,
   dataHealthPanel, pill, timelinePanel, deliveryRecordPanel,
-  briefingCards, snapshotCards, aboutPanel, officialLinks, leadershipCards
+  briefingCards, snapshotCards, aboutPanel, officialLinks, leadershipCards, storybook
 } from './src/ui.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -577,6 +577,8 @@ function companyPage(c) {
     </div>
   </div>
   <p class="note lede">${esc(c.summary)}</p>
+
+  ${storybook(v)}
 
   <section class="panel">
     <div class="ph"><h2>Capacity record</h2><span class="meta">Every value with its evidence</span></div>
