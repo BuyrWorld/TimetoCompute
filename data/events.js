@@ -223,6 +223,20 @@ export const CORRECTIONS = [
     sourceUrl: 'https://investor.bitfarms.com/news-releases/news-release-details/keel-infrastructure-reports-second-quarter-2026-results'
   },
   {
+    id: 'corr-2026-08-15-keel-attribution', date: '2026-08-15', companyId: 'keel',
+    summary:
+      'Keel\'s 648 MW secured and 1,513 MW pipeline figures were attributed to the Q2 2026 press ' +
+      'release, which does not contain them.',
+    change:
+      'Both figures come from the Form 10-Q capacity table, which the record now cites alone. The ' +
+      'values themselves were correct and are unchanged. The 10-Q also supplied better definitions and ' +
+      'three figures previously missing: 341 MW currently energised (gross), 430 MW secured growth ' +
+      'capacity, and a total pipeline of 2,161 MW rather than the rounded 2.2 GW. Panther Creek (60 MW) ' +
+      'and Scrubgrass (63 MW) are energised but sit under no energy service agreement, and Keel ' +
+      'therefore excludes them from its own secured total.',
+    sourceUrl: 'https://www.sec.gov/Archives/edgar/data/1812477/000121390026054166/ea0288134-10q_keel.htm'
+  },
+  {
     id: 'corr-2026-08-15-keel-zero', date: '2026-08-15', companyId: 'keel',
     summary: 'Keel customer-contracted capacity was stored as numeric zero.',
     change:

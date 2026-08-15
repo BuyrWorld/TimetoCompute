@@ -45,7 +45,12 @@ export const SOURCES = [
     sourceType: 'sec-filing',
     publishedAt: '2026-03-31',
     effectiveAt: '2026-03-31',
-    isPrimary: true
+    isPrimary: true,
+    supportingExcerpt:
+      '"...as we scale across our global 5GW secured power portfolio." Also: "2026 expansion to 480MW ' +
+      'on track — Horizon 1-4 on track for delivery by year-end", and "2028+ expansion across 5GW ' +
+      'secured power underway". Confirms 480 MW is a 2026 expansion target across multiple sites, not ' +
+      'construction at one site.'
   }),
   S('iren-10q-20260331', {
     title: 'IREN Limited quarterly report, period ended 31 March 2026',
@@ -198,7 +203,17 @@ export const SOURCES = [
     sourceType: 'sec-filing',
     publishedAt: '2026-08-11',
     effectiveAt: '2026-06-30',
-    isPrimary: true
+    isPrimary: true,
+    pageOrSection: 'Capacity metrics table and definitions',
+    supportingExcerpt:
+      'Current Energized Capacity 341 MW; Secured Growth Capacity 430 MW; Secured Gross Data Center ' +
+      'Capacity 648 MW; Identified Additional Gross Data Center Capacity 1,513 MW; Total Pipeline ' +
+      '2,161 MW. "Secured Gross Data Center Capacity represents the total amount of gross power ' +
+      'capacity that is subject to electric supply agreements with utilities, including both power ' +
+      'capacity currently available on site and power capacity that utilities have agreed to deliver ' +
+      'at a future date." Footnote: "The current energized capacity at the Panther Creek and Scrubgrass ' +
+      'site of 60 MW and 63 MW, respectively, are not under an energy service agreement. The capacity ' +
+      'is therefore excluded from Secured Gross Data Center Capacity."'
   }),
   S('keel-q2-2026-results', {
     title: 'Keel Infrastructure Reports Second Quarter 2026 Results',
@@ -209,8 +224,28 @@ export const SOURCES = [
     effectiveAt: '2026-06-30',
     isPrimary: true,
     supportingExcerpt:
-      '648 MW secured, 1,513 MW planned or in development, approximately 2.2 GW total development pipeline.'
+      '"With a development pipeline of 2.2 gigawatts and established grid interconnections in place." ' +
+      'Also: "uncommitted 2027 capacity across PJM and Washington", zoning and land development ' +
+      'approvals secured at Panther Creek, environmental permit applications progressing at Sharon, ' +
+      'and first Vertiv modules delivered at Moses Lake. This release carries the rounded pipeline and ' +
+      'the permitting narrative only; the itemised capacity table is in the Form 10-Q.'
   }),
+  S('bitfarms-6k-2026', {
+    title: 'Bitfarms Ltd Form 6-K — management discussion and analysis',
+    url: 'https://www.sec.gov/Archives/edgar/data/1812477/000121390025074626/ea025191601ex99-2_bitfarms.htm',
+    publisher: 'Bitfarms Ltd (now Keel Infrastructure) (SEC EDGAR)',
+    sourceType: 'sec-filing',
+    publishedAt: '2025-08-01',
+    isPrimary: true,
+    supportingExcerpt:
+      'Names the PJM Interconnection Service Agreement for Scrubgrass — ISA No. 1795 — in connection ' +
+      'with a 19 November 2021 PJM notice of breach alleging failure to give advance notice of plant ' +
+      'modifications. Also characterises the Stronghold transaction as adding "up to 307 MW of ' +
+      'potential power capacity, with an additional 648 MW of incremental potential power capacity", ' +
+      'i.e. the 648 MW originated as a POTENTIAL figure and was only later reported as secured under ' +
+      'executed supply agreements.'
+  }),
+
   S('keel-investor-deck', {
     title: 'Keel Infrastructure investor presentation',
     url: 'https://ir.keelinfra.com/static-files/85345ed0-556d-4889-98d0-89808f8eb1df',

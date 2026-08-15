@@ -374,3 +374,53 @@ test('every scheduled gate exists in the gate model', () => {
     }
   }
 });
+
+/* ---------------- provenance guards ---------------- */
+
+test('Keel capacity figures cite the document that actually contains them', () => {
+  // Regression guard: 648 and 1,513 were attributed to the Q2 press release,
+  // which does not contain either figure. Both come from the Form 10-Q table.
+  const keel = co('keel');
+  for (const [metric, value] of [['securedPowerMw', 648], ['pipelinePowerMw', 1513], ['energisedGrossMw', 341]]) {
+    const m = getMeasure(keel, metric);
+    assert.equal(m.valueMw, value, `${metric} should be ${value}`);
+    assert.ok(m.sourceIds.includes('keel-10q'), `${metric} must cite the 10-Q`);
+    const excerpt = SOURCE_BY_ID['keel-10q'].supportingExcerpt || '';
+    const printed = value.toLocaleString('en-US');
+    assert.ok(excerpt.includes(String(value)) || excerpt.includes(printed),
+      `the 10-Q excerpt should quote ${value}`);
+  }
+  // the press-release excerpt must no longer claim the breakdown
+  const pr = SOURCE_BY_ID['keel-q2-2026-results'].supportingExcerpt || '';
+  assert.ok(!/648|1,513/.test(pr), 'the press-release excerpt must not carry figures it does not contain');
+});
+
+test('gross energised power is never conflated with critical IT', () => {
+  const keel = co('keel');
+  // Keel publishes gross energised power but no critical-IT figure at all.
+  assert.equal(getMeasure(keel, 'energisedGrossMw').valueMw, 341);
+  assert.equal(getMeasure(keel, 'energisedCriticalItMw').valueMw, null,
+    'Keel discloses no critical-IT figure, so it must stay undisclosed');
+
+  // the two metrics are separate and the critical-IT aggregate excludes Keel
+  const k = aggregate('energisedCriticalItMw', { basis: 'critical-it' });
+  assert.ok(!k.included.some(i => i.ticker === 'KEEL'),
+    'gross energised power must not leak into the critical-IT total');
+  assert.ok(k.missing.some(m => m.ticker === 'KEEL'));
+});
+
+test('every confirmed measure cites at least one source carrying a quoted excerpt', () => {
+  // Forcing a quote is what stops a figure being attributed to a document nobody read.
+  const missing = [];
+  for (const c of COMPANIES) {
+    for (const m of [...(c.measures || []), ...(c.targets || [])]) {
+      if (m.confidence !== 'confirmed') continue;
+      const quoted = m.sourceIds
+        .map(id => SOURCE_BY_ID[id])
+        .some(s => s && s.supportingExcerpt);
+      if (!quoted) missing.push(`${c.ticker}/${m.metric}`);
+    }
+  }
+  assert.deepEqual(missing, [],
+    `confirmed figures whose sources carry no quoted excerpt:\n${missing.join('\n')}`);
+});

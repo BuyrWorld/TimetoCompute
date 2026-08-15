@@ -267,10 +267,13 @@ export const PROJECTS = [
   {
     id: 'keel-panther-creek', companyId: 'keel', name: 'Panther Creek, Pennsylvania', country: 'US', flag: '🇺🇸',
     capacityMw: 350, powerBasis: 'gross-utility', valueStatus: 'actual', confidence: 'confirmed',
-    sourceIds: ['keel-investor-deck'],
+    sourceIds: ['keel-investor-deck', 'keel-10q'], asOf: '2026-03-31',
+    energisedGrossMw: 60,
     note:
-      '350 MW contracted firm power. Zoning, conditional land development and environmental permits ' +
-      'are tracked separately — the data centre itself is not evidenced as under construction.',
+      '350 MW contracted firm power, of which 60 MW is currently energised. The 10-Q states that ' +
+      'Panther Creek\'s energised capacity sits under NO energy service agreement and is therefore ' +
+      'excluded from the company\'s own secured total — live power is not the same as secured power. ' +
+      'The data centre itself is not evidenced as under construction.',
     gates: [
       gate({ id: 'siteControl', status: 'complete', confidence: 'confirmed', sourceIds: ['keel-investor-deck'], verifiedAt: V }),
       gate({ id: 'utilityAgreement', status: 'complete', confidence: 'confirmed', sourceIds: ['keel-investor-deck'], verifiedAt: V, notes: '350 MW contracted firm power.' }),
@@ -288,13 +291,27 @@ export const PROJECTS = [
   {
     id: 'keel-scrubgrass', companyId: 'keel', name: 'Scrubgrass, Pennsylvania', country: 'US', flag: '🇺🇸',
     capacityMw: 1300, powerBasis: 'gross-utility', valueStatus: 'potential', confidence: 'reported',
-    sourceIds: ['keel-10q'],
+    sourceIds: ['keel-10q'], asOf: '2026-03-31',
+    energisedGrossMw: 63,
     note:
       'CORRECTION: previously shown as 1.3 GW of secured capacity. Load studies and behind-the-meter ' +
-      'feasibility work are pipeline and potential, not secured power.',
+      'feasibility work are pipeline and potential, not secured power. 63 MW is currently energised, ' +
+      'and the 10-Q states this sits under no energy service agreement — so it is excluded from the ' +
+      'company\'s own secured total.',
     gates: [
-      gate({ id: 'siteControl', status: 'complete', confidence: 'reported', sourceIds: ['keel-10q'], verifiedAt: V }),
-      gate({ id: 'interconnection', status: 'inProgress', confidence: 'reported', sourceIds: ['keel-10q'], verifiedAt: V, notes: 'Load studies under way.' }),
+      gate({ id: 'siteControl', status: 'complete', confidence: 'confirmed', sourceIds: ['keel-10q'], verifiedAt: V }),
+      gate({
+        id: 'interconnection', status: 'complete', confidence: 'confirmed',
+        sourceIds: ['keel-10q', 'bitfarms-6k-2026'], verifiedAt: V,
+        notes:
+          'An executed PJM Interconnection Service Agreement exists for the site — ISA No. 1795, named ' +
+          'in Bitfarms\' filings in connection with a 2021 PJM notice of breach over unnotified plant ' +
+          'modifications. The interconnection is established; it is the additional load that is under study.'
+      }),
+      gate({
+        id: 'utilityEnergised', status: 'complete', confidence: 'confirmed',
+        sourceIds: ['keel-10q'], verifiedAt: V, notes: '63 MW currently energised, outside any energy service agreement.'
+      }),
       gate({ id: 'constructionStarted', status: 'notStarted' })
     ]
   },

@@ -158,6 +158,13 @@ export const METRICS = {
     label: 'Under construction', unit: 'MW', family: 'power',
     definition: 'Capacity with physical construction under way. Capital committed, no revenue from it yet.'
   },
+  energisedGrossMw: {
+    label: 'Energised gross power', unit: 'MW', family: 'power',
+    definition:
+      'Gross power capacity from the utility that is live and in use at the sites. Measured at the ' +
+      'connection, before conversion and cooling losses, so it is materially larger than the critical ' +
+      'IT load it can support and is never compared with a critical-IT figure.'
+  },
   energisedCriticalItMw: {
     label: 'Energised critical IT', unit: 'MW', family: 'power',
     definition:

@@ -221,18 +221,31 @@ export const COMPANIES = [
     measures: [
       metric({
         metric: 'securedPowerMw', valueMw: 648, confidence: 'confirmed', valueStatus: 'actual',
-        powerBasis: 'gross-utility', asOf: '2026-06-30', verifiedAt: V,
-        sourceIds: ['keel-q2-2026-results', 'keel-10q'], isExhaustive: true,
+        powerBasis: 'gross-utility', asOf: '2026-03-31', verifiedAt: V,
+        sourceIds: ['keel-10q'], isExhaustive: true,
         notes:
-          'CORRECTION: 2.2 GW was previously recorded as secured power. The company splits the ' +
-          'portfolio into 648 MW secured and 1,513 MW planned or in development, totalling ' +
-          'approximately 2.2 GW of pipeline. Only the 648 MW is secured.'
+          'Keel\'s "Secured Gross Data Center Capacity" — gross power subject to executed electric ' +
+          'supply agreements with utilities, covering both capacity available on site today and ' +
+          'capacity utilities have agreed to deliver at a future date. It is therefore not all ' +
+          'available now. Replaces the 2.2 GW previously recorded as secured, which is the whole pipeline.'
+      }),
+      metric({
+        metric: 'energisedGrossMw', valueMw: 341, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'gross-utility', asOf: '2026-03-31', verifiedAt: V,
+        sourceIds: ['keel-10q'], isExhaustive: true,
+        notes:
+          'Keel\'s "Current Energized Capacity" — gross utility power in use across the US and Québec ' +
+          'sites. This is not critical IT: Keel does not publish a critical-IT figure, so the two are ' +
+          'held separately and never compared.'
       }),
       metric({
         metric: 'pipelinePowerMw', valueMw: 1513, confidence: 'confirmed', valueStatus: 'pipeline',
-        powerBasis: 'gross-utility', asOf: '2026-06-30', verifiedAt: V,
-        sourceIds: ['keel-q2-2026-results', 'keel-10k-bitfarms'], isExhaustive: true,
-        notes: 'Planned or in development. Not secured, and excluded from every current-capacity total.'
+        powerBasis: 'gross-utility', asOf: '2026-03-31', verifiedAt: V,
+        sourceIds: ['keel-10q', 'keel-10k-bitfarms'], isExhaustive: true,
+        notes:
+          '"Identified Additional Gross Data Center Capacity" — not yet under an electric supply ' +
+          'agreement. Secured 648 plus identified 1,513 gives the 2,161 MW total pipeline the company ' +
+          'rounds to 2.2 GW.'
       }),
       metric({
         metric: 'customerContractedMw', valueMw: null,
