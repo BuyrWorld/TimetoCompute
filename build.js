@@ -26,6 +26,8 @@ const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(ROOT, 'dist');
 const SITE = 'https://timetocompute.com';
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
+/** Lets a deployed page be identified, so a failed deploy is not mistaken for a live one. */
+const BUILD_STAMP = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
 
 /* ---------- gate the build on data integrity ---------- */
 const checks = runChecks();
@@ -64,6 +66,7 @@ function head({ title, description, canonical, ogImage = '/Logo/logo-header.png'
 <meta name="twitter:description" content="${esc(description)}" />
 <meta name="twitter:image" content="${esc(SITE + ogImage)}" />
 <meta name="theme-color" content="#0B0B0C" />
+<meta name="t2c-build" content="${BUILD_STAMP}" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="/Logo/logo-header.png" />
 <link rel="stylesheet" href="/styles.css" />
