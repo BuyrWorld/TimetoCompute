@@ -181,8 +181,8 @@ function scenariosView() {
     <div class="ph"><h2>Inputs</h2><span class="meta"><button class="resync" id="resyncBtn" type="button">Reset to live</button></span></div>
     <div class="pb">
       <div class="frow">
-        <div class="field"><label for="inTicker">Company<span class="hint">Switching resets every box</span></label>
-          <select id="inTicker" name="inTicker">${opts.map(o => `<option value="${esc(o.ticker)}">${esc(o.ticker)} — ${esc(o.name)}</option>`).join('')}</select></div>
+        <div class="field field-wide"><label for="inTicker">Company<span class="hint">Switching resets every box</span></label>
+          <select id="inTicker" name="inTicker" title="Select a company — full names are shown in the list">${opts.map(o => `<option value="${esc(o.ticker)}">${esc(o.ticker)} — ${esc(o.name)}</option>`).join('')}</select></div>
         <div class="field"><label for="inSpot">Price now <span class="hint" id="spotTag"></span></label><input id="inSpot" name="inSpot" type="number" step="0.01" inputmode="decimal" /></div>
         <div class="field"><label for="inTarget">Your target<span class="hint">Price you want</span></label><input id="inTarget" name="inTarget" type="number" step="0.5" inputmode="decimal" /></div>
         <div class="field"><label for="inDate">Deadline<span class="hint">Date-only, UTC</span></label><input id="inDate" name="inDate" type="date" /></div>

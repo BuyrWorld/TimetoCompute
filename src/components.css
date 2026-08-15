@@ -181,3 +181,25 @@ details.ev summary:hover{color:var(--ok)}
   .unavail{margin:14px 0}
   .projgrid{grid-template-columns:1fr}
 }
+
+/* Grid and flex children default to min-width:auto, so a table carrying
+   min-width:560px refuses to let its panel shrink and pushes the whole page wide
+   at mobile widths. Allowing them to shrink lets .tw act as the scroll container
+   it was always meant to be. Caught at 375px: 201px of page overflow on Scenarios. */
+.grid > *,
+.panel,
+.pb > .frow,
+.tw { min-width: 0; }
+
+/* A two-column input grid at 375px leaves the company <select> about 167px wide,
+   which truncates "IREN — IREN Limited" to "IREN — IREN". Full company names must
+   stay readable, so the inputs go single-column on narrow screens. */
+@media(max-width:560px){
+  .frow{grid-template-columns:1fr}
+}
+
+/* The company selector carries "TICKER — Full Company Name", which needs roughly
+   200px. auto-fit columns give it ~165px, truncating the name the brief requires
+   to stay visible, so it spans two columns wherever the grid has more than one. */
+.field-wide{grid-column:span 2}
+@media(max-width:560px){.field-wide{grid-column:auto}}
