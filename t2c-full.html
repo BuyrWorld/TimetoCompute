@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>T2C — Time to Compute</title>
+<meta name="description" content="AI infrastructure investing, measured by delivery. Who has the most megawatts, who has actually switched them on, and what each one is worth." />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+html[data-theme="light"]{
+  --bg:#EFEFEC; --panel:#FFFFFF; --panel-2:#F7F7F4;
+  --line:#C9C9C2; --line-soft:#DEDED8;
+  --ink:#0A0A0A; --soft:#2E2E2E; --dim:#5C5C5C;
+  --accent:#4A5D00; --chip-bg:#D6FF00; --chip-ink:#0A0A0A;
+  --bear:#B3121F; --track:#DEDED8; --warn:#8A5A00;
+}
+html[data-theme="dark"]{
+  --bg:#0A0A0A; --panel:#1A1A1A; --panel-2:#131313;
+  --line:#3A3A3A; --line-soft:#2A2A2A;
+  --ink:#FFFFFF; --soft:#E4E4E4; --dim:#ABABAB;
+  --accent:#D6FF00; --chip-bg:#D6FF00; --chip-ink:#0A0A0A;
+  --bear:#FF6B7A; --track:#2E2E2E; --warn:#FFC24D;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;background:var(--bg);color:var(--ink);min-height:100%}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{
+  background:var(--bg);color:var(--ink);min-height:100vh;
+  font-family:'Archivo',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,p,td,th,dt,dd,span,div,li,label,a{color:inherit}
+.mono{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+
+/* nav */
+nav{position:sticky;top:0;z-index:60;background:var(--bg);border-bottom:2px solid var(--line)}
+.navin{display:flex;align-items:center;gap:16px;padding:13px 0}
+.logo{display:flex;align-items:baseline;gap:10px;text-decoration:none}
+.logo b{font-weight:900;font-size:21px;letter-spacing:-.05em;background:var(--chip-bg);color:var(--chip-ink);padding:4px 8px;border-radius:3px}
+.logo span{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.navlinks{margin-left:auto;display:flex;gap:18px;align-items:center}
+.navlinks a{text-decoration:none;font-size:13.5px;font-weight:600}
+.navlinks a:hover{color:var(--accent);text-decoration:underline}
+@media(max-width:960px){.navlinks a{display:none}}
+#themeBtn{border:2px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;font-weight:700;padding:8px 13px;border-radius:3px;cursor:pointer;white-space:nowrap;font-family:inherit}
+#themeBtn:hover{border-color:var(--accent)}
+
+/* hero */
+.hero{padding:60px 0 48px;border-bottom:2px solid var(--line)}
+.kicker{display:inline-block;font-size:12.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;background:var(--chip-bg);color:var(--chip-ink);padding:6px 12px;border-radius:3px;margin-bottom:22px}
+h1{font-weight:900;letter-spacing:-.04em;line-height:1.04;font-size:clamp(33px,5.8vw,62px);max-width:17ch}
+h1 u{text-decoration:none;box-shadow:inset 0 -.3em 0 var(--chip-bg)}
+.lede{margin-top:24px;max-width:62ch;font-size:18.5px;line-height:1.62;color:var(--soft)}
+.lede b{color:var(--ink);font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:2px;margin-top:40px;background:var(--line);border:2px solid var(--line)}
+.st{background:var(--panel);padding:19px}
+.st .n{font-weight:800;font-size:31px;letter-spacing:-.03em;line-height:1;font-family:'IBM Plex Mono',monospace}
+.st .l{font-size:13.5px;margin-top:9px;font-weight:700}
+.st .e{font-size:12.5px;color:var(--dim);margin-top:3px;line-height:1.5}
+
+/* sections */
+section{padding:58px 0;border-bottom:2px solid var(--line)}
+.shead{margin-bottom:30px;max-width:74ch}
+.eyebrow{font-size:12.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+h2{font-weight:800;font-size:clamp(24px,3.6vw,35px);letter-spacing:-.03em;margin-top:9px;line-height:1.14}
+h3{font-weight:700;font-size:18px;letter-spacing:-.015em}
+.sub{font-size:16.5px;color:var(--soft);margin-top:13px;line-height:1.62}
+.sub b{color:var(--ink)}
+
+.plain{border-left:5px solid var(--chip-bg);background:var(--panel-2);padding:16px 18px;margin-top:18px;font-size:15.5px;color:var(--soft);line-height:1.62}
+.plain b{color:var(--ink);font-weight:700}
+.plain .tagword{display:block;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+
+/* controls */
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:15px;margin-bottom:24px}
+.field{display:flex;flex-direction:column;gap:6px}
+label{font-size:13.5px;font-weight:700}
+label span{display:block;font-weight:400;font-size:12.5px;color:var(--dim);margin-top:2px}
+input,select,textarea{background:var(--panel);border:2px solid var(--line);color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;padding:11px 12px;border-radius:3px;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
+textarea{min-height:96px;resize:vertical;font-size:13px;font-weight:500}
+.btn{background:var(--panel);border:2px solid var(--line);color:var(--ink);cursor:pointer;font-family:inherit;font-weight:700;font-size:14.5px;padding:11px 20px;border-radius:3px;text-decoration:none;display:inline-block}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.solid{background:var(--chip-bg);color:var(--chip-ink);border-color:var(--chip-bg)}
+.btn.solid:hover{opacity:.85;color:var(--chip-ink)}
+.segs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.seg{border:2px solid var(--line);background:var(--panel);color:var(--ink);font-family:inherit;font-weight:700;font-size:13.5px;padding:9px 15px;border-radius:3px;cursor:pointer}
+.seg[aria-pressed="true"]{background:var(--chip-bg);border-color:var(--chip-bg);color:var(--chip-ink)}
+
+/* answer */
+.answer{border:2px solid var(--line);background:var(--panel);padding:26px}
+.answer .q{font-size:18.5px;font-weight:700;margin-bottom:14px;line-height:1.4}
+.answer .huge{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:clamp(56px,11vw,104px);line-height:.92;letter-spacing:-.05em}
+.probbar{height:20px;background:var(--track);border:2px solid var(--line);margin-top:20px;position:relative;border-radius:3px;overflow:hidden}
+.probbar i{position:absolute;top:0;bottom:0;left:0;background:var(--chip-bg)}
+.probleg{display:flex;justify-content:space-between;font-size:12.5px;color:var(--dim);margin-top:8px;font-family:'IBM Plex Mono',monospace}
+
+/* rows */
+.rows{border:2px solid var(--line);background:var(--panel)}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:17px 19px;border-bottom:1px solid var(--line-soft)}
+.row:last-child{border-bottom:none}
+.row .k{font-size:15.5px;font-weight:700}
+.row .k span{display:block;font-weight:400;font-size:13.5px;color:var(--dim);margin-top:3px;line-height:1.5;max-width:54ch}
+.row .v{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:700;white-space:nowrap}
+
+/* buzz */
+.lat{display:grid;gap:2px;background:var(--line);border:2px solid var(--line)}
+.tfcard{background:var(--panel);padding:21px}
+.tfhead{display:flex;justify-content:space-between;align-items:baseline;gap:13px;flex-wrap:wrap;margin-bottom:16px}
+.tfname{font-weight:900;font-size:21px;letter-spacing:-.03em}
+.tfname small{display:block;font-weight:400;font-size:13px;color:var(--dim);margin-top:3px}
+.pill{font-weight:800;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;padding:7px 12px;border-radius:3px;white-space:nowrap}
+.pill.go{background:var(--chip-bg);color:var(--chip-ink)}
+.pill.stop{background:var(--bear);color:#FFF}
+.pill.wait{background:var(--track);border:1px solid var(--line)}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px}
+.m .mv{font-family:'IBM Plex Mono',monospace;font-size:25px;font-weight:700;line-height:1}
+.m .ml{font-size:13.5px;font-weight:700;margin-top:7px}
+.m .me{font-size:12.5px;color:var(--dim);margin-top:3px;line-height:1.45}
+.m .bar{height:6px;background:var(--track);margin-top:9px;border-radius:3px;overflow:hidden}
+.m .bar i{display:block;height:100%;background:var(--accent)}
+.m .bar i.bear{background:var(--bear)}
+.verdict{margin-top:17px;padding-top:15px;border-top:1px solid var(--line-soft);font-size:15px;color:var(--soft);line-height:1.6}
+
+/* tables */
+.tbl{overflow-x:auto;border:2px solid var(--line)}
+table{width:100%;border-collapse:collapse;background:var(--panel)}
+th{font-size:12.5px;font-weight:800;text-align:right;padding:13px 12px;border-bottom:2px solid var(--line);background:var(--panel-2);white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:14px 12px;text-align:right;border-bottom:1px solid var(--line-soft);font-family:'IBM Plex Mono',monospace;font-size:14.5px;font-weight:600;vertical-align:top}
+td:first-child{text-align:left;font-family:inherit;font-weight:800}
+tr:last-child td{border-bottom:none}
+.co-sub{display:block;font-family:'Archivo',sans-serif;font-weight:400;font-size:12.5px;color:var(--dim);margin-top:3px;line-height:1.4;max-width:26ch}
+
+/* stacked capacity bar */
+.stack{display:flex;height:14px;border-radius:3px;overflow:hidden;background:var(--track);min-width:150px;border:1px solid var(--line)}
+.stack i{display:block;height:100%}
+.sw-del{background:var(--chip-bg)}
+.sw-con{background:var(--accent)}
+.sw-bld{background:var(--warn)}
+.sw-unc{background:var(--dim)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;font-size:13px}
+.legend b{display:inline-flex;align-items:center;gap:7px;font-weight:600}
+.legend em{width:14px;height:14px;border-radius:2px;display:block;font-style:normal;border:1px solid var(--line)}
+
+/* source badges */
+.sb{font-family:'Archivo',sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:2px;display:inline-block;vertical-align:middle;margin-left:6px}
+.sb.filing{background:var(--chip-bg);color:var(--chip-ink)}
+.sb.reported{background:var(--track);color:var(--ink);border:1px solid var(--line)}
+.sb.est{background:transparent;color:var(--warn);border:1px solid var(--warn)}
+.sb.none{background:transparent;color:var(--dim);border:1px dashed var(--line)}
+
+.tag{font-family:'Archivo',sans-serif;font-size:12px;font-weight:800;padding:5px 9px;display:inline-block;border-radius:3px;white-space:nowrap}
+.tag.go{background:var(--chip-bg);color:var(--chip-ink)}
+.tag.stop{background:var(--bear);color:#FFF}
+.tag.wait{background:var(--track)}
+.dir{font-family:'Archivo',sans-serif;font-weight:800;font-size:13px}
+.dir.add{color:var(--accent)}
+.dir.cut{color:var(--bear)}
+
+/* cards */
+.g{display:grid;gap:2px;background:var(--line);border:2px solid var(--line)}
+@media(min-width:780px){.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1fr 1fr}}
+.card{background:var(--panel);padding:23px}
+.card .idx{display:inline-block;font-weight:900;font-size:12.5px;background:var(--chip-bg);color:var(--chip-ink);padding:3px 9px;border-radius:3px;margin-bottom:13px}
+.card p{font-size:15px;color:var(--soft);margin-top:9px;line-height:1.62}
+
+/* sources list */
+.srcbox{border:2px solid var(--line);background:var(--panel);padding:4px 21px}
+.src{display:flex;align-items:flex-start;gap:15px;padding:17px 0;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.src:last-child{border-bottom:none}
+.src .nm{font-weight:800;font-size:16px;min-width:135px}
+.src .de{font-size:14.5px;color:var(--soft);flex:1;min-width:230px;line-height:1.55}
+.src .co{font-weight:800;font-size:12.5px;white-space:nowrap;background:var(--chip-bg);color:var(--chip-ink);padding:4px 10px;border-radius:3px}
+.src .co.off{background:var(--bear);color:#FFF}
+
+/* glossary */
+.gl{padding:19px 0;border-bottom:1px solid var(--line-soft)}
+.gl:last-child{border-bottom:none}
+.gl dt{font-weight:800;font-size:17.5px}
+.gl dd{font-size:15.5px;color:var(--soft);margin-top:6px;line-height:1.62;max-width:80ch}
+
+.badge{display:inline-block;font-weight:800;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;background:var(--chip-bg);color:var(--chip-ink);padding:6px 12px;border-radius:3px}
+.badge.off{background:var(--panel);border:2px solid var(--line)}
+footer{padding:48px 0 70px;background:var(--bg)}
+.foot p{font-size:14.5px;color:var(--soft);max-width:74ch;line-height:1.7;margin-top:15px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap navin">
+    <a class="logo" href="#top"><b>T2C</b><span>Time to Compute</span></a>
+    <div class="navlinks">
+      <a href="#board">Leaderboard</a>
+      <a href="#contracts">Contracts</a>
+      <a href="#holders">Holders</a>
+      <a href="#odds">Odds</a>
+      <a href="#buzz">Buzz</a>
+      <a href="#glossary">Glossary</a>
+      <button id="themeBtn" type="button">Dark mode</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="kicker">AI infrastructure investing</div>
+    <h1>The market prices the press release. We measure the <u>delivery</u>.</h1>
+    <p class="lede">
+      An AI data centre company signs a huge contract and the share price jumps. But the money only
+      starts when the customer switches the machines on and accepts them. <b>T2C tracks who holds the
+      most power, who has actually turned it on, and what each megawatt is worth.</b>
+    </p>
+    <div class="stats">
+      <div class="st"><div class="n" id="hsPipe">—</div><div class="l">Total pipeline tracked</div><div class="e">Gigawatts of secured power</div></div>
+      <div class="st"><div class="n" id="hsCon">—</div><div class="l">Under contract</div><div class="e">Customer signed, mostly not yet built</div></div>
+      <div class="st"><div class="n" id="hsLive">—</div><div class="l">Actually switched on</div><div class="e">Earning money today</div></div>
+      <div class="st"><div class="n" id="hsRate">—</div><div class="l">Delivery rate</div><div class="e">Live as a share of contracted</div></div>
+    </div>
+    <div style="margin-top:30px;display:flex;gap:12px;flex-wrap:wrap">
+      <a class="btn solid" href="#board">See the leaderboard</a>
+      <a class="btn" href="#glossary">New to this? Start here</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ DATA HONESTY ============ -->
+<section id="honesty">
+  <div class="wrap">
+    <div class="shead">
+      <div class="eyebrow">Before you read anything</div>
+      <h2>Every number is labelled with where it came from</h2>
+      <p class="sub">Most of this industry's figures are guesses dressed as facts. Each cell here carries a tag so you know which is which.</p>
+    </div>
+    <div class="g g2">
+      <div class="card">
+        <h3><span class="sb filing">Filing</span> Straight from the company</h3>
+        <p>Taken from an official filing, results release, or company presentation. As solid as it gets — though companies choose what to disclose and how to frame it.</p>
+        <h3 style="margin-top:20px"><span class="sb reported">Reported</span> From credible press</h3>
+        <p>Reported by a reputable outlet but not confirmed in a filing. Usually right. Occasionally not.</p>
+      </div>
+      <div class="card">
+        <h3><span class="sb est">Estimate</span> Worked out, not stated</h3>
+        <p>Calculated by dividing one disclosed number by another. Directionally useful, but the two figures often measure slightly different things.</p>
+        <h3 style="margin-top:20px"><span class="sb none">Not disclosed</span> Genuinely unknown</h3>
+        <p>The company has not said. Shown as a blank rather than a guess, because a made-up number is worse than no number.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LEADERBOARD ============ -->
+<section id="board">
+  <div class="wrap">
+    <div class="shead">
+      <div class="eyebrow">Leaderboard</div>
+      <h2>Who has the most, and how far along are they?</h2>
+      <p class="sub">
+        Power is the scarce thing. But raw pipeline is the easiest number to boast about and the least
+        meaningful. <b>Sort by "switched on" to see who is actually executing.</b>
+      </p>
+    </div>
+
+    <div class="segs" id="sortSegs">
+      <button class="seg" data-sort="pipeline" aria-pressed="true">Total pipeline</button>
+      <button class="seg" data-sort="contracted" aria-pressed="false">Under contract</button>
+      <button class="seg" data-sort="building" aria-pressed="false">In build</button>
+      <button class="seg" data-sort="live" aria-pressed="false">Switched on</button>
+      <button class="seg" data-sort="uncontracted" aria-pressed="false">Built, no customer</button>
+      <button class="seg" data-sort="rate" aria-pressed="false">Delivery rate</button>
+    </div>
+
+    <div class="legend">
+      <b><em class="sw-del"></em> Switched on and paying</b>
+      <b><em class="sw-con"></em> Contracted, not yet live</b>
+      <b><em class="sw-bld"></em> In build</b>
+      <b><em class="sw-unc"></em> Pipeline, uncommitted</b>
+    </div>
+
+    <div class="tbl"><table id="boardTable"></table></div>
+
+    <div class="plain">
+      <span class="tagword">The one number that matters</span>
+      <b>Delivery rate</b> is switched-on megawatts divided by contracted megawatts. A company with
+      3 gigawatts contracted and 2% delivered is a construction project. A company with 200MW
+      contracted and 25% delivered is a business. The market usually pays for the first and
+      should be paying for the second.
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTRACTS ============ -->
+<section id="contracts">
+  <div class="wrap">
+    <div class="shead">
+      <div class="eyebrow">Contract economics</div>
+      <h2>What each megawatt is actually worth</h2>
+      <p class="sub">
+        Two contracts can both say "billions" and be wildly different businesses. Revenue per megawatt
+        per year is the number that separates them.
+      </p>
+    </div>
+    <div class="tbl"><table id="contractTable"></table></div>
+
+    <div class="plain">
+      <span class="tagword">Why the per-megawatt figures differ so much</span>
+      These are <b>not directly comparable</b>. Some companies rent out bare buildings with power and
+      let the customer bring their own chips — that earns a few million per megawatt. Others buy the
+      chips themselves and sell finished computing — that earns far more per megawatt, but they carry
+      the enormous cost of the chips. Companies also quote different things: total site power versus
+      just the computing load. Always check the business model column before comparing two numbers.
+    </div>
+  </div>
+</section>
+
+<!-- ============ CHIPS & CAPEX ============ -->
+<section id="chips">
+  <div class="wrap">
+    <div class="shead">
+      <div class="eyebrow">Chips and build cost</div>
+      <h2>What they're installing, and what it costs</h2>
+      <p class="sub">The chip generation tells you how long a site stays competitive. The build cost tells you how much money has to be raised to get there.</p>
+    </div>
+    <div class="tbl"><table id="chipTable"></table></div>
+    <div class="plain">
+      <span class="tagword">The cooling split matters</span>
+      Liquid-cooled sites cost roughly three to four times more per megawatt to build than air-cooled
+      ones, because the plumbing is part of the building. The trade-off is that liquid cooling handles
+      the densest, newest chips. A company choosing air-cooled retrofits is choosing cheaper and
+      faster over top-end performance — a reasonable choice, but a different product.
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOLDERS ============ -->
+<section id="holders">
+  <div class="wrap">
+    <div class="shead">
+      <div class="eyebrow">Big investors</div>
+      <h2>Who is buying, and who is backing away</h2>
+      <p class="sub">
+        Large US investors must publicly disclose their holdings every quarter. Comparing one quarter
+        to the next shows whether the smart money is <b>adding or reducing</b>.
+      </p>
+    </div>
+    <div class="tbl"><table id="holderTable"></table></div>
+    <div class="plain">
+      <span class="tagword">The catch with this data</span>
+      These disclosures arrive up to <b>45 days after the quarter ends</b>, so you are always looking
+      at a slightly stale picture. They also only cover long positions in US-listed shares — a fund
+      showing a big stake may be hedged elsewhere in ways you cannot see. Treat a large position as
+      evidence someone did the work, not as a recommendation.
+    </div>
+  </div>
+</section>
+
+<!-- ============ ODDS ============ -->
+<section id="odds">
+  <div class="wrap">
+    <div class="shead">
+      <div class="eyebrow">The odds</div>
+      <h2>What are the chances it reaches my price?</h2>
+      <p class="sub">Change any box and everything updates instantly.</p>
+    </div>
+    <div class="ctl">
+      <div class="field"><label>Share <span>Which company</span></label><input id="inTicker" value="IREN" /></div>
+      <div class="field"><label>Price now <span>What it costs today</span></label><input id="inSpot" type="number" step="0.01" value="44.06" /></div>
+      <div class="field"><label>Your target <span>The price you're hoping for</span></label><input id="inTarget" type="number" step="0.5" value="72" /></div>
+      <div class="field"><label>By this date <span>Your deadline</span></label><input id="inDate" type="date" value="2026-12-31" /></div>
+      <div class="field"><label>How jumpy it is <span>Typical yearly swing, %</span></label><input id="inVol" type="number" step="5" value="90" /></div>
+      <div class="field"><label>Your view <span>Expected yearly drift, %</span></label><input id="inDrift" type="number" step="5" value="0" /></div>
+    </div>
+    <div class="answer">
+      <div class="q" id="qLine"></div>
+      <div class="huge" id="bigOdds">—</div>
+      <div class="probbar"><i id="oddsBar"></i></div>
+      <div class="probleg"><span>0% — never</span><span>50% — coin flip</span><span>100% — certain</span></div>
+      <div class="plain"><span class="tagword">In plain English</span><span id="oddsPlain"></span></div>
+    </div>
+    <div class="rows" style="margin-top:20px">
+      <div class="row"><div class="k">Chance it finishes above your target<span>"Touching" means it gets there for even a second. "Finishing above" means it is still there on the day.</span></div><div class="v" id="vClose">—</div></div>
+      <div class="row"><div class="k">Most likely price on that date<span>The middle of the range. Half of outcomes land above, half below.</span></div><div class="v" id="vMed">—</div></div>
+      <div class="row"><div class="k">Normal range<span>Roughly two times out of three, the price lands between these two.</span></div><div class="v" id="vBand">—</div></div>
+      <div class="row"><div class="k">Chance it halves<span>The downside nobody puts on a slide.</span></div><div class="v" id="vHalf">—</div></div>
+      <div class="row"><div class="k">Days left<span>Between today and your deadline.</span></div><div class="v" id="vDays">—</div></div>
+    </div>
+    <div class="plain" style="margin-top:22px">
+      <span class="tagword">The catch</span>
+      This assumes the share keeps wobbling at a steady rate and never jumps overnight on news. Real
+      shares jump constantly. Treat these as <b>rough odds, not promises</b> — and notice that changing
+      "how jumpy it is" moves the answer far more than changing "your view" does.
+    </div>
+  </div>
+</section>
+
+<!-- ============ BUZZ ============ -->
+<section id="buzz">
+  <div class="wrap">
+    <div class="shead">
+      <div class="eyebrow">Online buzz</div>
+      <h2>What people are saying, and how fast</h2>
+      <p class="sub">Whether people are positive or negative barely predicts anything. A <b>sudden change in how much they are talking</b> does.</p>
+    </div>
+    <div class="ctl">
+      <div class="field"><label>Price move today <span>Percent, up or down</span></label><input id="inPx1d" type="number" step="0.1" value="-1.6" /></div>
+      <div class="field"><label>Data <span>Demo, or your own numbers</span></label>
+        <select id="inFeed"><option value="demo">Demo data</option><option value="paste">My own counts</option></select></div>
+    </div>
+    <div id="pasteBox" style="display:none;margin-bottom:22px">
+      <div class="field"><label>Your counts<span>One line per window: window, mentions now, mentions before, positive posts, negative posts</span></label>
+      <textarea id="inCounts" placeholder="1m,14,9,8,6
+1h,610,480,392,218
+1d,9840,7150,6180,3660
+1w,54200,49800,32100,22100
+1mo,198000,214000,109000,89000"></textarea></div>
+    </div>
+    <div class="lat" id="lat"></div>
+    <div style="margin-top:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <span class="badge" id="feedTag">Demo data</span>
+      <span style="font-size:15px;color:var(--soft)" id="latNote"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SOURCES ============ -->
+<section id="sources">
+  <div class="wrap">
+    <div class="shead">
+      <div class="eyebrow">Where the data comes from</div>
+      <h2>Everything here is free</h2>
+    </div>
+    <div class="srcbox">
+      <div class="src"><span class="nm">SEC EDGAR</span><span class="de">Official US filings: 10-Q, 8-K, and the quarterly 13F holdings disclosures that power the big-investor table. The backbone of everything on this page.</span><span class="co">Free</span></div>
+      <div class="src"><span class="nm">Company IR</span><span class="de">Results presentations and press releases, where megawatt targets and contract terms get stated first.</span><span class="co">Free</span></div>
+      <div class="src"><span class="nm">StockTwits</span><span class="de">Stock-focused social network where users tag posts positive or negative. The most useful free sentiment feed.</span><span class="co">Free</span></div>
+      <div class="src"><span class="nm">Reddit &amp; Bluesky</span><span class="de">Retail crowding, slower but honest. Bluesky's feed is fully open with no limits.</span><span class="co">Free</span></div>
+      <div class="src"><span class="nm">Alpha Vantage</span><span class="de">Pre-scored news sentiment, capped at 25 requests a day. Fine for a daily update.</span><span class="co">Free</span></div>
+      <div class="src"><span class="nm">X / Twitter</span><span class="de">Dropped from version one. X removed its free tier in February 2026 and charges per post read, with full history behind an enterprise contract.</span><span class="co off">Excluded</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GLOSSARY ============ -->
+<section id="glossary">
+  <div class="wrap">
+    <div class="shead"><div class="eyebrow">Glossary</div><h2>Every term on this page, explained</h2></div>
+    <dl>
+      <div class="gl"><dt>Megawatt (MW) and gigawatt (GW)</dt><dd>Units of electrical power. A gigawatt is 1,000 megawatts. AI data centres are measured in power rather than floor space, because electricity is what limits how many chips you can run. One megawatt roughly powers 1,000 homes, or a few thousand AI chips.</dd></div>
+      <div class="gl"><dt>Pipeline</dt><dd>Power the company has secured rights to but has not yet built anything on. The easiest number to announce and the furthest from revenue. Treat large pipeline claims with healthy scepticism.</dd></div>
+      <div class="gl"><dt>In build</dt><dd>Sites under active construction with a target completion date. This is where the money is being spent and where delays show up first.</dd></div>
+      <div class="gl"><dt>Contracted</dt><dd>A customer has signed for the capacity. Legally binding, but they only start paying once it is delivered and accepted.</dd></div>
+      <div class="gl"><dt>Built but uncontracted</dt><dd>Finished capacity sitting there with no customer. Expensive to own and a warning sign if it persists — though in today's market almost everything gets snapped up.</dd></div>
+      <div class="gl"><dt>Acceptance</dt><dd>The moment a customer tests a finished site, signs it off, and starts paying. Before acceptance the company has spent money and earned nothing. The most important date in the business.</dd></div>
+      <div class="gl"><dt>Delivery rate</dt><dd>Switched-on megawatts divided by contracted megawatts. Our headline measure of whether a company executes or just announces.</dd></div>
+      <div class="gl"><dt>Revenue per megawatt</dt><dd>Annual contract value divided by megawatts. Landlord-style businesses earn a few million. Full-stack businesses that buy the chips themselves earn far more, but spend far more too.</dd></div>
+      <div class="gl"><dt>Capex</dt><dd>Capital expenditure — the upfront cost of building. Roughly $4m per megawatt for an air-cooled retrofit, versus $10-15m for a purpose-built liquid-cooled site with chips included.</dd></div>
+      <div class="gl"><dt>Full stack versus powered shell</dt><dd>A full-stack operator buys the chips and sells finished computing. A powered-shell operator rents out a building with electricity and lets the customer bring their own chips. Completely different capital needs, margins, and risks.</dd></div>
+      <div class="gl"><dt>Backlog</dt><dd>The total value of signed contracts not yet delivered. Impressive-sounding, but it says nothing about when — or whether — it converts into cash.</dd></div>
+      <div class="gl"><dt>13F filing</dt><dd>A quarterly disclosure large US investors must make listing their shareholdings. Arrives up to 45 days after quarter end, so it is always a little out of date.</dd></div>
+      <div class="gl"><dt>Neocloud</dt><dd>Companies renting out AI computing power without being one of the giant cloud providers. Many started as Bitcoin miners and switched, because they already owned the two hardest things to get: land and electricity.</dd></div>
+      <div class="gl"><dt>Blackwell, GB300, Vera Rubin</dt><dd>Generations of NVIDIA AI chips, newest last. Newer generations do more work per watt, which is why chip generation determines how long a site stays competitive.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <a class="logo" href="#top"><b>T2C</b><span>Time to Compute</span></a>
+    <p>Private research tool. Nothing here is investment advice, a recommendation, or an invitation to
+    buy or sell anything. Figures are compiled by hand from public filings and press reports and carry
+    a source tag showing which is which. They may be out of date, and blanks mean genuinely not
+    disclosed rather than zero. If you act on anything here, that is your decision alone.</p>
+    <p style="color:var(--dim)">Compiled <span id="asof"></span> · Built on free data feeds</p>
+  </div>
+</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+$('themeBtn').addEventListener('click',()=>{
+  const el=document.documentElement;
+  const next=el.getAttribute('data-theme')==='light'?'dark':'light';
+  el.setAttribute('data-theme',next);
+  $('themeBtn').textContent=next==='light'?'Dark mode':'Light mode';
+});
+
+/* =========================================================
+   COMPANY DATA
+   src tags: f = filing/company, r = reported press, e = estimate, n = not disclosed
+   All MW figures are megawatts. null means genuinely not disclosed.
+   Edit this block as new filings land — it is the whole database.
+   ========================================================= */
+const COMPANIES=[
+{
+  t:'IREN', name:'IREN Limited', model:'Full stack — owns and runs the chips',
+  pipeline:5000, pipelineSrc:'f',
+  contracted:260, contractedSrc:'f',
+  building:430, buildingSrc:'e',
+  live:50, liveSrc:'f',
+  uncontracted:null, uncontractedSrc:'n',
+  target:'480MW gross AI cloud by end 2026, 1.2GW by 2027', targetSrc:'f',
+  chips:'NVIDIA GB300 NVL72, liquid-cooled; air-cooled Blackwell for the NVIDIA contract', chipsSrc:'f',
+  capexNote:'~$4m/MW air-cooled retrofit vs ~$15m/MW liquid-cooled', capexSrc:'r',
+  note:'Only company here with a hyperscaler site formally accepted.'
+},
+{
+  t:'CRWV', name:'CoreWeave', model:'Full stack — owns and runs the chips',
+  pipeline:3500, pipelineSrc:'f',
+  contracted:null, contractedSrc:'n',
+  building:null, buildingSrc:'n',
+  live:null, liveSrc:'n',
+  uncontracted:0, uncontractedSrc:'r',
+  target:'1.7GW active power by end 2026', targetSrc:'f',
+  chips:'NVIDIA Blackwell generation, GB200/GB300 class', chipsSrc:'r',
+  capexNote:'$30–35bn total capex planned for 2026', capexSrc:'f',
+  note:'Largest backlog in the sector. Says near-term capacity is effectively sold out and raised prices ~25% in July.'
+},
+{
+  t:'NBIS', name:'Nebius Group', model:'Full stack — owns and runs the chips',
+  pipeline:3500, pipelineSrc:'f',
+  contracted:null, contractedSrc:'n',
+  building:null, buildingSrc:'n',
+  live:null, liveSrc:'n',
+  uncontracted:0, uncontractedSrc:'r',
+  target:'800MW–1GW connected by end 2026; 3GW contracted power by end 2026', targetSrc:'f',
+  chips:'NVIDIA Blackwell generation', chipsSrc:'r',
+  capexNote:'Not disclosed as a per-MW figure', capexSrc:'n',
+  note:'Highest revenue per megawatt in the group. 1GW Missouri campus and 310MW Finland site anchor the buildout.'
+},
+{
+  t:'WULF', name:'TeraWulf', model:'Powered shell — tenant brings the chips',
+  pipeline:2200, pipelineSrc:'f',
+  contracted:642.5, contractedSrc:'f',
+  building:null, buildingSrc:'n',
+  live:102, liveSrc:'f',
+  uncontracted:null, uncontractedSrc:'n',
+  target:'~2.8GW portfolio across five sites', targetSrc:'f',
+  chips:'Tenant-supplied — TeraWulf provides the building and power', chipsSrc:'f',
+  capexNote:'Not disclosed as a per-MW figure', capexSrc:'n',
+  note:'102MW of critical IT load energised at Lake Mariner. Expanded into Kentucky and Maryland.'
+},
+{
+  t:'KEEL', name:'Keel Infrastructure', model:'Powered shell — tenant brings the chips',
+  pipeline:2200, pipelineSrc:'f',
+  contracted:0, contractedSrc:'f',
+  building:110, buildingSrc:'f',
+  live:0, liveSrc:'f',
+  uncontracted:0, uncontractedSrc:'f',
+  target:'Management targeting three hyperscale leases; none signed yet', targetSrc:'r',
+  chips:'Tenant-supplied — Keel provides the powered shell', chipsSrc:'f',
+  capexNote:'Funded by ~$958m of convertible notes across two raises', capexSrc:'f',
+  note:'Formerly Bitfarms. The pure speculation in this group: 2.2GW of pipeline and not one signed lease. Sharon is 110MW and still needs full permitting.'
+},
+{
+  t:'APLD', name:'Applied Digital', model:'Powered shell — tenant brings the chips',
+  pipeline:null, pipelineSrc:'n',
+  contracted:600, contractedSrc:'f',
+  building:null, buildingSrc:'n',
+  live:null, liveSrc:'n',
+  uncontracted:null, uncontractedSrc:'n',
+  target:'Not stated as a single figure', targetSrc:'n',
+  chips:'Tenant-supplied', chipsSrc:'r',
+  capexNote:'Not disclosed as a per-MW figure', capexSrc:'n',
+  note:'600MW under contract representing roughly $16bn of prospective lease revenue.'
+},
+{
+  t:'SPACEX', name:'SpaceX (orbital)', model:'Orbital compute — a different category entirely',
+  pipeline:null, pipelineSrc:'n',
+  contracted:null, contractedSrc:'n',
+  building:null, buildingSrc:'n',
+  live:0, liveSrc:'r',
+  uncontracted:null, uncontractedSrc:'n',
+  target:'FCC filing for up to 1m compute satellites; pilot compute payloads on Starlink V3 in 2026', targetSrc:'f',
+  chips:'Custom AI1 satellite compute module, solar powered', chipsSrc:'f',
+  capexNote:'Funded from a planned IPO; no per-MW figure exists', capexSrc:'r',
+  note:'Not a neocloud in the same sense — no ground megawatts, not yet listed, absorbed xAI in February 2026. Included because if orbital compute works it changes the power scarcity thesis for everyone else. Nothing is operational.'
+}
+];
+
+/* Contracts — one row per named deal */
+const CONTRACTS=[
+{c:'IREN',cust:'Microsoft',mw:200,years:5,value:9.7,delivered:50,signed:'2025-11-03',accepted:'2026-08-13',
+ chips:'76,000+ GB300, liquid-cooled',prepay:'20% upfront (~$1.93bn)',src:'f'},
+{c:'IREN',cust:'NVIDIA',mw:60,years:5,value:3.4,delivered:0,signed:'2026-05-07',accepted:null,
+ chips:'Air-cooled Blackwell, inside existing capacity',prepay:'NVIDIA also holds a right to buy 30m shares at $70',src:'f'},
+{c:'IREN',cust:'Eight AI developers',mw:null,years:null,value:2.8,delivered:null,signed:'2026-07-20',accepted:null,
+ chips:'Not disclosed',prepay:'Includes Perplexity, Figure AI, Together AI, Fluidstack and others',src:'r'},
+{c:'NBIS',cust:'Meta Platforms',mw:null,years:null,value:27,delivered:null,signed:null,accepted:null,
+ chips:'Not disclosed',prepay:'$12bn committed over the first five years',src:'r'},
+{c:'WULF',cust:'Anthropic',mw:null,years:null,value:null,delivered:null,signed:null,accepted:null,
+ chips:'Tenant-supplied',prepay:'Implies roughly $2.4m per MW per year',src:'r'},
+{c:'APLD',cust:'Delta Forge 2',mw:null,years:null,value:null,delivered:null,signed:null,accepted:null,
+ chips:'Tenant-supplied',prepay:'Implies roughly $1.7m per MW per year',src:'r'},
+{c:'CRWV',cust:'Aggregate backlog',mw:null,years:null,value:104,delivered:null,signed:null,accepted:null,
+ chips:'NVIDIA Blackwell class',prepay:'Excludes $25bn+ signed early in Q3',src:'f'},
+{c:'SPACEX',cust:'Anthropic',mw:null,years:null,value:null,delivered:null,signed:null,accepted:null,
+ chips:'Ground-based, via xAI infrastructure',prepay:'Reported at ~$1.25bn per month — press report only, not confirmed',src:'r'}
+];
+
+/* Revenue density — annual contract value per MW */
+const DENSITY=[
+{c:'NBIS',lo:12,hi:40,note:'Entered 2026 near $12m/MW; Q2 deals averaged over $20m; short-term capacity quoted near $40m',src:'r'},
+{c:'IREN',lo:8.3,hi:8.3,note:'Over $8.3m per disclosed MW, based on the $4bn+ ARR target against 480MW gross',src:'e'},
+{c:'WULF',lo:2.4,hi:2.4,note:'Implied by the Anthropic lease',src:'e'},
+{c:'APLD',lo:1.7,hi:1.7,note:'Implied by the Delta Forge 2 lease',src:'e'}
+];
+
+/* Institutional holders — populate from 13F filings each quarter */
+const HOLDERS=[
+{c:'IREN',who:'Goldman Sachs',stake:'9.4% of shares',dir:'add',asof:'Aug 2026',note:'Disclosed a 9.4% position. Notably, the firm\'s research arm rates the stock Neutral with a $50 target.',src:'f'},
+{c:'IREN',who:'Bank of America',stake:'Disclosed position',dir:'add',asof:'Aug 2026',note:'Filed a stake disclosure shortly before Goldman.',src:'f'},
+{c:'IREN',who:'NVIDIA',stake:'Right to buy 30m shares at $70',dir:'add',asof:'May 2026',note:'A five-year right worth up to $2.1bn if exercised. Not currently shares, but real potential dilution above $70.',src:'f'},
+{c:'NBIS',who:'NVIDIA',stake:'$2bn invested',dir:'add',asof:'2026',note:'Direct investment alongside a partnership to co-develop hyperscale AI cloud infrastructure.',src:'r'},
+{c:'CRWV',who:'NVIDIA',stake:'IPO anchor',dir:'add',asof:'2025',note:'Anchored the downsized IPO with a $250m order.',src:'r'}
+];
+
+const SB={f:['filing','Filing'],r:['reported','Reported'],e:['est','Estimate'],n:['none','Not disclosed']};
+const sb=k=>{const s=SB[k]||SB.n;return `<span class="sb ${s[0]}">${s[1]}</span>`;};
+const mw=(v,s)=>v===null||v===undefined?`<span style="color:var(--dim)">—</span>${sb('n')}`:`${v>=1000?(v/1000).toFixed(1)+' GW':v+' MW'}${sb(s)}`;
+
+/* ---------- leaderboard ---------- */
+let sortKey='pipeline';
+function totalKnown(c){
+  return (c.pipeline||0);
+}
+function drawBoard(){
+  const rows=[...COMPANIES];
+  const keyOf=c=>{
+    if(sortKey==='rate') return (c.contracted&&c.live!==null)?c.live/c.contracted:-1;
+    const v=c[sortKey==='live'?'live':sortKey];
+    return v===null||v===undefined?-1:v;
+  };
+  rows.sort((a,b)=>keyOf(b)-keyOf(a));
+
+  const maxP=Math.max(...rows.map(r=>r.pipeline||r.contracted||0));
+  let h=`<tr><th>Company</th><th>Business model</th><th>Pipeline</th><th>Contracted</th><th>In build</th><th>Switched on</th><th>Delivery rate</th><th style="min-width:170px">Shape</th></tr>`;
+  for(const c of rows){
+    const rate=(c.contracted&&c.live!==null)?c.live/c.contracted:null;
+    const base=c.pipeline||c.contracted||0;
+    const pctOf=v=>base?clamp((v||0)/maxP,0,1)*100:0;
+    const liveW=pctOf(c.live), conW=pctOf(Math.max((c.contracted||0)-(c.live||0),0));
+    const bldW=pctOf(c.building), uncW=Math.max(pctOf(base)-liveW-conW-bldW,0);
+    h+=`<tr>
+      <td>${c.t}<span class="co-sub">${c.name}</span></td>
+      <td style="text-align:left;font-family:'Archivo',sans-serif;font-weight:500;font-size:13.5px;color:var(--soft);max-width:22ch">${c.model}</td>
+      <td>${mw(c.pipeline,c.pipelineSrc)}</td>
+      <td>${mw(c.contracted,c.contractedSrc)}</td>
+      <td>${mw(c.building,c.buildingSrc)}</td>
+      <td style="font-weight:800">${mw(c.live,c.liveSrc)}</td>
+      <td>${rate===null?`<span style="color:var(--dim)">—</span>`:`<span style="font-weight:800">${(rate*100).toFixed(0)}%</span>`}</td>
+      <td><div class="stack">
+        <i class="sw-del" style="width:${liveW}%"></i>
+        <i class="sw-con" style="width:${conW}%"></i>
+        <i class="sw-bld" style="width:${bldW}%"></i>
+        <i class="sw-unc" style="width:${uncW}%"></i>
+      </div><span class="co-sub">${c.note}</span></td>
+    </tr>`;
+  }
+  $('boardTable').innerHTML=h;
+
+  const tp=COMPANIES.reduce((a,c)=>a+(c.pipeline||0),0);
+  const tc=COMPANIES.reduce((a,c)=>a+(c.contracted||0),0);
+  const tl=COMPANIES.reduce((a,c)=>a+(c.live||0),0);
+  $('hsPipe').textContent=(tp/1000).toFixed(1)+' GW';
+  $('hsCon').textContent=(tc).toFixed(0)+' MW';
+  $('hsLive').textContent=(tl).toFixed(0)+' MW';
+  $('hsRate').textContent=tc?((tl/tc)*100).toFixed(0)+'%':'—';
+}
+document.querySelectorAll('#sortSegs .seg').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#sortSegs .seg').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    sortKey=b.dataset.sort; drawBoard();
+  });
+});
+
+/* ---------- contracts ---------- */
+function drawContracts(){
+  let h=`<tr><th>Company</th><th>Customer</th><th>Size (MW)</th><th>Term</th><th>Total value</th><th>Per MW / year</th><th>Delivered</th><th style="min-width:200px">Chips &amp; terms</th></tr>`;
+  for(const k of CONTRACTS){
+    const perMW=(k.value&&k.mw&&k.years)?(k.value*1000/k.mw/k.years):null;
+    h+=`<tr>
+      <td>${k.c}</td>
+      <td style="text-align:left;font-family:'Archivo',sans-serif;font-weight:600;font-size:14px">${k.cust}</td>
+      <td>${k.mw!==null?k.mw:'<span style="color:var(--dim)">—</span>'}</td>
+      <td>${k.years?k.years+' yrs':'<span style="color:var(--dim)">—</span>'}</td>
+      <td>${k.value!==null?'$'+k.value+'bn':'<span style="color:var(--dim)">—</span>'}</td>
+      <td>${perMW?'<span style="font-weight:800">$'+perMW.toFixed(1)+'m</span>'+sb('e'):'<span style="color:var(--dim)">—</span>'}</td>
+      <td>${k.delivered!==null?(k.mw?`${k.delivered} MW<span class="co-sub">${((k.delivered/k.mw)*100).toFixed(0)}% of contract</span>`:k.delivered+' MW'):'<span style="color:var(--dim)">—</span>'}</td>
+      <td style="text-align:left;font-family:'Archivo',sans-serif;font-weight:400;font-size:13.5px;color:var(--soft)">${k.chips}${sb(k.src)}<span class="co-sub">${k.prepay}</span></td>
+    </tr>`;
+  }
+  $('contractTable').innerHTML=h;
+}
+
+/* ---------- chips & capex ---------- */
+function drawChips(){
+  let h=`<tr><th>Company</th><th style="text-align:left;min-width:250px">Chips installed</th><th style="text-align:left;min-width:210px">Build cost</th><th style="text-align:left;min-width:230px">Capacity target</th><th style="text-align:left;min-width:190px">Revenue per MW / yr</th></tr>`;
+  for(const c of COMPANIES){
+    const d=DENSITY.find(x=>x.c===c.t);
+    h+=`<tr>
+      <td>${c.t}<span class="co-sub">${c.model}</span></td>
+      <td style="text-align:left;font-family:'Archivo',sans-serif;font-weight:400;font-size:14px;color:var(--soft)">${c.chips}${sb(c.chipsSrc)}</td>
+      <td style="text-align:left;font-family:'Archivo',sans-serif;font-weight:400;font-size:14px;color:var(--soft)">${c.capexNote}${sb(c.capexSrc)}</td>
+      <td style="text-align:left;font-family:'Archivo',sans-serif;font-weight:400;font-size:14px;color:var(--soft)">${c.target}${sb(c.targetSrc)}</td>
+      <td style="text-align:left;font-family:'Archivo',sans-serif;font-size:14px;color:var(--soft)">
+        ${d?`<b style="font-family:'IBM Plex Mono',monospace;font-size:16px">$${d.lo}${d.hi!==d.lo?'–'+d.hi:''}m</b>${sb(d.src)}<span class="co-sub">${d.note}</span>`:'<span style="color:var(--dim)">—</span>'+sb('n')}
+      </td>
+    </tr>`;
+  }
+  $('chipTable').innerHTML=h;
+}
+
+/* ---------- holders ---------- */
+function drawHolders(){
+  let h=`<tr><th>Company</th><th style="text-align:left">Investor</th><th style="text-align:left">Position</th><th>Direction</th><th>As of</th><th style="text-align:left;min-width:280px">Detail</th></tr>`;
+  for(const k of HOLDERS){
+    h+=`<tr>
+      <td>${k.c}</td>
+      <td style="text-align:left;font-family:'Archivo',sans-serif;font-weight:700;font-size:14.5px">${k.who}</td>
+      <td style="text-align:left">${k.stake}</td>
+      <td><span class="dir ${k.dir==='add'?'add':'cut'}">${k.dir==='add'?'▲ Added':'▼ Reduced'}</span></td>
+      <td>${k.asof}</td>
+      <td style="text-align:left;font-family:'Archivo',sans-serif;font-weight:400;font-size:13.5px;color:var(--soft)">${k.note}${sb(k.src)}</td>
+    </tr>`;
+  }
+  h+=`<tr><td colspan="6" style="text-align:left;font-family:'Archivo',sans-serif;font-weight:400;font-size:14px;color:var(--dim);padding:18px 12px">
+    Only positions confirmed in filings or credible reports are listed. Full quarter-on-quarter add/reduce tracking
+    for every fund requires pulling 13F filings from SEC EDGAR each quarter — free, but it has to be automated.
+  </td></tr>`;
+  $('holderTable').innerHTML=h;
+}
+
+/* ---------- odds maths ---------- */
+const SQ2PI=Math.sqrt(2*Math.PI);
+function normCdf(x){
+  if(!isFinite(x))return x>0?1:0;
+  const t=1/(1+0.2316419*Math.abs(x)), d=Math.exp(-x*x/2)/SQ2PI;
+  const p=d*t*(0.319381530+t*(-0.356563782+t*(1.781477937+t*(-1.821255978+t*1.330274429))));
+  return x>0?1-p:p;
+}
+function touchProb(S0,B,sig,T,mu){
+  if(T<=0||sig<=0)return 0;
+  const m=mu-0.5*sig*sig,b=Math.log(B/S0),sT=sig*Math.sqrt(T);
+  const p=B>S0
+    ?normCdf((m*T-b)/sT)+Math.exp(2*m*b/(sig*sig))*normCdf((-b-m*T)/sT)
+    :normCdf((b-m*T)/sT)+Math.exp(2*m*b/(sig*sig))*normCdf((b+m*T)/sT);
+  return clamp(p,0,1);
+}
+function probAbove(S0,K,sig,T,mu){
+  if(T<=0)return S0>K?1:0;
+  const m=mu-0.5*sig*sig;
+  return normCdf((Math.log(S0/K)+m*T)/(sig*Math.sqrt(T)));
+}
+function quant(S0,sig,T,mu,z){const m=mu-0.5*sig*sig;return S0*Math.exp(m*T+z*sig*Math.sqrt(T));}
+const fmtDate=d=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+
+function drawOdds(){
+  const S0=+$('inSpot').value,B=+$('inTarget').value;
+  const sig=(+$('inVol').value)/100,mu=(+$('inDrift').value)/100;
+  const days=Math.round((new Date($('inDate').value+'T21:00:00Z')-new Date())/86400000);
+  const T=days/365.25;
+  $('qLine').textContent=`Chance of touching $${B} at any point before ${fmtDate($('inDate').value)}`;
+  if(T<=0||!isFinite(S0)||!isFinite(B)||S0<=0||B<=0){
+    $('bigOdds').textContent='—';
+    $('oddsPlain').textContent='Pick a date in the future and check the prices are filled in.';
+    return;
+  }
+  const pt=touchProb(S0,B,sig,T,mu);
+  const pc=B>S0?probAbove(S0,B,sig,T,mu):1-probAbove(S0,B,sig,T,mu);
+  const med=quant(S0,sig,T,mu,0),lo=quant(S0,sig,T,mu,-1),hi=quant(S0,sig,T,mu,1);
+  const half=1-probAbove(S0,S0*0.5,sig,T,mu);
+  const move=(B/S0-1)*100;
+  $('bigOdds').textContent=(pt*100).toFixed(0)+'%';
+  $('oddsBar').style.width=(pt*100)+'%';
+  const words=pt>0.7?'more likely than not, comfortably':pt>0.55?'slightly more likely than not'
+    :pt>0.45?'close to a coin flip':pt>0.25?'possible, but against the odds':'a long shot';
+  $('oddsPlain').innerHTML=`Getting from $${S0.toFixed(2)} to $${B} is a <b>${move>0?'rise':'fall'} of ${Math.abs(move).toFixed(0)}%</b>, and you are giving it <b>${days} days</b>. At a ${(sig*100).toFixed(0)}% yearly swing that is <b>${words}</b>. Out of 100 parallel worlds, the price would touch $${B} in about <b>${Math.round(pt*100)}</b> of them.`;
+  $('vClose').textContent=(pc*100).toFixed(0)+'%';
+  $('vMed').textContent='$'+med.toFixed(2);
+  $('vBand').textContent='$'+lo.toFixed(0)+' – $'+hi.toFixed(0);
+  $('vHalf').textContent=(half*100).toFixed(0)+'%';
+  $('vHalf').style.color=half>0.2?'var(--bear)':'var(--ink)';
+  $('vDays').textContent=days;
+}
+
+/* ---------- buzz ---------- */
+function rnd(s){let x=s;return()=>{x=(x*1664525+1013904223)%4294967296;return x/4294967296;};}
+function demoFeed(t){
+  let h=0;for(const c of t)h=(h*31+c.charCodeAt(0))%99991;
+  const r=rnd(h+Math.floor(Date.now()/3600000));
+  const base=[16,640,10200,56000,205000];
+  return ['1m','1h','1d','1w','1mo'].map((tf,i)=>{
+    const m=Math.round(base[i]*(0.7+r()*0.9));
+    const prior=Math.round(m*(0.55+r()*0.8));
+    const bs=0.42+r()*0.34;
+    return {tf,m,prior,bull:Math.round(m*bs),bear:Math.round(m*(1-bs))};
+  });
+}
+function parseCounts(txt){
+  const out=[];
+  for(let l of txt.split(/\r?\n/)){
+    l=l.trim();if(!l)continue;
+    const p=l.split(',').map(s=>s.trim());
+    if(p.length<5||!isFinite(+p[1]))continue;
+    out.push({tf:p[0],m:+p[1],prior:+p[2],bull:+p[3],bear:+p[4]});
+  }
+  return out;
+}
+const TF={'1m':['Last minute','Fastest, noisiest'],'1h':['Last hour','Catches breaking news'],
+  '1d':['Last day','The one most worth watching'],'1w':['Last week','Filters out daily noise'],
+  '1mo':['Last month','The slow, reliable trend']};
+let LAT=[];
+function drawBuzz(){
+  const feed=$('inFeed').value;
+  const rows=feed==='paste'?parseCounts($('inCounts').value):demoFeed(($('inTicker').value||'IREN').toUpperCase());
+  const px1=+$('inPx1d').value||0;
+  $('pasteBox').style.display=feed==='paste'?'block':'none';
+  $('feedTag').textContent=feed==='paste'?(rows.length?rows.length+' windows loaded':'Paste your counts above'):'Demo data — made up, for layout only';
+  $('feedTag').className=feed==='paste'?'badge off':'badge';
+  let h='';LAT=[];
+  if(!rows.length)h=`<div class="tfcard" style="color:var(--dim)">No data yet. Paste your counts above, or switch back to demo data.</div>`;
+  for(const r of rows){
+    const meta=TF[r.tf]||[r.tf,''];
+    const vel=r.prior>0?(r.m/r.prior-1):0;
+    const z=r.prior>0?(r.m-r.prior)/(0.4*r.prior):0;
+    const tot=(r.bull||0)+(r.bear||0), bs=tot?r.bull/tot:0.5;
+    const crowd=Math.abs(bs-0.5)*2;
+    const sd=bs>0.5?1:-1,pd=px1>0?1:px1<0?-1:0;
+    const div=(sd!==pd&&pd!==0)?crowd:0;
+    let pill,pc,verdict;
+    if(z>1.6&&vel>0.35){pill='Something is happening';pc='go';verdict='Chatter has spiked hard and is still accelerating. Go and find out why before assuming anything — a spike with no news behind it usually fades within a day.';}
+    else if(z>1.0&&vel>0){pill='Interest building';pc='go';verdict='More people are talking than usual, steadily rather than in a burst. This is the most useful phase, because it often comes before the crowd arrives.';}
+    else if(crowd>0.72&&z>0.5){pill='Everyone agrees';pc='stop';verdict='Opinion is very one-sided and loud. When almost everyone is already convinced, there is nobody left to buy. Treat strength here with suspicion.';}
+    else if(vel<-0.25){pill='Losing steam';pc='stop';verdict='Chatter is falling away. The raw numbers may still look big, but the story is running out of new people to reach.';}
+    else{pill='Nothing to see';pc='wait';verdict='Normal levels. No action needed — and honestly, this is the correct reading most of the time.';}
+    LAT.push({tf:r.tf,z,vel,crowd,bs,div});
+    h+=`<div class="tfcard">
+      <div class="tfhead"><div class="tfname">${meta[0]}<small>${meta[1]} · ${r.m.toLocaleString()} mentions</small></div>
+      <span class="pill ${pc}">${pill}</span></div>
+      <div class="mgrid">
+        <div class="m"><div class="mv">${z>0?'+':''}${z.toFixed(1)}</div><div class="ml">Buzz score</div>
+          <div class="me">${z>1.5?'Far busier than normal':z>0.5?'Busier than normal':z<-0.5?'Quieter than normal':'About normal'}</div>
+          <div class="bar"><i class="${z<0?'bear':''}" style="width:${clamp(Math.abs(z)/3,0,1)*100}%"></i></div></div>
+        <div class="m"><div class="mv">${vel>0?'+':''}${(vel*100).toFixed(0)}%</div><div class="ml">Speeding up or slowing</div>
+          <div class="me">${vel>0.3?'Accelerating fast':vel>0?'Gently rising':vel<-0.25?'Dropping away':'Roughly flat'}</div>
+          <div class="bar"><i class="${vel<0?'bear':''}" style="width:${clamp(Math.abs(vel)/1.2,0,1)*100}%"></i></div></div>
+        <div class="m"><div class="mv">${(bs*100).toFixed(0)}%</div><div class="ml">Share who are positive</div>
+          <div class="me">${crowd>0.72?'Very one-sided — a warning sign':crowd>0.4?'Leaning one way':'Opinion fairly split'}</div>
+          <div class="bar"><i class="${crowd>0.7?'bear':''}" style="width:${bs*100}%"></i></div></div>
+        <div class="m"><div class="mv">${div>0?(div*100).toFixed(0)+'%':'None'}</div><div class="ml">Mood versus price</div>
+          <div class="me">${div>0.3?'Mood and price disagree — worth a look':'Mood and price agree — tells you little'}</div>
+          <div class="bar"><i style="width:${div*100}%"></i></div></div>
+      </div>
+      <div class="verdict">${verdict}</div></div>`;
+  }
+  $('lat').innerHTML=h;
+  const hot=LAT.filter(x=>x.z>1.6&&x.vel>0.35).length;
+  const crowded=LAT.filter(x=>x.crowd>0.72&&x.z>0.5).length;
+  $('latNote').textContent=!LAT.length?'':hot>=2?'Several time windows are lit up at once. That is rare, and worth investigating.'
+    :crowded>=2?'Opinion is one-sided across several windows. Be careful chasing strength here.'
+    :'The windows disagree with each other, which is completely normal. Trust the slower ones.';
+}
+
+['inSpot','inTarget','inDate','inVol','inDrift'].forEach(i=>$(i).addEventListener('input',drawOdds));
+['inTicker','inPx1d','inCounts'].forEach(i=>$(i).addEventListener('input',drawBuzz));
+$('inFeed').addEventListener('change',drawBuzz);
+$('asof').textContent=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+
+drawBoard(); drawContracts(); drawChips(); drawHolders(); drawOdds(); drawBuzz();
+</script>
+</body>
+</html>
