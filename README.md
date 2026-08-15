@@ -87,10 +87,34 @@ See [docs/DATA.md](docs/DATA.md) for the full definitions and verification rules
 
 ## Current data status
 
-Most inherited capacity figures are marked **`reported` / source required** — they
-were compiled from filings, but the compile did not record which filing. They are
-shown with that flag rather than presented as verified, and they are excluded from
-"sourced" percentages. Attaching primary sources is the main outstanding data task.
+All six company records were audited against primary sources on **15 August 2026**. Every
+confirmed value carries a primary document, an as-of date and a verification date; the
+build fails if one does not.
 
-CoreWeave is fully sourced to its
-[Q2 2026 results](https://investors.coreweave.com/news/news-details/2026/CoreWeave-Reports-Strong-Second-Quarter-2026-Results/default.aspx).
+See [docs/DATA.md](docs/DATA.md) for definitions, the corrections made, and what still
+needs verification.
+
+## Provider limitations
+
+The connected Finnhub plan grants:
+
+| Capability | Status |
+|---|---|
+| Quotes | available |
+| Company news | available |
+| SEC filings (EDGAR, no key) | available |
+| Recommendation trends (rating distribution) | available |
+| Earnings calendar | available |
+| **Price targets** | **plan-restricted** |
+| **Upgrade/downgrade (per-firm actions)** | **plan-restricted** |
+| **Daily candles (historical prices)** | **plan-restricted** |
+
+Consequences, all surfaced honestly in the UI rather than filled with placeholders:
+
+- No analyst price targets, per-firm attribution or target horizons are displayed.
+- No historical event-reaction study can run.
+- The comparison performance chart cannot draw a series.
+
+The consensus, revision, event-study and normalisation maths are fully implemented and
+unit-tested against fixtures, so connecting a provider that supplies these fields is a
+configuration change rather than a rewrite. Check live capability at `/api/capabilities`.

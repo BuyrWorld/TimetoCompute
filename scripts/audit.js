@@ -113,9 +113,50 @@ for (const [, target] of geoRows) {
   if (!home.includes(`id="${target}"`)) fail(`country row points at missing panel ${target}`);
 }
 
-// charts carry a text alternative
+// charts carry a text alternative — aria-labelledby pointing at a real summary,
+// or an inline aria-label for small inline graphics
 if (!/id="distChart"[^>]*aria-labelledby="distSummary"/.test(home)) fail('distribution chart has no text summary');
-if (!/role="img" aria-label=/.test(home)) fail('no aria-labelled chart graphics found');
+if (!/id="fanChart"[^>]*aria-labelledby="fanSummary"/.test(home)) fail('fan chart has no text summary');
+for (const id of ['distSummary', 'fanSummary']) {
+  if (!home.includes(`id="${id}"`)) fail(`chart summary target #${id} does not exist`);
+}
+if (!/role="img"\s+aria-label(ledby)?=/.test(home)) fail('no aria-labelled chart graphics found');
+
+// the marquee duplicate must not be read twice by a screen reader
+if (!/aria-hidden="true"/.test(home)) fail('no aria-hidden found — check the ticker clone');
+
+/* ---- provenance and honesty rules ---- */
+// a minimum must never be presented as an exhaustive total
+if (home.includes('confirmed minimum') && !home.includes('≥')) {
+  fail('a minimum is described without the >= marker');
+}
+// corrected values must be gone from the shipped output
+const STALE = [
+  { v: '3.5 GW', why: 'superseded CoreWeave contracted-power figure' },
+  { v: '600 MW', why: 'stale Applied Digital contracted figure' }
+];
+for (const s of STALE) {
+  if (home.includes(s.v)) notes.push(`homepage still contains "${s.v}" — verify it is a dated historical record (${s.why})`);
+}
+// no analyst target may appear without attribution
+if (/target price/i.test(home) && !/Finnhub|research firm|attributab/i.test(home)) {
+  fail('a price target appears without provider or firm attribution');
+}
+// causal language about price reactions is forbidden
+for (const f of htmlFiles) {
+  const t = fs.readFileSync(f, 'utf8');
+  if (/announcement caused|caused the (share|stock|price)/i.test(t)) {
+    fail(`causal language about a price move in ${rel(f)}`);
+  }
+  if (/guaranteed return|certain to rise|will rise to/i.test(t)) {
+    fail(`language implying a guaranteed outcome in ${rel(f)}`);
+  }
+}
+
+// comparison must state its own ceiling
+if (!/at most 3 companies|up to 3|Up to 3/i.test(home)) {
+  fail('the comparison ceiling is not stated in the interface');
+}
 
 // status must never be colour-only: every status pill carries a text label
 const pills = [...home.matchAll(/<span class="st st-\w+"[^>]*>(.*?)<\/span>/g)];

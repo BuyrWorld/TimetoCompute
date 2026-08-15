@@ -1,200 +1,301 @@
 /**
- * Company records.
+ * Company records, audited against primary sources on 2026-08-15.
  *
- * Provenance rule: a figure is only `confirmed` when a primary document is linked.
- * The capacity numbers inherited from the previous hard-coded table were compiled
- * from filings, but the compile did not record which filing — so they are carried
- * forward as `reported` with sourceRequired, not promoted to confirmed. They are
- * visibly flagged in the UI and excluded from confirmed totals.
+ * Every figure states what it measures (powerBasis), what kind of number it is
+ * (valueStatus), how well evidenced it is (confidence) and which document says so.
  *
- * Do not edit a value in place. Change it here AND append an event to
- * data/events.js so the change is auditable.
+ * Do not edit a value in place — change it here AND append an event to
+ * data/events.js so the change stays auditable.
  */
-import { measure, source } from './schema.js';
+import { metric } from './schema.js';
 
-const CW_Q2 = source(
-  'CoreWeave Reports Strong Second Quarter 2026 Results',
-  'https://investors.coreweave.com/news/news-details/2026/CoreWeave-Reports-Strong-Second-Quarter-2026-Results/default.aspx',
-  '2026-08-11'
-);
-
-/** Date on which a human actually read the underlying document. Not "today". */
-const VERIFIED_CW = '2026-08-15';
+const V = '2026-08-15'; // date a human read the underlying documents
 
 export const COMPANIES = [
+  /* ==================== IREN ==================== */
   {
-    id: 'iren',
-    ticker: 'IREN',
-    name: 'IREN Limited',
-    slug: 'iren',
-    model: 'fullStack',
+    id: 'iren', ticker: 'IREN', name: 'IREN Limited', slug: 'iren', model: 'fullStack',
     summary:
-      'Australian-listed operator converting a large secured power bank into GPU capacity, and ' +
-      'the only tracked company with a hyperscaler site formally accepted.',
+      'Holds a large secured power portfolio and is the only tracked company with a hyperscaler ' +
+      'tranche formally delivered and accepted.',
     measures: [
-      measure({
-        metric: 'securedPowerMw', value: 5000, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null,
-        note: 'Quoted as a 5GW secured pipeline. Carried over from the previous compile without a linked filing.'
+      metric({
+        metric: 'securedPowerMw', valueMw: 5000, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'gross-utility', asOf: '2026-03-31', verifiedAt: V,
+        sourceIds: ['iren-q3-fy26-results', 'iren-10q-20260331'], isExhaustive: true,
+        notes: 'Secured global power portfolio, quoted at the utility connection. Not critical IT and not comparable with a critical-IT figure.'
       }),
-      measure({
-        metric: 'constructionMw', value: 430, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null
+      metric({
+        metric: 'customerContractedMw', valueMw: 260, confidence: 'confirmed', valueStatus: 'minimum',
+        powerBasis: 'critical-it', asOf: '2026-06-01', verifiedAt: V,
+        sourceIds: ['iren-8k-microsoft', 'iren-ex991-nvidia'], isExhaustive: false,
+        notes:
+          'Microsoft 200 MW plus NVIDIA 60 MW. A disclosed minimum: the further AI developer contracts ' +
+          'worth approximately $2.8bn do not disclose megawatts, so the true total is higher.'
       }),
-      measure({
-        metric: 'customerContractedMw', value: 260, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null,
-        note: 'Microsoft 200MW plus NVIDIA 60MW. Customer demand, not secured power.'
+      metric({
+        metric: 'customerAcceptedMw', valueMw: 50, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-08-13', verifiedAt: V,
+        sourceIds: ['iren-horizon1-delivery'], isExhaustive: true,
+        notes: 'Horizon 1 delivered to and accepted by Microsoft on 13 August 2026.'
       }),
-      measure({
-        metric: 'customerAcceptedMw', value: 50, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null,
-        note: 'First tranche of the Microsoft contract formally accepted.'
+      metric({
+        metric: 'revenueLiveMw', valueMw: null,
+        notes:
+          'Acceptance of Horizon 1 is confirmed, but the company has not separately disclosed that ' +
+          'billing or revenue has commenced. Acceptance is not assumed to mean revenue-live.'
       }),
-      measure({ metric: 'energisedCriticalItMw', value: null }),
-      measure({ metric: 'revenueLiveMw', value: null })
+      metric({
+        metric: 'energisedCriticalItMw', valueMw: 50, confidence: 'confirmed', valueStatus: 'minimum',
+        powerBasis: 'critical-it', asOf: '2026-08-13', verifiedAt: V,
+        sourceIds: ['iren-horizon1-delivery'], isExhaustive: false,
+        notes:
+          'Horizon 1 — 50 MW of critical IT delivered and accepted. A disclosed minimum: this is the ' +
+          'only tranche with an explicit critical-IT figure, and no company-wide energised total has ' +
+          'been published on a comparable basis.'
+      }),
+      metric({
+        metric: 'constructionMw', valueMw: null,
+        notes:
+          'The 480 MW previously carried here is IREN\'s wider 2026 gross AI Cloud capacity target ' +
+          'across multiple sites — a target, not construction, and not attributable to one site. ' +
+          'Held as a target below; no comparable company construction total has been located.'
+      }),
+      metric({
+        metric: 'gpuReadyMw', valueMw: null,
+        notes:
+          'Previously shown as "76,000+ GPUs". Removed: no primary source in the audit set states an ' +
+          'exact fleet count, and a GPU count is not a megawatt figure in any case.'
+      })
+    ],
+    targets: [
+      metric({
+        metric: 'constructionMw', valueMw: 480, confidence: 'confirmed', valueStatus: 'target',
+        powerBasis: 'gross-utility', asOf: '2026-12-31', verifiedAt: V,
+        sourceIds: ['iren-q3-fy26-results'],
+        notes: '2026 gross AI Cloud capacity target across multiple sites. Excluded from every current-capacity total.'
+      })
     ]
   },
 
+  /* ==================== CoreWeave ==================== */
   {
-    id: 'coreweave',
-    ticker: 'CRWV',
-    name: 'CoreWeave',
-    slug: 'coreweave',
-    model: 'fullStack',
+    id: 'coreweave', ticker: 'CRWV', name: 'CoreWeave', slug: 'coreweave', model: 'fullStack',
     summary:
-      'The largest tracked operator by contracted power and the only one publishing both an ' +
-      'active-power and a contracted-power figure in the same release.',
+      'The largest tracked operator by contracted power, and the only one publishing both an ' +
+      'active-power and a contracted-power figure in the same disclosure.',
     measures: [
-      measure({
-        metric: 'securedPowerMw', value: 3700, effectiveDate: '2026-06-30',
-        verifiedAt: VERIFIED_CW, confidence: 'confirmed', source: CW_Q2,
-        note:
-          'CoreWeave\'s wording is "grew total contracted power to approximately 3.7 GW". This is ' +
-          'power contracted from utilities and landlords — supply, not customer demand — so it is ' +
-          'recorded as secured power. It is a total, and already includes the 1.5 GW active.'
+      metric({
+        metric: 'securedPowerMw', valueMw: 4200, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'gross-utility', asOf: '2026-08-11', verifiedAt: V,
+        sourceIds: ['crwv-q2-2026-call'], isExhaustive: true,
+        notes:
+          'Approximately 4.2 GW stated on the 11 August 2026 earnings call, up from the 3.7 GW ' +
+          'reported as at the 30 June quarter end. Contracted power is a total that already ' +
+          'includes the active figure — the two are not additive.'
       }),
-      measure({
-        metric: 'energisedCriticalItMw', value: 1500, effectiveDate: '2026-06-30',
-        verifiedAt: VERIFIED_CW, confidence: 'confirmed', source: CW_Q2,
-        note:
+      metric({
+        metric: 'energisedCriticalItMw', valueMw: 1500, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-06-30', verifiedAt: V,
+        sourceIds: ['crwv-q2-2026-release'], isExhaustive: true,
+        notes:
           'CoreWeave\'s wording is "expanded active power by nearly 500 MWs to reach 1.5 GW". ' +
-          '"Active power" is their term; it maps to energised critical IT, and does not by itself ' +
-          'establish how much is customer-accepted.'
+          '"Active power" is their term for energised capacity; it does not establish how much is ' +
+          'customer-accepted.'
       }),
-      // Backlog is a dollar commitment, not a megawatt figure — it is not a capacity measure
-      // and deliberately does not appear as one. It is carried on the contracts table instead.
-      measure({ metric: 'customerContractedMw', value: null,
-        note: 'Not disclosed in MW. CoreWeave reports customer commitments in dollars of backlog.' }),
-      measure({ metric: 'customerAcceptedMw', value: null }),
-      measure({ metric: 'revenueLiveMw', value: null,
-        note: 'Not disclosed in MW. Q2 2026 revenue was $2,575m across the whole fleet.' })
+      metric({
+        metric: 'customerContractedMw', valueMw: null,
+        notes:
+          'Not disclosed in megawatts. CoreWeave reports customer commitments in dollars of revenue ' +
+          'backlog — approximately $104.2bn as at 30 June 2026 — which cannot be converted to MW.'
+      }),
+      metric({ metric: 'customerAcceptedMw', valueMw: null }),
+      metric({ metric: 'revenueLiveMw', valueMw: null,
+        notes: 'Not disclosed in megawatts. Q2 2026 revenue was reported in dollars across the whole fleet.' })
     ]
   },
 
+  /* ==================== Nebius ==================== */
   {
-    id: 'nebius',
-    ticker: 'NBIS',
-    name: 'Nebius Group',
-    slug: 'nebius',
-    model: 'fullStack',
-    summary: 'European full-stack operator scaling a US campus alongside its original Finnish site.',
+    id: 'nebius', ticker: 'NBIS', name: 'Nebius Group', slug: 'nebius', model: 'fullStack',
+    summary:
+      'European full-stack operator scaling a US campus alongside its original Finnish site, with a ' +
+      'materially raised year-end power target.',
     measures: [
-      measure({
-        metric: 'securedPowerMw', value: 3500, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null
+      metric({
+        metric: 'securedPowerMw', valueMw: 3500, confidence: 'confirmed', valueStatus: 'minimum',
+        powerBasis: 'gross-utility', asOf: '2026-03-31', verifiedAt: V,
+        sourceIds: ['nbis-q1-2026-ex991'], isExhaustive: false,
+        notes:
+          'Stated as "more than 3.5 GW" — the latest explicitly measured contracted-power figure ' +
+          'before Q2. Recorded as a minimum because the disclosure is a floor, not a total.'
       }),
-      measure({
-        metric: 'energisedCriticalItMw', value: 310, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null,
-        note: 'Mäntsälä, Finland. Site-level figure carried over without a linked filing.'
+      metric({
+        metric: 'energisedCriticalItMw', valueMw: null,
+        notes:
+          'CORRECTION: 310 MW was previously shown here as energised critical IT. That figure is the ' +
+          'capacity the Finland facility is expected to reach when fully deployed, not capacity ' +
+          'energised today. It is now held as planned project capacity. No comparable current ' +
+          'energised figure has been disclosed.'
       }),
-      measure({ metric: 'customerContractedMw', value: null }),
-      measure({ metric: 'customerAcceptedMw', value: null }),
-      measure({ metric: 'revenueLiveMw', value: null })
+      metric({ metric: 'customerContractedMw', valueMw: null,
+        notes: 'Not disclosed in megawatts. The Meta agreement is disclosed in dollars.' }),
+      metric({ metric: 'customerAcceptedMw', valueMw: null }),
+      metric({ metric: 'revenueLiveMw', valueMw: null })
+    ],
+    targets: [
+      metric({
+        metric: 'securedPowerMw', valueMw: 5000, confidence: 'confirmed', valueStatus: 'target',
+        powerBasis: 'gross-utility', asOf: '2026-12-31', verifiedAt: V,
+        sourceIds: ['nbis-q2-2026-shareholder-letter'],
+        notes: 'Year-end contracted-power target raised to 5 GW in the Q2 2026 shareholder letter. A goal, not current capacity.'
+      })
     ]
   },
 
+  /* ==================== TeraWulf ==================== */
   {
-    id: 'terawulf',
-    ticker: 'WULF',
-    name: 'TeraWulf',
-    slug: 'terawulf',
-    model: 'poweredShell',
-    summary: 'Powered-shell landlord converting legacy mining sites to HPC leasing.',
+    id: 'terawulf', ticker: 'WULF', name: 'TeraWulf', slug: 'terawulf', model: 'poweredShell',
+    summary:
+      'Powered-shell landlord converting legacy sites to HPC leasing, with a very large Anthropic ' +
+      'lease that does not begin delivering until H2 2027.',
     measures: [
-      measure({
-        metric: 'securedPowerMw', value: 2200, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null
+      metric({
+        metric: 'customerContractedMw', valueMw: 839, confidence: 'confirmed', valueStatus: 'minimum',
+        powerBasis: 'critical-it', asOf: '2026-08-04', verifiedAt: V,
+        sourceIds: ['wulf-q2-2026-results', 'wulf-anthropic-lease'], isExhaustive: false,
+        notes:
+          'Lake Mariner 438 MW (102 MW revenue-generating plus 336 MW under construction) and ' +
+          'Anthropic/Justified approximately 401 MW. A disclosed minimum — the company has not ' +
+          'published an updated exhaustive contracted total.'
       }),
-      measure({
-        metric: 'customerContractedMw', value: 642.5, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null,
-        note:
-          'Previously filed under a single "contracted" column that mixed power and customer ' +
-          'contracts. Recorded here as customer-contracted; needs a filing to confirm.'
+      metric({
+        metric: 'energisedCriticalItMw', valueMw: 102, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-06-30', verifiedAt: V,
+        sourceIds: ['wulf-q2-2026-results'], isExhaustive: true,
+        notes: 'Lake Mariner revenue-generating critical IT capacity.'
       }),
-      measure({
-        metric: 'energisedCriticalItMw', value: 102, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null,
-        note: 'Lake Mariner critical IT energised for HPC leasing.'
+      metric({
+        metric: 'revenueLiveMw', valueMw: 102, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-06-30', verifiedAt: V,
+        sourceIds: ['wulf-q2-2026-results'], isExhaustive: true,
+        notes: 'Explicitly described as revenue-generating, which is the disclosure needed to record revenue-live.'
       }),
-      measure({ metric: 'customerAcceptedMw', value: null }),
-      measure({ metric: 'revenueLiveMw', value: null })
+      metric({
+        metric: 'constructionMw', valueMw: 336, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-06-30', verifiedAt: V,
+        sourceIds: ['wulf-q2-2026-results'], isExhaustive: false,
+        notes: 'Additional Lake Mariner critical IT under construction.'
+      }),
+      metric({
+        metric: 'securedPowerMw', valueMw: null,
+        notes:
+          'The 2.2 GW owned pipeline and 642.5 MW contracted figures were February 2026 disclosures ' +
+          'and are retained as historical events rather than current values. No comparable current ' +
+          'secured-power total on a single basis has been located.'
+      }),
+      metric({ metric: 'customerAcceptedMw', valueMw: null })
+    ],
+    historical: [
+      metric({
+        metric: 'pipelinePowerMw', valueMw: 2200, confidence: 'reported', valueStatus: 'pipeline',
+        powerBasis: 'gross-utility', asOf: '2026-02-01', verifiedAt: V,
+        sourceIds: ['wulf-kentucky-maryland'],
+        notes: 'February 2026 owned-pipeline disclosure. Retained as historical; superseded by later portfolio changes including the Abernathy disposal.'
+      }),
+      metric({
+        metric: 'customerContractedMw', valueMw: 642.5, confidence: 'reported', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-02-01', verifiedAt: V,
+        sourceIds: ['wulf-kentucky-maryland'],
+        notes: 'February 2026 contracted-capacity disclosure, superseded by the August 2026 figures above.'
+      })
     ]
   },
 
+  /* ==================== Keel Infrastructure ==================== */
   {
-    id: 'keel',
-    ticker: 'KEEL',
-    name: 'Keel Infrastructure',
-    slug: 'keel',
-    model: 'poweredShell',
-    summary: 'Ex-Bitfarms portfolio with a large secured pipeline and no signed customer lease yet.',
+    id: 'keel', ticker: 'KEEL', name: 'Keel Infrastructure', slug: 'keel', model: 'poweredShell',
+    summary:
+      'Ex-Bitfarms portfolio with a large development pipeline, a much smaller secured base, and no ' +
+      'announced customer lease.',
     measures: [
-      measure({
-        metric: 'securedPowerMw', value: 2200, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null
+      metric({
+        metric: 'securedPowerMw', valueMw: 648, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'gross-utility', asOf: '2026-06-30', verifiedAt: V,
+        sourceIds: ['keel-q2-2026-results', 'keel-10q'], isExhaustive: true,
+        notes:
+          'CORRECTION: 2.2 GW was previously recorded as secured power. The company splits the ' +
+          'portfolio into 648 MW secured and 1,513 MW planned or in development, totalling ' +
+          'approximately 2.2 GW of pipeline. Only the 648 MW is secured.'
       }),
-      measure({
-        metric: 'constructionMw', value: 110, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null, note: 'Sharon, Pennsylvania.'
+      metric({
+        metric: 'pipelinePowerMw', valueMw: 1513, confidence: 'confirmed', valueStatus: 'pipeline',
+        powerBasis: 'gross-utility', asOf: '2026-06-30', verifiedAt: V,
+        sourceIds: ['keel-q2-2026-results', 'keel-10k-bitfarms'], isExhaustive: true,
+        notes: 'Planned or in development. Not secured, and excluded from every current-capacity total.'
       }),
-      measure({
-        metric: 'customerContractedMw', value: 0, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null,
-        note:
-          'A genuine zero, not a missing value: the company states no customer lease has been ' +
-          'signed. This is the one case on the site where 0 is the real figure.'
+      metric({
+        metric: 'customerContractedMw', valueMw: null,
+        notes:
+          'CORRECTION: previously stored as numeric 0. No filing reports zero megawatts — the company ' +
+          'simply has no announced lease. Stored as not disclosed with the label "No announced lease", ' +
+          'because a zero would wrongly imply a measured figure.'
       }),
-      measure({ metric: 'energisedCriticalItMw', value: null }),
-      measure({ metric: 'customerAcceptedMw', value: null }),
-      measure({ metric: 'revenueLiveMw', value: null })
-    ]
+      metric({ metric: 'energisedCriticalItMw', valueMw: null }),
+      metric({ metric: 'customerAcceptedMw', valueMw: null }),
+      metric({ metric: 'revenueLiveMw', valueMw: null })
+    ],
+    contractedLabel: 'No announced lease'
   },
 
+  /* ==================== Applied Digital ==================== */
   {
-    id: 'applied-digital',
-    ticker: 'APLD',
-    name: 'Applied Digital',
-    slug: 'applied-digital',
-    model: 'poweredShell',
-    summary: 'Powered-shell developer with contracted capacity in North Dakota.',
+    id: 'applied-digital', ticker: 'APLD', name: 'Applied Digital', slug: 'applied-digital', model: 'poweredShell',
+    summary:
+      'Powered-shell developer with the largest disclosed customer-contracted critical IT figure of ' +
+      'any tracked company, across five named campuses.',
     measures: [
-      measure({
-        metric: 'customerContractedMw', value: 600, effectiveDate: '2026-08-15',
-        confidence: 'reported', verifiedAt: null,
-        note: 'Described as 600MW contracted with prospective lease revenue of roughly $16bn.'
+      metric({
+        metric: 'customerContractedMw', valueMw: 1410, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-05-31', verifiedAt: V,
+        sourceIds: ['apld-10k-20260531'], isExhaustive: true,
+        notes:
+          'Contracted critical IT across five campuses, with approximately $36.2bn of contracted ' +
+          'revenue over the initial base terms. Replaces the stale 600 MW record.'
       }),
-      measure({ metric: 'securedPowerMw', value: null }),
-      measure({ metric: 'energisedCriticalItMw', value: null }),
-      measure({ metric: 'customerAcceptedMw', value: null }),
-      measure({ metric: 'revenueLiveMw', value: null })
+      metric({
+        metric: 'securedPowerMw', valueMw: 2150, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'gross-utility', asOf: '2026-05-31', verifiedAt: V,
+        sourceIds: ['apld-10k-20260531'], isExhaustive: true,
+        notes: 'Approximately 2.15 GW of gross grid-connected utility power. Gross basis — not comparable with the 1,410 MW critical IT figure.'
+      }),
+      metric({
+        metric: 'energisedCriticalItMw', valueMw: 100, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-05-31', verifiedAt: V,
+        sourceIds: ['apld-10k-20260531'], isExhaustive: true,
+        notes: 'Approximately 100 MW operational and revenue-generating.'
+      }),
+      metric({
+        metric: 'revenueLiveMw', valueMw: 100, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-05-31', verifiedAt: V,
+        sourceIds: ['apld-10k-20260531'], isExhaustive: true,
+        notes: 'Explicitly described as operational and revenue-generating.'
+      }),
+      metric({
+        metric: 'constructionMw', valueMw: 1500, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-05-31', verifiedAt: V,
+        sourceIds: ['apld-10k-20260531'], isExhaustive: false,
+        notes:
+          'Approximately 1.5 GW operating OR under construction across the five campuses — the ' +
+          'company reports the two together, so this is not a pure construction figure and includes ' +
+          'the 100 MW already operational.'
+      }),
+      metric({ metric: 'customerAcceptedMw', valueMw: null })
     ]
   }
 ];
 
-/** Tickers quoted on the watchlist but not tracked as capacity operators. */
+/** Quoted on the watchlist but not tracked as capacity operators. */
 export const WATCH_ONLY = [
   { ticker: 'CIFR', name: 'Cipher Mining' },
   { ticker: 'NVDA', name: 'NVIDIA' }
@@ -203,11 +304,7 @@ export const WATCH_ONLY = [
 export const COMPANY_BY_ID = Object.fromEntries(COMPANIES.map(c => [c.id, c]));
 export const COMPANY_BY_TICKER = Object.fromEntries(COMPANIES.map(c => [c.ticker, c]));
 
-/** Every ticker the live feeds should query. */
-export const WATCH_TICKERS = [
-  ...COMPANIES.map(c => c.ticker),
-  ...WATCH_ONLY.map(w => w.ticker)
-];
+export const WATCH_TICKERS = [...COMPANIES.map(c => c.ticker), ...WATCH_ONLY.map(w => w.ticker)];
 
 export const TICKER_NAMES = Object.fromEntries([
   ...COMPANIES.map(c => [c.ticker, c.name]),

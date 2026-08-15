@@ -1,280 +1,265 @@
 /**
  * T2C data schema.
  *
- * The whole site answers one question: how long does secured power take to become
- * accepted, invoicing compute? That journey has distinct stages, and the previous
- * version of this site collapsed several of them into one word ("contracted"),
- * which made two very different things look identical:
+ * Three distinctions carry the whole product, and conflating any of them produces
+ * a number that looks authoritative and means nothing:
  *
- *   - power contracted FROM a utility or landlord   (securedPowerMw)
- *   - compute capacity contracted TO a customer     (customerContractedMw)
- *
- * A company can hold gigawatts of the first and nothing of the second. Keeping
- * them apart is the point of this file.
+ *   1. WHAT IS BEING MEASURED — gross utility power at the fence, critical IT load
+ *      in the hall, and GPU load are different quantities. They are never summed.
+ *   2. WHAT KIND OF NUMBER IT IS — an actual operating figure, a disclosed minimum,
+ *      a management target, a development pipeline, and a theoretical potential are
+ *      different data types. Only actuals enter a current-capacity aggregate.
+ *   3. HOW WELL IT IS EVIDENCED — confirmed against a primary document, reported,
+ *      estimated, or not disclosed.
  */
 
-/** Ordered stages of the delivery journey. Index = position in the pipeline. */
-export const STAGES = [
-  {
-    id: 'secured',
-    order: 0,
-    label: 'Power secured',
-    short: 'Secured',
-    metric: 'securedPowerMw',
-    glyph: '○',
-    definition:
-      'Grid capacity contracted from a utility, or a powered site secured from a landlord. ' +
-      'This is an agreement about electricity, not about customers. Nothing is built and no ' +
-      'customer has signed.'
-  },
-  {
-    id: 'permitted',
-    order: 1,
-    label: 'Permitted',
-    short: 'Permitted',
-    metric: 'permittedPowerMw',
-    glyph: '◔',
-    definition:
-      'Planning, zoning and interconnection approvals granted for the capacity. Permits are ' +
-      'the most common place a project silently slips by quarters.'
-  },
-  {
-    id: 'construction',
-    order: 2,
-    label: 'In construction',
-    short: 'Building',
-    metric: 'constructionMw',
-    glyph: '◑',
-    definition:
-      'Physical build under way — shell, substation, cooling and power distribution. Capital is ' +
-      'going out; nothing is coming in.'
-  },
-  {
-    id: 'energised',
-    order: 3,
-    label: 'Energised (critical IT)',
-    short: 'Energised',
-    metric: 'energisedCriticalItMw',
-    glyph: '◕',
-    definition:
-      'Critical IT load is live and drawing power. The building works. This is the figure most ' +
-      'often quoted as "active" or "operational" capacity, and it does not by itself mean any ' +
-      'customer is paying for it.'
-  },
-  {
-    id: 'gpuReady',
-    order: 4,
-    label: 'GPU-ready',
-    short: 'GPU-ready',
-    metric: 'gpuReadyMw',
-    glyph: '◕',
-    definition:
-      'Racks populated with accelerators and the fabric commissioned. Relevant to full-stack ' +
-      'operators who own the chips; not applicable to powered-shell landlords, whose tenants ' +
-      'bring their own.'
-  },
-  {
-    id: 'accepted',
-    order: 5,
-    label: 'Customer accepted',
-    short: 'Accepted',
-    metric: 'customerAcceptedMw',
-    glyph: '◉',
-    definition:
-      'The customer has formally accepted the capacity against the contract\'s acceptance ' +
-      'criteria. Acceptance is the milestone that starts the revenue clock, and it is usually ' +
-      'disclosed weeks before the revenue itself appears.'
-  },
-  {
-    id: 'revenueLive',
-    order: 6,
-    label: 'Revenue live',
-    short: 'Invoicing',
-    metric: 'revenueLiveMw',
-    glyph: '●',
-    definition:
-      'Capacity that is accepted and invoicing. The only number on this site that corresponds ' +
-      'to money actually arriving.'
-  }
-];
-
-export const STAGE_BY_ID = Object.fromEntries(STAGES.map(s => [s.id, s]));
-
-/**
- * Every metric the site can display. `family` separates the two contract types so
- * they can never be summed together by accident.
- */
-export const METRICS = {
-  securedPowerMw: {
-    label: 'Secured power',
-    unit: 'MW',
-    family: 'power',
-    stage: 'secured',
-    definition: STAGE_BY_ID.secured.definition
-  },
-  permittedPowerMw: {
-    label: 'Permitted power',
-    unit: 'MW',
-    family: 'power',
-    stage: 'permitted',
-    definition: STAGE_BY_ID.permitted.definition
-  },
-  constructionMw: {
-    label: 'In construction',
-    unit: 'MW',
-    family: 'power',
-    stage: 'construction',
-    definition: STAGE_BY_ID.construction.definition
-  },
-  energisedCriticalItMw: {
-    label: 'Energised critical IT',
-    unit: 'MW',
-    family: 'power',
-    stage: 'energised',
-    definition: STAGE_BY_ID.energised.definition
-  },
-  gpuReadyMw: {
-    label: 'GPU-ready',
-    unit: 'MW',
-    family: 'compute',
-    stage: 'gpuReady',
-    definition: STAGE_BY_ID.gpuReady.definition
-  },
-  customerContractedMw: {
-    label: 'Customer-contracted',
-    unit: 'MW',
-    family: 'customer',
-    stage: null,
-    definition:
-      'Compute capacity a paying customer has committed to under a signed contract. This is ' +
-      'not the same as secured power: it is demand, not supply.'
-  },
-  customerAcceptedMw: {
-    label: 'Customer-accepted',
-    unit: 'MW',
-    family: 'customer',
-    stage: 'accepted',
-    definition: STAGE_BY_ID.accepted.definition
-  },
-  revenueLiveMw: {
-    label: 'Revenue live',
-    unit: 'MW',
-    family: 'customer',
-    stage: 'revenueLive',
-    definition: STAGE_BY_ID.revenueLive.definition
-  }
-};
-
-/**
- * Confidence is about the evidence, not about our opinion of the company.
- * `countsAsVerified` gates which records may appear in a "confirmed" aggregate.
- */
+/** How well evidenced a value is. */
 export const CONFIDENCE = {
   confirmed: {
-    label: 'Confirmed',
-    short: 'CONF',
-    glyph: '●',
-    rank: 3,
-    countsAsVerified: true,
+    label: 'Confirmed', short: 'CONF', glyph: '●', rank: 3, countsAsVerified: true,
     definition:
-      'Stated by the company in a primary document — an SEC filing, an earnings release or an ' +
-      'investor presentation — and the source is linked.'
+      'Stated in a primary document — an SEC filing, an official investor-relations release, a ' +
+      'shareholder letter, or a regulator/utility record — and that document is linked.'
   },
   reported: {
-    label: 'Reported',
-    short: 'REP',
-    glyph: '◐',
-    rank: 2,
-    countsAsVerified: false,
+    label: 'Reported', short: 'REP', glyph: '◐', rank: 2, countsAsVerified: false,
     definition:
       'Attributed to the company but read second-hand, or carried over from an earlier compile ' +
-      'whose original document is not yet linked. Treat as indicative until a source is attached.'
+      'whose original document is not linked. News can put a figure here; it can never make one confirmed.'
   },
   estimated: {
-    label: 'Estimated',
-    short: 'EST',
-    glyph: '◌',
-    rank: 1,
-    countsAsVerified: false,
+    label: 'Estimated', short: 'EST', glyph: '◌', rank: 1, countsAsVerified: false,
     definition:
-      'Derived rather than disclosed. Always shown separately from confirmed figures and never ' +
-      'included in a confirmed total.'
+      'Derived rather than disclosed. Shown separately from confirmed figures, with the derivation ' +
+      'stated, and never included in a confirmed total.'
   },
   unknown: {
-    label: 'Not disclosed',
-    short: 'N/D',
-    glyph: '—',
-    rank: 0,
-    countsAsVerified: false,
+    label: 'Not disclosed', short: 'N/D', glyph: '—', rank: 0, countsAsVerified: false,
     definition:
-      'The company has not published this figure. It is shown as not disclosed and is never ' +
-      'treated as zero.'
+      'The company has not published this figure. It is stored as null and is never treated as zero.'
   }
 };
 
-/** Business models differ enough that per-MW economics are not comparable across them. */
+/**
+ * What kind of quantity the number is. This is the distinction that stops a 5 GW
+ * ambition being added to a 1.5 GW operating figure.
+ */
+export const VALUE_STATUS = {
+  actual: {
+    label: 'Actual', short: 'ACTUAL', glyph: '●', aggregatable: true,
+    definition: 'A current, operating figure as at the stated date.'
+  },
+  minimum: {
+    label: 'Disclosed minimum', short: 'MIN', glyph: '≥', aggregatable: true,
+    definition:
+      'At least this much, from the components the company has itemised. The company has not ' +
+      'published an exhaustive total, so the real figure may be higher.'
+  },
+  target: {
+    label: 'Target', short: 'TARGET', glyph: '◇', aggregatable: false,
+    definition:
+      'A management goal for a future date. An intention, not a capability that exists today, and ' +
+      'never counted in a current-capacity total.'
+  },
+  pipeline: {
+    label: 'Pipeline', short: 'PIPE', glyph: '◇', aggregatable: false,
+    definition:
+      'Identified development opportunity — sites under study, options held, applications lodged. ' +
+      'Not secured and not built.'
+  },
+  potential: {
+    label: 'Potential', short: 'POT', glyph: '◇', aggregatable: false,
+    definition:
+      'A theoretical ceiling, typically phrased "up to". Conditional on approvals, financing and ' +
+      'demand that do not yet exist.'
+  }
+};
+
+/** What the megawatts actually measure. Different bases are never added. */
+export const POWER_BASIS = {
+  'gross-utility': {
+    label: 'Gross utility power', short: 'Gross', glyph: '⌁',
+    definition:
+      'Power contracted at the utility connection, before conversion, cooling and distribution ' +
+      'losses. The largest number a company can quote, and the least indicative of compute delivered.'
+  },
+  'critical-it': {
+    label: 'Critical IT load', short: 'Critical IT', glyph: '▣',
+    definition:
+      'Power available to IT equipment inside the hall. The industry\'s comparable measure of usable ' +
+      'data-centre capacity, and typically well below the gross utility figure for the same site.'
+  },
+  'gpu-load': {
+    label: 'GPU load', short: 'GPU', glyph: '◈',
+    definition: 'Power drawn by accelerators specifically, excluding other IT and infrastructure load.'
+  },
+  'not-applicable': {
+    label: 'Not applicable', short: 'N/A', glyph: '·',
+    definition: 'The figure is not a power measurement — a contract value or a count, for example.'
+  }
+};
+
+/**
+ * Project gates, tracked independently. A single "stage" hid the common real case:
+ * zoning granted while interconnection, environmental approval and financing all
+ * remain outstanding. Order is the usual sequence, not a required one.
+ */
+export const GATES = [
+  { id: 'siteControl', order: 0, label: 'Site control', definition: 'Ownership, lease or option over the land secured.' },
+  { id: 'utilityAgreement', order: 1, label: 'Utility agreement', definition: 'Executed electric service or energy-services agreement with the supplier.' },
+  { id: 'interconnection', order: 2, label: 'Interconnection approved', definition: 'Grid interconnection study complete and connection approved.' },
+  { id: 'zoning', order: 3, label: 'Zoning approved', definition: 'Local land-use consent granted for data-centre use.' },
+  { id: 'environmental', order: 4, label: 'Environmental approval', definition: 'Environmental permits and assessments granted.' },
+  { id: 'buildingPermits', order: 5, label: 'Building permits', definition: 'Construction permits issued.' },
+  { id: 'financing', order: 6, label: 'Financing committed', definition: 'Capital committed and available to build.' },
+  { id: 'longLeadOrdered', order: 7, label: 'Long-lead equipment ordered', definition: 'Transformers, switchgear, generators and chillers on order.' },
+  { id: 'constructionStarted', order: 8, label: 'Construction started', definition: 'Physical construction under way on site.' },
+  { id: 'utilityEnergised', order: 9, label: 'Utility energised', definition: 'Grid power delivered to the site.' },
+  { id: 'criticalItEnergised', order: 10, label: 'Critical IT energised', definition: 'IT load live and drawing power in the hall.' },
+  { id: 'customerContracted', order: 11, label: 'Customer contracted', definition: 'A paying customer has signed for the capacity.' },
+  { id: 'customerAccepted', order: 12, label: 'Customer accepted', definition: 'Capacity formally accepted under the customer agreement.' },
+  { id: 'revenueCommenced', order: 13, label: 'Billing / revenue commenced', definition: 'The company has disclosed that billing or revenue generation has begun.' }
+];
+
+export const GATE_BY_ID = Object.fromEntries(GATES.map(g => [g.id, g]));
+
+export const GATE_STATUS = {
+  complete: { label: 'Complete', glyph: '●', tone: 'ok' },
+  inProgress: { label: 'In progress', glyph: '◐', tone: 'warn' },
+  conditional: { label: 'Conditional', glyph: '◑', tone: 'warn' },
+  notStarted: { label: 'Not started', glyph: '○', tone: 'unknown' },
+  notDisclosed: { label: 'Not disclosed', glyph: '—', tone: 'unknown' },
+  notApplicable: { label: 'Not applicable', glyph: '·', tone: 'unknown' }
+};
+
+/** Metrics. `basis` fixes the measurement; `family` stops supply and demand mixing. */
+export const METRICS = {
+  securedPowerMw: {
+    label: 'Secured power', unit: 'MW', family: 'power',
+    definition:
+      'Power capacity controlled through executed utility, interconnection, energy-service, lease or ' +
+      'comparable arrangements. It may include capacity already operating as well as capacity awaiting ' +
+      'development. Secured power indicates supply control, not customer demand or completed compute capacity.'
+  },
+  pipelinePowerMw: {
+    label: 'Development pipeline', unit: 'MW', family: 'power',
+    definition:
+      'Identified development opportunity that is not yet secured — sites under study, options, and ' +
+      'applications lodged. Reported separately from secured power and never added to it.'
+  },
+  constructionMw: {
+    label: 'Under construction', unit: 'MW', family: 'power',
+    definition: 'Capacity with physical construction under way. Capital committed, no revenue from it yet.'
+  },
+  energisedCriticalItMw: {
+    label: 'Energised critical IT', unit: 'MW', family: 'power',
+    definition:
+      'Critical IT load live and drawing power. Often described by companies as "active" or ' +
+      '"operational" capacity. It does not by itself mean a customer is paying for it.'
+  },
+  gpuReadyMw: {
+    label: 'GPU-ready', unit: 'MW', family: 'compute',
+    definition:
+      'Accelerators racked and fabric commissioned. Applies to operators that own the chips; not ' +
+      'applicable to landlords whose tenants bring their own.'
+  },
+  customerContractedMw: {
+    label: 'Customer-contracted', unit: 'MW', family: 'customer',
+    definition:
+      'Compute or capacity a paying customer has committed to under a signed contract. Demand, not ' +
+      'supply. Frequently disclosed only for individual named contracts, in which case the site total ' +
+      'is a disclosed minimum rather than an exhaustive figure.'
+  },
+  customerAcceptedMw: {
+    label: 'Customer-accepted', unit: 'MW', family: 'customer',
+    definition:
+      'Capacity formally accepted under the relevant customer agreement. Acceptance may trigger billing ' +
+      'or revenue recognition, but the commercial effect is contract-specific and must be separately evidenced.'
+  },
+  revenueLiveMw: {
+    label: 'Revenue live', unit: 'MW', family: 'customer',
+    definition:
+      'Capacity for which the company has explicitly disclosed that billing, rent commencement or ' +
+      'revenue generation has begun. Billing, GAAP revenue recognition and cash receipt are not assumed ' +
+      'to occur simultaneously.'
+  }
+};
+
 export const MODELS = {
   fullStack: {
-    id: 'fullStack',
-    label: 'Full stack',
+    id: 'fullStack', label: 'Full stack',
     definition:
-      'Owns the accelerators and sells finished compute by the hour. Captures far more revenue ' +
-      'per megawatt, and carries the chip capex and obsolescence risk to match.'
+      'Owns the accelerators and sells finished compute. Captures far more revenue per megawatt, and ' +
+      'carries the chip capital cost and obsolescence risk to match.'
   },
   poweredShell: {
-    id: 'poweredShell',
-    label: 'Powered shell',
+    id: 'poweredShell', label: 'Powered shell',
     definition:
-      'Leases powered, cooled space; the tenant brings their own accelerators. Earns a few ' +
-      'million per megawatt per year rather than tens, with correspondingly lower capex.'
+      'Leases powered, cooled space; the tenant supplies its own accelerators where the lease says so. ' +
+      'Earns a few million per megawatt per year rather than tens, with correspondingly lower capital cost.'
   }
 };
 
 export const EVENT_TYPES = {
-  powerSecured: { label: 'Power secured', stage: 'secured' },
-  permitAchieved: { label: 'Permit achieved', stage: 'permitted' },
-  constructionStarted: { label: 'Construction started', stage: 'construction' },
-  constructionProgress: { label: 'Construction progress', stage: 'construction' },
-  energised: { label: 'Energised', stage: 'energised' },
-  gpuInstallation: { label: 'GPU installation', stage: 'gpuReady' },
-  customerContractSigned: { label: 'Customer contract signed', stage: null },
-  customerAcceptance: { label: 'Customer acceptance', stage: 'accepted' },
-  revenueLive: { label: 'Revenue live', stage: 'revenueLive' },
-  targetDelayed: { label: 'Target delayed', stage: null, negative: true },
-  targetAchieved: { label: 'Target achieved', stage: null },
-  guidanceChanged: { label: 'Guidance changed', stage: null }
+  'new-disclosure': { label: 'New disclosure' },
+  'capacity-change': { label: 'Capacity change' },
+  'stage-change': { label: 'Stage change' },
+  'target-change': { label: 'Target change' },
+  'contract-signed': { label: 'Contract signed' },
+  'customer-accepted': { label: 'Customer accepted' },
+  'revenue-commenced': { label: 'Revenue commenced' },
+  delay: { label: 'Delay', negative: true },
+  financing: { label: 'Financing' },
+  correction: { label: 'Correction' },
+  disposal: { label: 'Disposal' }
 };
 
+export const SIGNIFICANCE = { high: { label: 'High' }, medium: { label: 'Medium' }, low: { label: 'Low' } };
+
 /**
- * Build a measure. Passing `value: null` yields an explicitly unknown record —
- * this is the only supported way to express "not disclosed", so that a missing
- * figure can never be coerced to 0 by a caller.
+ * Build a metric record. `valueMw: null` is the only supported way to express
+ * "not disclosed", so a missing figure can never be coerced to 0 by a caller.
  */
-export function measure({
-  metric,
-  value = null,
-  effectiveDate = null,
-  verifiedAt = null,
+export function metric({
+  metric: name,
+  valueMw = null,
   confidence = 'unknown',
-  source = null,
-  note = null
+  valueStatus = 'actual',
+  powerBasis = 'not-applicable',
+  asOf = null,
+  verifiedAt = null,
+  sourceIds = [],
+  isExhaustive = false,
+  notes = null
 }) {
-  if (!METRICS[metric]) throw new Error(`Unknown metric: ${metric}`);
-  const known = value !== null && value !== undefined;
+  if (!METRICS[name]) throw new Error(`Unknown metric: ${name}`);
+  if (!CONFIDENCE[confidence]) throw new Error(`Unknown confidence: ${confidence}`);
+  if (!VALUE_STATUS[valueStatus]) throw new Error(`Unknown valueStatus: ${valueStatus}`);
+  if (!POWER_BASIS[powerBasis]) throw new Error(`Unknown powerBasis: ${powerBasis}`);
+
+  const known = valueMw !== null && valueMw !== undefined;
   return {
-    metric,
-    value: known ? value : null,
-    unit: METRICS[metric].unit,
-    definition: METRICS[metric].definition,
-    family: METRICS[metric].family,
-    effectiveDate,
-    verifiedAt,
+    metric: name,
+    valueMw: known ? valueMw : null,
+    unit: METRICS[name].unit,
+    family: METRICS[name].family,
+    definition: METRICS[name].definition,
     confidence: known ? confidence : 'unknown',
-    source,
-    note,
-    /** true when the figure exists but nobody has linked the document it came from */
-    sourceRequired: known && !source
+    valueStatus,
+    powerBasis,
+    asOf,
+    verifiedAt,
+    sourceIds,
+    isExhaustive: known ? isExhaustive : false,
+    notes,
+    /** a known value with no cited document */
+    sourceRequired: known && sourceIds.length === 0
   };
 }
 
-export const source = (title, url, publishedDate) => ({ title, url, publishedDate });
+/** Build a project gate record. */
+export function gate({ id, status = 'notDisclosed', effectiveAt = null, sourceIds = [], confidence = 'unknown', verifiedAt = null, notes = null }) {
+  if (!GATE_BY_ID[id]) throw new Error(`Unknown gate: ${id}`);
+  if (!GATE_STATUS[status]) throw new Error(`Unknown gate status: ${status}`);
+  return { id, status, effectiveAt, sourceIds, confidence, verifiedAt, notes };
+}

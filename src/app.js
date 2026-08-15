@@ -1,12 +1,15 @@
-/* T2C client runtime. Reads its configuration from the #t2c-config JSON block the
-   build emits, so tickers and names are never duplicated between data and script. */
+/* T2C client runtime. Configuration comes from the #t2c-config JSON block the build
+   emits, so tickers and names are never duplicated between data and script. */
 (function () {
   'use strict';
 
-  var cfgEl = document.getElementById('t2c-config');
-  var CFG = cfgEl ? JSON.parse(cfgEl.textContent) : { tickers: [], names: {} };
+  var CFG = (function () {
+    var el = document.getElementById('t2c-config');
+    try { return el ? JSON.parse(el.textContent) : {}; } catch (e) { return {}; }
+  })();
   var WATCH = CFG.tickers || [];
   var NAMES = CFG.names || {};
+  var MAX_COMPARE = CFG.maxCompare || 3;
 
   var $ = function (id) { return document.getElementById(id); };
   var clamp = function (x, a, b) { return Math.max(a, Math.min(b, x)); };
@@ -16,9 +19,27 @@
     });
   };
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var NOT_DISCLOSED = 'Not disclosed';
 
-  /* ================= THEME ================= */
-  // Dark is the default; the choice persists but never overrides prefers-reduced-motion.
+  /* ============ UTC-safe date helpers ============
+     Parsing a date-only string through local time shifted deadlines by a day for
+     anyone behind UTC — a 13 Nov deadline displayed as "before 12 Nov". */
+  function daysBetweenUtc(fromIso, toIso) {
+    var a = Date.parse(String(fromIso).slice(0, 10) + 'T00:00:00Z');
+    var b = Date.parse(String(toIso).slice(0, 10) + 'T00:00:00Z');
+    if (!isFinite(a) || !isFinite(b)) return null;
+    return Math.round((b - a) / 86400000);
+  }
+  var todayUtc = function () { return new Date().toISOString().slice(0, 10); };
+  function fmtDateUtc(iso, opts) {
+    var t = Date.parse(String(iso).slice(0, 10) + 'T00:00:00Z');
+    if (!isFinite(t)) return NOT_DISCLOSED;
+    return new Intl.DateTimeFormat('en-GB',
+      Object.assign({ day: 'numeric', month: 'short', timeZone: 'UTC' }, opts || {})).format(new Date(t));
+  }
+  var isoIn = function (d) { return new Date(Date.now() + d * 86400000).toISOString().slice(0, 10); };
+
+  /* ============ THEME ============ */
   var themeBtn = $('themeBtn');
   function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
@@ -26,35 +47,31 @@
       themeBtn.textContent = t === 'dark' ? 'Light' : 'Dark';
       themeBtn.setAttribute('aria-label', 'Switch to ' + (t === 'dark' ? 'light' : 'dark') + ' theme');
     }
-    if (typeof drawDist === 'function') drawDist();
+    drawDist(); drawFan();
   }
   try {
     var saved = localStorage.getItem('t2c-theme');
     if (saved === 'light' || saved === 'dark') applyTheme(saved);
-  } catch (e) { /* storage blocked — dark default stands */ }
-  if (themeBtn) {
-    themeBtn.addEventListener('click', function () {
-      var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      applyTheme(next);
-      try { localStorage.setItem('t2c-theme', next); } catch (e) {}
-    });
-  }
+  } catch (e) {}
+  if (themeBtn) themeBtn.addEventListener('click', function () {
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem('t2c-theme', next); } catch (e) {}
+  });
 
-  /* ================= TABS / DEEP LINKING =================
-     Each view has a stable #hash so a state can be shared and reloaded. */
-  var TABS = ['overview', 'ledger', 'intelligence', 'filings', 'capacity', 'odds'];
+  /* ============ TABS ============ */
+  var TABS = ['overview', 'ledger', 'capacity', 'intelligence', 'filings', 'scenarios', 'compare'];
   function showTab(name, push) {
     if (TABS.indexOf(name) === -1) name = 'overview';
     TABS.forEach(function (t) {
       var sec = $('view-' + t);
-      if (sec) sec.classList.toggle('hide', t !== name);
+      if (sec) sec.hidden = t !== name;
       var btn = document.querySelector('.tab[data-tab="' + t + '"]');
       if (btn) btn.setAttribute('aria-selected', String(t === name));
     });
     if (push && location.hash !== '#' + name) history.pushState({ tab: name }, '', '#' + name);
-    if (name === 'odds' && typeof drawDist === 'function') drawDist();
-    var head = document.querySelector('#view-' + name + ' h2');
-    if (push && head) head.setAttribute('tabindex', '-1'), head.focus({ preventScroll: true });
+    if (name === 'scenarios') { drawOdds(); }
+    if (name === 'compare') renderCompare();
   }
   document.querySelectorAll('.tab[data-tab]').forEach(function (b) {
     b.addEventListener('click', function (e) { e.preventDefault(); showTab(b.dataset.tab, true); });
@@ -64,106 +81,124 @@
       if (e.key === 'ArrowLeft') n = TABS[(i - 1 + TABS.length) % TABS.length];
       if (e.key === 'Home') n = TABS[0];
       if (e.key === 'End') n = TABS[TABS.length - 1];
-      if (n) {
-        e.preventDefault();
-        showTab(n, true);
-        var t = document.querySelector('.tab[data-tab="' + n + '"]');
-        if (t) t.focus();
-      }
+      if (n) { e.preventDefault(); showTab(n, true); var t = document.querySelector('.tab[data-tab="' + n + '"]'); if (t) t.focus(); }
     });
   });
   window.addEventListener('popstate', function () { showTab((location.hash || '#overview').slice(1), false); });
-  if (document.querySelector('.tab[data-tab]')) showTab((location.hash || '#overview').slice(1), false);
+  // The initial activation runs in the boot block at the end of this file. Calling
+  // it here would invoke renderCompare()/drawOdds() before their state exists —
+  // deep-linking straight to #compare or #scenarios would throw on a cold load.
 
-  /* ================= COUNTRY ROWS ================= */
+  /* segmented controls inside Scenarios */
+  var SEGS = ['probability', 'paths', 'targets', 'cats'];
+  document.querySelectorAll('.seg-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      SEGS.forEach(function (s) {
+        var p = $('seg-' + s); if (p) p.hidden = s !== b.dataset.seg;
+        var t = document.querySelector('.seg-btn[data-seg="' + s + '"]');
+        if (t) t.setAttribute('aria-selected', String(s === b.dataset.seg));
+      });
+      if (b.dataset.seg === 'paths') drawFan();
+      if (b.dataset.seg === 'targets') loadAnalysts();
+    });
+  });
+
+  /* ============ expandable country rows ============ */
   document.querySelectorAll('.georow').forEach(function (el) {
     el.addEventListener('click', function () {
       var d = $('geo-' + el.dataset.geo);
       var open = el.getAttribute('aria-expanded') === 'true';
-      document.querySelectorAll('.georow').forEach(function (o) {
-        if (o !== el) {
-          o.setAttribute('aria-expanded', 'false');
-          var od = $('geo-' + o.dataset.geo);
-          if (od) od.classList.remove('open');
-        }
-      });
       el.setAttribute('aria-expanded', String(!open));
-      if (d) d.classList.toggle('open', !open);
+      if (d) d.hidden = open;
     });
   });
 
-  /* ================= HERO FLOW =================
-     A schematic of the delivery path — power in at the left, invoicing at the
-     right — rather than a generic node cloud. Static single frame when the user
-     prefers reduced motion. */
+  /* ============ ledger filters ============ */
   (function () {
-    var cv = $('flow');
-    if (!cv) return;
-    var ctx = cv.getContext('2d');
-    if (!ctx) return;
+    var f = { company: $('ledCompany'), type: $('ledType'), conf: $('ledConfidence'), since: $('ledSince') };
+    if (!f.company) return;
+    function apply() {
+      var rows = document.querySelectorAll('#ledgerRows .ledrow');
+      var shown = 0;
+      rows.forEach(function (r) {
+        var ok = (!f.company.value || r.dataset.company === f.company.value) &&
+                 (!f.type.value || r.dataset.type === f.type.value) &&
+                 (!f.conf.value || r.dataset.confidence === f.conf.value) &&
+                 (!f.since.value || r.dataset.date >= f.since.value);
+        r.hidden = !ok;
+        if (ok) shown++;
+      });
+      var c = $('ledCount');
+      if (c) c.textContent = shown + (shown === 1 ? ' event' : ' events');
+    }
+    Object.keys(f).forEach(function (k) { if (f[k]) f[k].addEventListener('change', apply); });
+  })();
+
+  /* ============ HERO FLOW ============ */
+  (function () {
+    var cv = $('flow'); if (!cv) return;
+    var ctx = cv.getContext('2d'); if (!ctx) return;
     var W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2), raf, t0 = performance.now();
     var STOPS = 5;
-
     function size() {
       var r = cv.parentElement.getBoundingClientRect();
       W = r.width; H = r.height;
       cv.width = Math.max(1, W * dpr); cv.height = Math.max(1, H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    function laneY(i, n) { return H * (0.22 + 0.56 * (n === 1 ? 0.5 : i / (n - 1))); }
-
     function draw(now) {
       var el = (now - t0) / 1000;
       ctx.clearRect(0, 0, W, H);
       var lanes = H > 200 ? 3 : 2;
-      var pad = Math.min(70, W * 0.07);
-      var span = W - pad * 2;
-
+      var pad = Math.min(70, W * 0.07), span = W - pad * 2;
       for (var l = 0; l < lanes; l++) {
-        var y = laneY(l, lanes);
-        // rail
-        ctx.strokeStyle = 'rgba(214,255,0,0.10)';
-        ctx.lineWidth = 1;
+        var y = H * (0.24 + 0.52 * (lanes === 1 ? 0.5 : l / (lanes - 1)));
+        ctx.strokeStyle = 'rgba(214,255,0,0.09)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W - pad, y); ctx.stroke();
-        // stage nodes
         for (var s = 0; s < STOPS; s++) {
           var x = pad + span * (s / (STOPS - 1));
-          ctx.fillStyle = 'rgba(214,255,0,0.30)';
+          ctx.fillStyle = 'rgba(214,255,0,0.26)';
           ctx.fillRect(x - 2.5, y - 2.5, 5, 5);
         }
-        // a packet advancing stage to stage: secured -> permitted -> built -> energised -> invoicing
         if (!reduced) {
-          var period = 9 + l * 2.3;
-          var p = ((el + l * 2.7) % period) / period;
-          var eased = p * p * (3 - 2 * p);
-          var px = pad + span * eased;
-          var grad = ctx.createLinearGradient(px - 46, 0, px, 0);
+          var period = 10 + l * 2.4, p = ((el + l * 3.1) % period) / period;
+          var eased = p * p * (3 - 2 * p), px = pad + span * eased;
+          var grad = ctx.createLinearGradient(px - 44, 0, px, 0);
           grad.addColorStop(0, 'rgba(214,255,0,0)');
-          grad.addColorStop(1, 'rgba(214,255,0,0.55)');
+          grad.addColorStop(1, 'rgba(214,255,0,0.5)');
           ctx.strokeStyle = grad; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.moveTo(Math.max(pad, px - 46), y); ctx.lineTo(px, y); ctx.stroke();
-          ctx.fillStyle = 'rgba(214,255,0,0.92)';
-          ctx.beginPath(); ctx.arc(px, y, 2.6, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(Math.max(pad, px - 44), y); ctx.lineTo(px, y); ctx.stroke();
+          ctx.fillStyle = 'rgba(214,255,0,0.9)';
+          ctx.beginPath(); ctx.arc(px, y, 2.5, 0, Math.PI * 2); ctx.fill();
         }
       }
       if (!reduced) raf = requestAnimationFrame(draw);
     }
     size(); draw(performance.now());
-    var ro = new ResizeObserver(function () {
-      cancelAnimationFrame(raf); size(); draw(performance.now());
-    });
-    ro.observe(cv.parentElement);
+    new ResizeObserver(function () { cancelAnimationFrame(raf); size(); draw(performance.now()); }).observe(cv.parentElement);
   })();
 
-  /* ================= LIVE FEEDS ================= */
-  function setConn(id, st, label) {
-    var n = $(id); if (!n) return;
-    n.className = 'conn ' + (st === 'ok' ? 'ok' : st === 'off' ? 'off' : '');
-    n.innerHTML = '<i aria-hidden="true"></i> ' + esc(label);
+  /* ============ FEED STATUS ============
+     "Prices live" at 9pm on a Sunday destroys trust in every other number, so the
+     label separates feed health from market session and names the provider. */
+  var FEED = { quotes: null, news: null, filings: null, session: null, lastOk: null };
+  function renderFeed() {
+    var el = $('feedStatus'); if (!el) return;
+    var s = FEED.session;
+    var online = FEED.quotes === 'ok' || FEED.news === 'ok' || FEED.filings === 'ok';
+    var parts = [online ? 'Feed online' : 'Feed offline'];
+    if (s) parts.push(s.label);
+    var last = FEED.lastTrade || FEED.lastOk;
+    if (last) parts.push('Last trade ' + last);
+    el.className = 'feed ' + (online ? (s && s.isOpen ? 'ok' : 'idle') : 'off');
+    el.innerHTML = '<i aria-hidden="true"></i><span>' + esc(parts.join(' · ')) + '</span>';
+    el.title = online
+      ? 'Prices supplied by Finnhub. Quotes may be delayed and are not for trading use.'
+      : 'The price feed did not respond. Static capacity data is unaffected.';
   }
-  var emptyBlock = function (t, b) {
-    return '<div class="empty"><h3>' + esc(t) + '</h3><p>' + b + '</p></div>';
-  };
+
+  /* ============ LIVE FEEDS ============ */
+  var emptyBlock = function (t, b) { return '<div class="empty"><h3>' + esc(t) + '</h3><p>' + b + '</p></div>'; };
   var loadingBlock = function (n) {
     var s = '<div class="pb">';
     for (var i = 0; i < n; i++) s += '<div class="skel" style="width:' + (90 - i * 11) + '%"></div>';
@@ -184,48 +219,57 @@
     if (h < 24) return h + 'h ago';
     return Math.round(h / 24) + 'd ago';
   };
-  var clock = function () {
-    return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  };
+  var clock = function () { return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); };
 
   var LASTQ = {};
 
   function loadQuotes() {
     var wrap = $('quoteWrap');
-    if (!wrap) return;
-    wrap.innerHTML = '<div class="kpis">' + WATCH.map(function (s) {
-      return '<div class="kpi"><div style="font-weight:800;font-size:12.5px">' + esc(s) +
-        '</div><div class="skel" style="width:70%;height:19px"></div><div class="skel" style="width:45%"></div></div>';
+    if (wrap) wrap.innerHTML = '<div class="kpis">' + WATCH.map(function (s) {
+      return '<div class="kpi"><div class="qt">' + esc(s) + '</div><div class="skel" style="width:70%;height:19px"></div><div class="skel" style="width:45%"></div></div>';
     }).join('') + '</div>';
 
     api('/api/quote?symbols=' + WATCH.join(',')).then(function (d) {
       var q = d.quotes || {};
-      wrap.innerHTML = '<div class="kpis">' + WATCH.map(function (s) {
-        var v = q[s];
-        if (!v || v.price == null) {
-          return '<div class="kpi"><div style="font-weight:800;font-size:12.5px">' + esc(s) +
-            '</div><div class="kv" style="font-size:21px">—</div><div class="kd">No data</div></div>';
-        }
-        var c = v.change > 0 ? 'var(--up)' : v.change < 0 ? 'var(--down)' : 'var(--ink)';
-        var dir = v.change > 0 ? '▲' : v.change < 0 ? '▼' : '■';
-        return '<div class="kpi"><div style="font-weight:800;font-size:12.5px">' + esc(s) + '</div>' +
-          '<div class="kv" style="font-size:23px;margin-top:5px">$' + Number(v.price).toFixed(2) + '</div>' +
-          '<div class="kl mono" style="color:' + c + '">' + dir + ' ' +
-          Math.abs(Number(v.changePct || 0)).toFixed(2) + '%</div>' +
-          '<div class="kd mono">' + (v.high != null ? 'H ' + Number(v.high).toFixed(2) + ' · L ' + Number(v.low).toFixed(2) : '') + '</div></div>';
-      }).join('') + '</div>';
-      if ($('quoteMeta')) $('quoteMeta').textContent = 'Updated ' + clock();
-      setConn('cQuote', 'ok', 'Prices live');
-      drawTape(q);
       LASTQ = q;
+      FEED.quotes = 'ok';
+      FEED.session = d.session || null;
+      if (d.session && !d.session.isOpen) {
+        var anyT = WATCH.map(function (s) { return q[s] && q[s].lastTradeAt; }).filter(Boolean).sort().pop();
+        FEED.lastTrade = anyT ? new Date(anyT).toLocaleString('en-GB',
+          { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET' : null;
+      } else { FEED.lastTrade = null; }
+      renderFeed();
+
+      if (wrap) {
+        wrap.innerHTML = '<div class="kpis">' + WATCH.map(function (s) {
+          var v = q[s];
+          if (!v || v.price == null) {
+            return '<div class="kpi"><div class="qt">' + esc(s) + '</div><div class="qn">' + esc(NAMES[s] || '') +
+              '</div><div class="kv" style="font-size:20px">—</div><div class="kd">No data</div></div>';
+          }
+          var c = v.change > 0 ? 'var(--up)' : v.change < 0 ? 'var(--down)' : 'var(--ink)';
+          var dir = v.change > 0 ? '▲' : v.change < 0 ? '▼' : '■';
+          return '<div class="kpi"><div class="qt">' + esc(s) + '</div>' +
+            '<div class="qn">' + esc(NAMES[s] || '') + '</div>' +
+            '<div class="kv" style="font-size:22px;margin-top:4px">$' + Number(v.price).toFixed(2) + '</div>' +
+            '<div class="kl mono" style="color:' + c + '">' + dir + ' ' + Math.abs(Number(v.changePct || 0)).toFixed(2) + '%</div>' +
+            '<div class="kd mono">' + (v.high != null ? 'H ' + Number(v.high).toFixed(2) + ' · L ' + Number(v.low).toFixed(2) : '') + '</div></div>';
+        }).join('') + '</div>';
+      }
+      if ($('quoteMeta')) {
+        $('quoteMeta').textContent = (d.session ? d.session.label + ' · ' : '') + 'updated ' + clock() +
+          (d.feed && d.feed.realtime === false ? ' · may be delayed' : '');
+      }
+      drawTape(q);
       syncTicker(false);
+      renderCompare();
     }).catch(function () {
-      wrap.innerHTML = emptyBlock('Prices unavailable',
-        'The quote feed did not respond. Every other panel on this page is static data and is unaffected.');
+      FEED.quotes = 'off'; renderFeed();
+      if (wrap) wrap.innerHTML = emptyBlock('Prices unavailable',
+        'The quote feed did not respond. Capacity, ledger and contract data are static and unaffected.');
       if ($('quoteMeta')) $('quoteMeta').textContent = 'Offline';
-      setConn('cQuote', 'off', 'Prices off');
-      drawTape(null);
-      syncTicker(false);
+      drawTape(null); syncTicker(false); renderCompare();
     });
   }
 
@@ -233,40 +277,39 @@
     var el = $('tape'); if (!el) return;
     var cell = function (s) {
       var v = q && q[s];
-      if (!v || v.price == null) return '<span class="tk"><b>' + esc(s) + '</b><span class="p">—</span></span>';
+      var name = NAMES[s] || s;
+      if (!v || v.price == null) {
+        return '<span class="tk"><b>' + esc(s) + '</b><span class="tkn">' + esc(name) + '</span><span class="p">—</span></span>';
+      }
       var cls = v.change > 0 ? 'u' : v.change < 0 ? 'd' : 'p';
       var dir = v.change > 0 ? '▲' : v.change < 0 ? '▼' : '';
-      return '<span class="tk"><b>' + esc(s) + '</b><span class="p">$' + Number(v.price).toFixed(2) +
-        '</span><span class="' + cls + '">' + dir + Math.abs(Number(v.changePct || 0)).toFixed(2) + '%</span></span>';
+      return '<span class="tk"><b>' + esc(s) + '</b><span class="tkn">' + esc(name) + '</span>' +
+        '<span class="p">$' + Number(v.price).toFixed(2) + '</span>' +
+        '<span class="' + cls + '">' + dir + Math.abs(Number(v.changePct || 0)).toFixed(2) + '%</span></span>';
     };
     var once = WATCH.map(cell).join('');
-    el.innerHTML = once + once;
+    // The duplicate exists purely to make the marquee loop seamlessly, so it is
+    // hidden from assistive technology to avoid every ticker being read twice.
+    el.innerHTML = '<span class="tkgroup">' + once + '</span>' +
+      '<span class="tkgroup" aria-hidden="true">' + once + '</span>';
   }
 
-  /* ---- Intelligence ---- */
+  /* ---- intelligence ---- */
   var NEWS = [], newsFilter = 'ALL';
   var thumb = function (n) {
-    return n.image
-      ? '<span class="nthumb"><img src="' + esc(n.image) + '" alt="" loading="lazy" ' +
-        'referrerpolicy="no-referrer" onerror="this.parentElement.remove()" /></span>'
-      : '';
+    return n.image ? '<span class="nthumb"><img src="' + esc(n.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.remove()" /></span>' : '';
   };
   function newsCard(n) {
-    return '<a class="ncard" href="' + esc(n.url) + '" target="_blank" rel="noopener">' +
-      thumb(n) +
+    return '<a class="ncard" href="' + esc(n.url) + '" target="_blank" rel="noopener">' + thumb(n) +
       '<span class="nbody"><span class="hl">' + esc(n.headline) + '</span>' +
       '<span class="mt">' +
       (n.symbols || []).slice(0, 3).map(function (s) { return '<span class="symp">' + esc(s) + '</span>'; }).join('') +
       '<span class="srcpill">' + esc(n.source || 'Unattributed') + '</span>' +
-      (n.datetime && (Date.now() - n.datetime * 1000) < 7200000
-        ? '<span class="fresh"><i aria-hidden="true"></i>' + esc(ago(n.datetime)) + '</span>'
-        : '<span>' + esc(ago(n.datetime)) + '</span>') +
+      (n.datetime ? '<span>' + esc(ago(n.datetime)) + '</span>' : '') +
       '</span></span></a>';
   }
   function renderNews() {
-    var items = newsFilter === 'ALL' ? NEWS : NEWS.filter(function (n) {
-      return (n.symbols || []).indexOf(newsFilter) !== -1;
-    });
+    var items = newsFilter === 'ALL' ? NEWS : NEWS.filter(function (n) { return (n.symbols || []).indexOf(newsFilter) !== -1; });
     var hero = $('newsHero'), list = $('newsList'), mini = $('newsMini');
     if (!items.length) {
       if (hero) hero.innerHTML = '';
@@ -297,45 +340,39 @@
     if (f && !f.dataset.built) {
       f.dataset.built = '1';
       f.innerHTML = ['ALL'].concat(WATCH).map(function (s) {
-        return '<button class="fchip" type="button" data-f="' + esc(s) + '" aria-pressed="' +
-          (s === 'ALL') + '">' + (s === 'ALL' ? 'All stories' : esc(s)) + '</button>';
+        return '<button class="fchip" type="button" data-f="' + esc(s) + '" aria-pressed="' + (s === 'ALL') + '"' +
+          (s === 'ALL' ? '' : ' title="' + esc(NAMES[s] || s) + '"') + '>' +
+          (s === 'ALL' ? 'All stories' : esc(s)) + '</button>';
       }).join('');
       f.querySelectorAll('.fchip').forEach(function (b) {
         b.addEventListener('click', function () {
           f.querySelectorAll('.fchip').forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
           b.setAttribute('aria-pressed', 'true');
-          newsFilter = b.dataset.f;
-          renderNews();
+          newsFilter = b.dataset.f; renderNews();
         });
       });
     }
     api('/api/news?symbols=' + WATCH.join(',')).then(function (d) {
       NEWS = d.items || [];
+      FEED.news = 'ok'; renderFeed();
       if ($('newsMeta')) $('newsMeta').textContent = NEWS.length + ' stories · ' + clock();
-      setConn('cNews', 'ok', 'News live');
       renderNews();
     }).catch(function () {
+      FEED.news = 'off'; renderFeed();
       var m = emptyBlock('Intelligence feed unavailable',
-        'The news route did not respond. Capacity, contracts and the ledger are static data and are unaffected.');
+        'The news route did not respond. Capacity, contracts and the ledger are static and unaffected.');
       if ($('newsHero')) $('newsHero').innerHTML = '';
       if (list) list.innerHTML = m;
       if (mini) mini.innerHTML = m;
       if ($('newsMeta')) $('newsMeta').textContent = 'Offline';
-      setConn('cNews', 'off', 'News off');
     });
   }
 
-  /* ---- Filings ---- */
-  // "8-K — 8-K" was the old output whenever EDGAR gave no primaryDocDescription.
-  // Fall back through description -> company -> a plain form description.
+  /* ---- filings ---- */
   var FORM_MEANING = {
-    '8-K': 'Material event report',
-    '10-Q': 'Quarterly report',
-    '10-K': 'Annual report',
-    'S-1': 'Registration statement',
-    '424B5': 'Prospectus supplement',
-    'SC 13D': 'Activist ownership stake',
-    'SC 13G': 'Passive ownership stake'
+    '8-K': 'Material event report', '10-Q': 'Quarterly report', '10-K': 'Annual report',
+    'S-1': 'Registration statement', '424B5': 'Prospectus supplement',
+    'SC 13D': 'Activist ownership stake', 'SC 13G': 'Passive ownership stake'
   };
   function filingTitle(f) {
     var d = (f.description || '').trim();
@@ -347,29 +384,99 @@
     list.innerHTML = loadingBlock(6);
     api('/api/filings?symbols=' + WATCH.join(',')).then(function (d) {
       var items = d.items || [];
-      list.innerHTML = items.length
-        ? '<div class="newsgrid">' + items.slice(0, 48).map(function (f) {
-          return '<a class="ncard" href="' + esc(f.url) + '" target="_blank" rel="noopener">' +
-            '<span class="nbody">' +
-            '<span class="hl">' + esc(filingTitle(f)) + '</span>' +
-            '<span class="mt"><span class="symp">' + esc(f.symbol) + '</span>' +
-            '<span class="srcpill">' + esc(f.form) + '</span>' +
-            '<span class="srcpill">SEC EDGAR</span><span>' + esc(f.filed) + '</span></span>' +
-            '<span class="whatchanged">What changed — awaiting structured summary</span>' +
-            '</span></a>';
-        }).join('') + '</div>'
-        : emptyBlock('No recent filings', 'Nothing new from these companies in the window queried.');
+      FEED.filings = 'ok'; renderFeed();
+      list.innerHTML = items.length ? '<div class="newsgrid">' + items.slice(0, 48).map(function (f) {
+        return '<a class="ncard" href="' + esc(f.url) + '" target="_blank" rel="noopener"><span class="nbody">' +
+          '<span class="filinghead"><span class="symp">' + esc(f.symbol) + '</span>' +
+          '<span class="formpill">' + esc(f.form) + '</span>' +
+          '<span class="filingdate">' + esc(f.filed) + '</span></span>' +
+          '<span class="hl">' + esc(filingTitle(f)) + '</span>' +
+          '<span class="qn">' + esc(f.company || NAMES[f.symbol] || '') + '</span>' +
+          '<span class="whatchanged">What changed — structured summary pending</span>' +
+          '</span></a>';
+      }).join('') + '</div>' : emptyBlock('No recent filings', 'Nothing new from these companies in the window queried.');
       if ($('filingMeta')) $('filingMeta').textContent = items.length + ' filings · ' + clock();
-      setConn('cFilings', 'ok', 'Filings live');
     }).catch(function () {
-      list.innerHTML = emptyBlock('Filings feed unavailable',
-        'The EDGAR route did not respond. Capacity and ledger data are unaffected.');
+      FEED.filings = 'off'; renderFeed();
+      list.innerHTML = emptyBlock('Filings feed unavailable', 'The EDGAR route did not respond. Capacity and ledger data are unaffected.');
       if ($('filingMeta')) $('filingMeta').textContent = 'Offline';
-      setConn('cFilings', 'off', 'Filings off');
     });
   }
 
-  /* ================= ODDS ================= */
+  /* ============ ANALYSTS ============ */
+  var ANALYSTS = null;
+  function loadAnalysts() {
+    var body = $('analystBody'); if (!body || body.dataset.loaded) return;
+    body.dataset.loaded = '1';
+    body.innerHTML = loadingBlock(4);
+    api('/api/analysts?symbols=' + WATCH.join(',')).then(function (d) {
+      ANALYSTS = d;
+      renderAnalysts(d);
+      renderCompare();
+    }).catch(function () {
+      body.innerHTML = emptyBlock('Analyst coverage unavailable',
+        'The analyst route did not respond. Nothing else on this page depends on it.');
+      if ($('analystMeta')) $('analystMeta').textContent = 'Offline';
+    });
+  }
+
+  function renderAnalysts(d) {
+    var body = $('analystBody');
+    var av = d.availability || {};
+    if ($('analystMeta')) {
+      $('analystMeta').textContent = av.priceTargets ? 'Provider: ' + d.provider : 'Targets unavailable on this plan';
+    }
+
+    var html = '';
+    if (!av.priceTargets) {
+      // No fabricated consensus. State exactly what is missing and why.
+      html += '<div class="unavail">' +
+        '<h3>Analyst price targets are not available</h3>' +
+        '<p>' + esc(d.limitation || '') + '</p>' +
+        '<p class="unavail-fields"><b>Not available:</b> ' + esc((d.unavailableFields || []).join(', ')) + '</p>' +
+        '<p class="unavail-note">T2C will not display an unattributed price target, a placeholder, or a ' +
+        'target horizon it has invented. When a licensed provider supplying per-firm targets is connected, ' +
+        'this panel fills in automatically — the consensus, revision and upside calculations are already ' +
+        'implemented and unit-tested.</p></div>';
+    }
+
+    // Rating distribution IS available, so show it — attributed, and clearly not a target.
+    var rows = [];
+    Object.keys(d.symbols || {}).forEach(function (t) {
+      var e = d.symbols[t];
+      if (!e.ratingDistribution || !e.ratingDistribution.length) return;
+      var latest = e.ratingDistribution[0];
+      var total = (latest.strongBuy || 0) + (latest.buy || 0) + (latest.hold || 0) + (latest.sell || 0) + (latest.strongSell || 0);
+      if (!total) return;
+      var bull = (latest.strongBuy || 0) + (latest.buy || 0);
+      var neu = latest.hold || 0;
+      var bear = (latest.sell || 0) + (latest.strongSell || 0);
+      rows.push(
+        '<tr><td><a href="#">' + esc(t) + '</a><span class="sub">' + esc(NAMES[t] || '') + '</span></td>' +
+        '<td>' + total + '</td>' +
+        '<td><div class="ratingbar" role="img" aria-label="' + bull + ' bullish, ' + neu + ' neutral, ' + bear + ' bearish">' +
+        '<i style="width:' + (bull / total * 100) + '%;background:var(--ok)"></i>' +
+        '<i style="width:' + (neu / total * 100) + '%;background:var(--unknown)"></i>' +
+        '<i style="width:' + (bear / total * 100) + '%;background:var(--bad)"></i></div></td>' +
+        '<td>' + bull + '</td><td>' + neu + '</td><td>' + bear + '</td>' +
+        '<td class="dim small">' + esc(latest.period || '') + '</td></tr>'
+      );
+    });
+
+    if (rows.length) {
+      html += '<div class="keynote">A rating <b>distribution</b> is available on the connected plan — how ' +
+        'many firms are positive, neutral or negative. It carries no price target and no individual firm ' +
+        'attribution, so it is shown as a distribution and never converted into a target.</div>' +
+        '<div class="scrollnote">Scroll sideways for all columns →</div>' +
+        '<div class="tw"><table><thead><tr><th scope="col">Ticker</th><th scope="col">Firms</th>' +
+        '<th scope="col">Split</th><th scope="col">Bullish</th><th scope="col">Neutral</th>' +
+        '<th scope="col">Bearish</th><th scope="col">Period</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' +
+        '<div class="stamp">Supplied by ' + esc(d.provider) + '. Ratings are third-party opinions, not T2C views.</div>';
+    }
+    body.innerHTML = html;
+  }
+
+  /* ============ SCENARIOS ============ */
   var SQ2PI = Math.sqrt(2 * Math.PI);
   function normCdf(x) {
     if (!isFinite(x)) return x > 0 ? 1 : 0;
@@ -378,7 +485,12 @@
     return x > 0 ? 1 - p : p;
   }
   var normPdf = function (x) { return Math.exp(-x * x / 2) / SQ2PI; };
-  function touchProb(S0, B, s, T, mu) {
+  function probAbove(S0, K, s, T, mu) {
+    if (T <= 0) return S0 > K ? 1 : 0;
+    var m = mu - 0.5 * s * s;
+    return normCdf((Math.log(S0 / K) + m * T) / (s * Math.sqrt(T)));
+  }
+  function probTouch(S0, B, s, T, mu) {
     if (T <= 0 || s <= 0) return 0;
     var m = mu - 0.5 * s * s, b = Math.log(B / S0), sT = s * Math.sqrt(T);
     var p = B > S0
@@ -386,19 +498,25 @@
       : normCdf((b - m * T) / sT) + Math.exp(2 * m * b / (s * s)) * normCdf((b + m * T) / sT);
     return clamp(p, 0, 1);
   }
-  function probAbove(S0, K, s, T, mu) {
-    if (T <= 0) return S0 > K ? 1 : 0;
-    var m = mu - 0.5 * s * s;
-    return normCdf((Math.log(S0 / K) + m * T) / (s * Math.sqrt(T)));
-  }
   var qt = function (S0, s, T, mu, z) { return S0 * Math.exp((mu - 0.5 * s * s) * T + z * s * Math.sqrt(T)); };
+  function inverseNorm(p) {
+    var a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+    var b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+    var c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+    var d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+    var pl = 0.02425, q, r;
+    if (p <= 0) return -Infinity;
+    if (p >= 1) return Infinity;
+    if (p < pl) { q = Math.sqrt(-2 * Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+    if (p > 1 - pl) { q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+    q = p - 0.5; r = q * q;
+    return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+  }
 
   var VOL_BASE = { IREN: 90, CRWV: 85, NBIS: 75, WULF: 95, KEEL: 100, APLD: 85, CIFR: 90, NVDA: 45 };
   var DIRTY = { spot: false, target: false, vol: false, date: false };
+  var SCN = null;
 
-  // Parkinson estimator from the day's range. A single session is noisy — a quiet
-  // day put NVDA at 15%, less than half its real level — so it is blended toward
-  // the ticker's typical figure rather than trusted alone.
   function estVol(v, base) {
     if (!v || !(v.high > 0) || !(v.low > 0) || v.high <= v.low) return null;
     var hl = Math.log(v.high / v.low);
@@ -410,27 +528,19 @@
     var step = raw >= 500 ? 50 : raw >= 100 ? 10 : raw >= 25 ? 5 : raw >= 10 ? 1 : 0.5;
     return +(Math.round(raw / step) * step).toFixed(2);
   }
-  var isoIn = function (d) { return new Date(Date.now() + d * 86400000).toISOString().slice(0, 10); };
 
   function syncTicker(reset) {
     if (!$('inTicker')) return;
     var t = $('inTicker').value, v = LASTQ[t], live = !!(v && v.price != null);
     if (reset) DIRTY = { spot: false, target: false, vol: false, date: false };
-
     if (live && !DIRTY.spot) $('inSpot').value = Number(v.price).toFixed(2);
     else if (reset && !live) $('inSpot').value = '';
-
-    var base = VOL_BASE[t] || 80;
-    var est = live ? estVol(v, base) : null;
+    var base = VOL_BASE[t] || 80, est = live ? estVol(v, base) : null;
     if (!DIRTY.vol) $('inVol').value = est == null ? base : est;
-    $('volTag').textContent = DIRTY.vol ? 'Your figure'
-      : est != null ? 'Today’s range + typical' : 'Typical for this share';
-
+    $('volTag').textContent = DIRTY.vol ? 'Your figure' : est != null ? 'From today’s range + typical' : 'Typical — no history on this plan';
     if (!DIRTY.date && (reset || !$('inDate').value)) $('inDate').value = isoIn(90);
-
     var spot = +$('inSpot').value;
     if (!DIRTY.target && spot > 0) $('inTarget').value = niceTarget(spot, +$('inVol').value || base);
-
     $('spotTag').innerHTML = live
       ? '<span class="livetag on"><i aria-hidden="true"></i>Live' + (DIRTY.spot ? ' · overridden' : '') + '</span>'
       : '<span class="livetag">Prices offline — type one</span>';
@@ -438,100 +548,101 @@
     drawOdds();
   }
 
-  var DIST = {};
   function drawOdds() {
     if (!$('inSpot')) return;
     var S0 = +$('inSpot').value, B = +$('inTarget').value;
     var s = (+$('inVol').value) / 100, mu = (+$('inDrift').value) / 100;
-    var days = Math.round((new Date($('inDate').value + 'T21:00:00Z') - new Date()) / 86400000);
-    var T = days / 365.25;
-    if (T <= 0 || !(S0 > 0) || !(B > 0)) {
+    var deadline = $('inDate').value;
+    var days = deadline ? daysBetweenUtc(todayUtc(), deadline) : null;
+
+    if (!(days > 0) || !(S0 > 0) || !(B > 0) || !(s > 0)) {
+      SCN = null;
       $('bigOdds').textContent = '—';
       $('oddsBar').style.width = '0%';
-      $('oddsPlain').textContent = 'Pick a date in the future and check the price.';
+      $('oddsPlain').textContent = 'Enter a positive price, target and volatility, and pick a future deadline.';
       $('oddsTable').innerHTML = ''; $('stepsBox').innerHTML = '';
+      drawDist(); drawFan();
       return;
     }
-    var pt = touchProb(S0, B, s, T, mu);
-    var pc = B > S0 ? probAbove(S0, B, s, T, mu) : 1 - probAbove(S0, B, s, T, mu);
-    var med = qt(S0, s, T, mu, 0), lo = qt(S0, s, T, mu, -1), hi = qt(S0, s, T, mu, 1);
-    var half = 1 - probAbove(S0, S0 * 0.5, s, T, mu);
-    var mv = (B / S0 - 1) * 100, sT = s * Math.sqrt(T), sd = Math.log(B / S0) / sT;
+    var T = days / 365.25;
+    var finishAbove = probAbove(S0, B, s, T, mu);
+    var touch = probTouch(S0, B, s, T, mu);
+    var median = qt(S0, s, T, mu, 0), lo = qt(S0, s, T, mu, -1), hi = qt(S0, s, T, mu, 1);
+    var halve = 1 - probAbove(S0, S0 * 0.5, s, T, mu);
+    var movePct = (B / S0 - 1) * 100, sT = s * Math.sqrt(T);
     var tick = $('inTicker').value;
 
-    $('qLine').textContent = 'Touching $' + B + ' before ' +
-      new Date($('inDate').value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    $('oddsTicker').innerHTML = '<span class="mono"><b>' + esc(tick) + '</b> $' + S0.toFixed(2) +
-      ' → $' + B + ' · ' + days + 'd</span>';
-    $('bigOdds').textContent = (pt * 100).toFixed(0) + '%';
-    $('oddsBar').style.width = (pt * 100) + '%';
-    var w = pt > 0.7 ? 'comfortably more likely than not' : pt > 0.55 ? 'slightly more likely than not'
-      : pt > 0.45 ? 'close to a coin flip' : pt > 0.25 ? 'possible, but against the odds' : 'a long shot';
-    $('oddsPlain').innerHTML = 'A <b>' + (mv > 0 ? 'rise' : 'fall') + ' of ' + Math.abs(mv).toFixed(0) +
-      '%</b> in <b>' + days + ' days</b> at ' + (s * 100).toFixed(0) + '% volatility. That is <b>' + w +
-      '</b> — out of 100 parallel worlds it would touch $' + B + ' in about <b>' + Math.round(pt * 100) + '</b>.';
-    $('oddsTable').innerHTML = '<caption class="sr">Derived probabilities for ' + esc(tick) + '</caption><tbody>' +
-      '<tr><td>Finishes above target</td><td>' + (pc * 100).toFixed(0) + '%</td></tr>' +
-      '<tr><td>Most likely price</td><td>$' + med.toFixed(2) + '</td></tr>' +
-      '<tr><td>Normal range, 2 in 3</td><td>$' + lo.toFixed(0) + ' – $' + hi.toFixed(0) + '</td></tr>' +
-      '<tr><td>Chance it halves</td><td style="color:' + (half > 0.2 ? 'var(--bad)' : 'inherit') + '">' +
-      (half * 100).toFixed(0) + '%</td></tr>' +
+    SCN = { S0: S0, B: B, s: s, T: T, mu: mu, days: days, median: median, lo: lo, hi: hi, tick: tick, deadline: deadline };
+
+    $('qLine').textContent = 'Touching $' + B + ' before ' + fmtDateUtc(deadline);
+    $('oddsTicker').innerHTML = '<span class="mono"><b>' + esc(tick) + '</b> $' + S0.toFixed(2) + ' → $' + B + ' · ' + days + 'd</span>';
+    $('bigOdds').textContent = (touch * 100).toFixed(0) + '%';
+    $('oddsBar').style.width = (touch * 100) + '%';
+    var w = touch > 0.7 ? 'comfortably more likely than not' : touch > 0.55 ? 'slightly more likely than not'
+      : touch > 0.45 ? 'close to a coin flip' : touch > 0.25 ? 'possible, but against the odds' : 'a long shot';
+    $('oddsPlain').innerHTML = 'A <b>' + (movePct > 0 ? 'rise' : 'fall') + ' of ' + Math.abs(movePct).toFixed(0) +
+      '%</b> in <b>' + days + ' days</b> at ' + (s * 100).toFixed(0) + '% annualised volatility. On these ' +
+      'assumptions that is <b>' + w + '</b>.';
+
+    $('oddsTable').innerHTML = '<caption class="sr">Modelled probabilities for ' + esc(tick) + '</caption><tbody>' +
+      '<tr><td>Probability of touching the target</td><td>' + (touch * 100).toFixed(0) + '%</td></tr>' +
+      '<tr><td>Probability of finishing above</td><td>' + (finishAbove * 100).toFixed(0) + '%</td></tr>' +
+      '<tr><td>Median outcome<span class="sub">Half of modelled outcomes finish above this</span></td><td>$' + median.toFixed(2) + '</td></tr>' +
+      '<tr><td>Two-thirds range</td><td>$' + lo.toFixed(0) + ' – $' + hi.toFixed(0) + '</td></tr>' +
+      '<tr><td>Required move</td><td>' + (movePct > 0 ? '+' : '') + movePct.toFixed(1) + '%</td></tr>' +
+      '<tr><td>Probability of halving</td><td style="color:' + (halve > 0.2 ? 'var(--bad)' : 'inherit') + '">' + (halve * 100).toFixed(0) + '%</td></tr>' +
       '<tr><td>Days remaining</td><td>' + days + '</td></tr></tbody>';
 
     $('stepsBox').innerHTML = [
-      ['Measure the distance',
-        'How far the price has to travel, in percentage terms rather than dollars — a $10 move matters far more on a $20 share than a $200 one.',
-        '$' + S0.toFixed(2) + ' → $' + B + ' = ' + (mv > 0 ? '+' : '') + mv.toFixed(1) + '%'],
-      ['Measure the time',
-        'Volatility is quoted per year, so the deadline is converted into a fraction of a year to match.',
+      ['Measure the distance', 'How far the price has to travel, in percentage terms rather than dollars.',
+        '$' + S0.toFixed(2) + ' → $' + B + ' = ' + (movePct > 0 ? '+' : '') + movePct.toFixed(1) + '%'],
+      ['Measure the time', 'Volatility is quoted per year, so the deadline becomes a fraction of a year.',
         days + ' days = ' + T.toFixed(3) + ' of a year'],
-      ['Shrink volatility to the window',
-        'A share that swings ' + (s * 100).toFixed(0) + '% over a year does not swing that much over ' + days +
-        ' days. Volatility scales with the square root of time.',
+      ['Scale volatility to the window', 'Volatility grows with the square root of time, not with time itself.',
         (s * 100).toFixed(0) + '% × √' + T.toFixed(3) + ' = ' + (sT * 100).toFixed(1) + '% over the window'],
-      ['Compare the two',
-        'Distance divided by window volatility gives how many typical swings away the target sits. Under one is reachable; over two is a stretch.',
-        Math.abs(mv).toFixed(1) + '% ÷ ' + (sT * 100).toFixed(1) + '% ≈ ' + Math.abs(sd).toFixed(2) + ' swings away'],
+      ['Compare the two', 'Distance divided by window volatility gives how many typical moves away the target sits.',
+        Math.abs(movePct).toFixed(1) + '% ÷ ' + (sT * 100).toFixed(1) + '% ≈ ' + Math.abs(Math.log(B / S0) / sT).toFixed(2) + ' moves away'],
       ['Allow for touching, not just finishing',
-        'A price that reaches $' + B + ' and falls straight back still counts. For every path ending above the target there is a mirror path that touched and returned.',
-        'finishes above ' + (pc * 100).toFixed(0) + '% → touches ' + (pt * 100).toFixed(0) + '%'],
-      ['Sense-check it',
-        'Your drift of ' + (mu * 100).toFixed(0) + '%/yr moves the distribution ' +
-        (mu > 0 ? 'up' : mu < 0 ? 'down' : 'not at all') + '. This assumes the share wobbles steadily and never gaps on news, which real shares do constantly.',
-        'final answer ' + (pt * 100).toFixed(0) + '%']
+        'A price that reaches the target and falls back still counts as a touch. Under the reflection ' +
+        'principle for Brownian motion, each path that crosses the barrier and returns corresponds to a ' +
+        'reflected path finishing above it, which is why the touch probability is the larger of the two.',
+        'finishes above ' + (finishAbove * 100).toFixed(0) + '% → touches ' + (touch * 100).toFixed(0) + '%'],
+      ['Sense-check it', 'Your drift of ' + (mu * 100).toFixed(0) + '%/yr shifts the distribution ' +
+        (mu > 0 ? 'up' : mu < 0 ? 'down' : 'not at all') + '. The model assumes no gaps or jumps, which real shares have.',
+        'final answer ' + (touch * 100).toFixed(0) + '%']
     ].map(function (r) {
       return '<div class="step"><div class="no"></div><div><h4>' + esc(r[0]) + '</h4><p>' + esc(r[1]) +
         '</p><span class="calc">' + esc(r[2]) + '</span></div></div>';
     }).join('');
 
-    DIST = { S0: S0, B: B, s: s, T: T, mu: mu, pt: pt, lo: lo, hi: hi, med: med, tick: tick };
-    drawDist();
+    drawDist(); drawFan();
+  }
+
+  function cssVar(n, fb) {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    return v || fb;
   }
 
   function drawDist() {
     var el = $('distChart'); if (!el) return;
-    // Deep-linking straight to #odds calls this during boot, before drawOdds has
-    // populated DIST — the var is hoisted but still undefined at that point.
-    if (!DIST || !DIST.S0) { el.innerHTML = ''; return; }
-    var S0 = DIST.S0, B = DIST.B, s = DIST.s, T = DIST.T, mu = DIST.mu;
-    var W = 720, H = 240, pl = 8, pr = 8, ptop = 18, pb = 32;
+    if (!SCN) { el.innerHTML = ''; if ($('distSummary')) $('distSummary').textContent = ''; return; }
+    var S0 = SCN.S0, B = SCN.B, s = SCN.s, T = SCN.T, mu = SCN.mu;
+    var W = 720, H = 260, pl = 10, pr = 10, ptop = 26, pb = 52;
     var lo = Math.log(S0 * 0.25), hi = Math.log(S0 * 3.2);
     var x = function (lp) { return pl + (lp - lo) / (hi - lo) * (W - pl - pr); };
     var m = mu - 0.5 * s * s, mean = Math.log(S0) + m * T, sd = s * Math.sqrt(T);
     var base = H - pb, amp = H - ptop - pb;
-    var css = getComputedStyle(document.documentElement);
-    var ok = css.getPropertyValue('--ok').trim() || '#2E9B52';
-    var dim = css.getPropertyValue('--dim').trim() || '#888';
-    var ink = css.getPropertyValue('--ink').trim() || '#000';
-    var line = css.getPropertyValue('--line-2').trim() || '#ddd';
+    var ok = cssVar('--ok', '#C8E82A'), dim = cssVar('--dim', '#8A8A93');
+    var ink = cssVar('--ink', '#fff'), line = cssVar('--line-2', '#1F1F23');
 
     var pts = [];
     for (var i = 0; i <= 240; i++) {
       var lp = lo + (hi - lo) * i / 240;
       pts.push([x(lp), base - normPdf((lp - mean) / sd) * amp]);
     }
-    var xb = x(Math.log(B)), xs = x(Math.log(S0));
-    var cut = pts.findIndex(function (p) { return p[0] >= xb; });
+    var xb = x(Math.log(B)), xs = x(Math.log(S0)), xm = x(Math.log(SCN.median));
+    var cut = -1;
+    for (var j = 0; j < pts.length; j++) if (pts[j][0] >= xb) { cut = j; break; }
     var right = cut < 0 ? [] : pts.slice(cut);
 
     var sv = '';
@@ -540,64 +651,225 @@
       if (Math.log(v) < lo || Math.log(v) > hi) continue;
       var px = x(Math.log(v));
       sv += '<line x1="' + px + '" y1="' + ptop + '" x2="' + px + '" y2="' + base + '" stroke="' + line + '" stroke-width="1"/>';
-      sv += '<text x="' + px + '" y="' + (base + 15) + '" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="' + dim + '">' + v + '</text>';
+      sv += '<text x="' + px + '" y="' + (base + 16) + '" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="' + dim + '">$' + v + '</text>';
     }
     sv += '<path d="M ' + pts[0][0] + ' ' + base + ' ' + pts.map(function (p) { return 'L ' + p[0] + ' ' + p[1]; }).join(' ') +
-      ' L ' + pts[pts.length - 1][0] + ' ' + base + ' Z" fill="' + dim + '" opacity=".16"/>';
+      ' L ' + pts[pts.length - 1][0] + ' ' + base + ' Z" fill="' + dim + '" opacity=".18"/>';
     if (right.length) {
       sv += '<path d="M ' + right[0][0] + ' ' + base + ' ' + right.map(function (p) { return 'L ' + p[0] + ' ' + p[1]; }).join(' ') +
-        ' L ' + right[right.length - 1][0] + ' ' + base + ' Z" fill="' + ok + '" opacity=".5"/>';
+        ' L ' + right[right.length - 1][0] + ' ' + base + ' Z" fill="' + ok + '" opacity=".45"/>';
     }
-    sv += '<path d="M ' + pts.map(function (p) { return p.join(' '); }).join(' L ') + '" fill="none" stroke="' + ink + '" stroke-width="1.6" opacity=".8"/>';
-    sv += '<line x1="' + xs + '" y1="' + (ptop - 4) + '" x2="' + xs + '" y2="' + base + '" stroke="' + dim + '" stroke-width="1.5" stroke-dasharray="3 3"/>';
-    sv += '<text x="' + xs + '" y="' + (ptop - 6) + '" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="700" fill="' + dim + '">now $' + S0.toFixed(2) + '</text>';
-    sv += '<line x1="' + xb + '" y1="' + (ptop - 4) + '" x2="' + xb + '" y2="' + base + '" stroke="' + ok + '" stroke-width="2.5"/>';
-    sv += '<text x="' + xb + '" y="' + (ptop - 6) + '" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="700" fill="' + ink + '">target $' + B + '</text>';
+    sv += '<path d="M ' + pts.map(function (p) { return p.join(' '); }).join(' L ') + '" fill="none" stroke="' + ink + '" stroke-width="1.6" opacity=".75"/>';
+    function marker(px, colour, label, dash) {
+      return '<line x1="' + px + '" y1="' + (ptop - 6) + '" x2="' + px + '" y2="' + base + '" stroke="' + colour + '" stroke-width="2"' + (dash ? ' stroke-dasharray="4 3"' : '') + '/>' +
+        '<text x="' + px + '" y="' + (ptop - 10) + '" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" font-weight="700" fill="' + colour + '">' + label + '</text>';
+    }
+    sv += marker(xs, dim, 'now $' + S0.toFixed(2), true);
+    sv += marker(xm, ink, 'median $' + SCN.median.toFixed(2), true);
+    sv += marker(xb, ok, 'target $' + B, false);
+    sv += '<text x="' + (W / 2) + '" y="' + (H - 12) + '" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="700" fill="' + dim + '">Share price at selected deadline</text>';
     el.innerHTML = sv;
 
-    var summary = $('distSummary');
-    if (summary) {
-      summary.textContent = 'Distribution of possible prices for ' + DIST.tick + ' on the deadline. Today $' +
-        S0.toFixed(2) + ', target $' + B + '. Two thirds of outcomes fall between $' + DIST.lo.toFixed(0) +
-        ' and $' + DIST.hi.toFixed(0) + ', with a central estimate of $' + DIST.med.toFixed(2) +
-        '. The shaded area right of the target is the ' + (probAbove(S0, B, s, T, mu) * 100).toFixed(0) +
-        '% of outcomes finishing above it.';
+    var legend = $('distLegend');
+    if (legend) {
+      legend.innerHTML =
+        '<span class="lg"><i style="background:' + ok + ';opacity:.45"></i>Shaded — outcomes finishing above your target</span>' +
+        '<span class="lg"><i style="background:' + dim + ';opacity:.35"></i>Full range of modelled outcomes</span>' +
+        '<span class="lg"><i class="dash" style="background:' + dim + '"></i>Current price</span>' +
+        '<span class="lg"><i class="dash" style="background:' + ink + '"></i>Median outcome</span>' +
+        '<span class="lg"><i style="background:' + ok + '"></i>Your target</span>';
+    }
+    if ($('distSummary')) {
+      $('distSummary').textContent = 'Distribution of possible prices for ' + SCN.tick + ' on ' +
+        fmtDateUtc(SCN.deadline, { year: 'numeric' }) + '. Today $' + S0.toFixed(2) + ', your target $' + B +
+        '. The median outcome is $' + SCN.median.toFixed(2) + ' and two thirds of modelled outcomes fall between $' +
+        SCN.lo.toFixed(0) + ' and $' + SCN.hi.toFixed(0) + '. The shaded area right of the target is the ' +
+        (probAbove(S0, B, s, T, mu) * 100).toFixed(0) + '% of outcomes finishing above it. Modelled from your ' +
+        'assumptions — not a prediction.';
     }
   }
 
-  /* ---- terms ---- */
-  var TERMS = {
-    'Volatility': 'How much a share price swings in a typical year, as a percentage. A supermarket might be 15%. An AI infrastructure share can be 90% or more. Higher volatility widens the range of outcomes in both directions — it is not a forecast of which way.',
-    'Drift': 'Your own view of where the share is heading over a year, before any of the wobble. Zero means you have no directional opinion. Notice how little it changes the answer compared with volatility.',
-    'Touching': 'The price reaches your target at any moment before the deadline, even for a second, even if it falls straight back. Always more likely than finishing above.',
-    'Finishing above': 'The price is still above your target on the deadline day itself. A stricter test, and usually about half as likely as touching.',
-    'Typical swings away': 'How far the target sits from today’s price, in units of how much the share normally moves over that window. Under 1 is within reach. Over 2 is a stretch.',
-    'Normal range': 'The band the price lands in roughly two times out of three. The other third of the time it lands outside — which is the part people forget.',
-    'Square root of time': 'Volatility does not scale straight with time. Four times the time gives only twice the swing. It is why a target that looks impossible in a week can be reasonable in a quarter.',
-    'Chance it halves': 'The probability the share loses half its value by the deadline. Included because upside targets get all the attention and this one decides how much you can afford to hold.'
-  };
-  var chips = $('termChips');
-  if (chips) {
-    chips.innerHTML = Object.keys(TERMS).map(function (k, i) {
-      return '<button class="term" type="button" data-t="' + esc(k) + '" aria-pressed="' + (i === 0) + '">' + esc(k) + '</button>';
-    }).join('');
-    var showTerm = function (k) {
-      $('termDef').innerHTML = '<b>' + esc(k) + '</b> — ' + esc(TERMS[k]);
-      chips.querySelectorAll('.term').forEach(function (b) {
-        b.setAttribute('aria-pressed', String(b.dataset.t === k));
+  function drawFan() {
+    var el = $('fanChart'); if (!el) return;
+    if (!SCN) { el.innerHTML = ''; if ($('fanSummary')) $('fanSummary').textContent = ''; return; }
+    var W = 760, H = 320, pl = 52, pr = 14, ptop = 18, pb = 46;
+    var steps = 40;
+    var ok = cssVar('--ok', '#C8E82A'), dim = cssVar('--dim', '#8A8A93');
+    var ink = cssVar('--ink', '#fff'), line = cssVar('--line-2', '#1F1F23');
+
+    var bands = [];
+    for (var i = 0; i <= steps; i++) {
+      var t = SCN.T * i / steps;
+      var row = { i: i, v: {} };
+      [0.10, 0.25, 0.50, 0.75, 0.90].forEach(function (p) {
+        row.v[p] = t === 0 ? SCN.S0 : qt(SCN.S0, SCN.s, t, SCN.mu, inverseNorm(p));
       });
-    };
-    chips.querySelectorAll('.term').forEach(function (b) {
-      b.addEventListener('click', function () { showTerm(b.dataset.t); });
-    });
-    showTerm(Object.keys(TERMS)[0]);
+      bands.push(row);
+    }
+    var all = bands.reduce(function (a, r) { return a.concat([r.v[0.10], r.v[0.90]]); }, [SCN.B]);
+    var ymin = Math.min.apply(null, all) * 0.95, ymax = Math.max.apply(null, all) * 1.05;
+    var x = function (i) { return pl + (i / steps) * (W - pl - pr); };
+    var y = function (v) { return ptop + (1 - (v - ymin) / (ymax - ymin)) * (H - ptop - pb); };
+
+    var sv = '';
+    for (var g = 0; g <= 4; g++) {
+      var gv = ymin + (ymax - ymin) * g / 4, gy = y(gv);
+      sv += '<line x1="' + pl + '" y1="' + gy + '" x2="' + (W - pr) + '" y2="' + gy + '" stroke="' + line + '" stroke-width="1"/>';
+      sv += '<text x="' + (pl - 8) + '" y="' + (gy + 3.5) + '" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="' + dim + '">$' + gv.toFixed(0) + '</text>';
+    }
+    function band(pLo, pHi, opacity) {
+      var top = bands.map(function (r) { return x(r.i) + ' ' + y(r.v[pHi]); });
+      var bot = bands.slice().reverse().map(function (r) { return x(r.i) + ' ' + y(r.v[pLo]); });
+      return '<path d="M ' + top.join(' L ') + ' L ' + bot.join(' L ') + ' Z" fill="' + ok + '" opacity="' + opacity + '"/>';
+    }
+    sv += band(0.10, 0.90, 0.12);
+    sv += band(0.25, 0.75, 0.22);
+    sv += '<path d="M ' + bands.map(function (r) { return x(r.i) + ' ' + y(r.v[0.50]); }).join(' L ') + '" fill="none" stroke="' + ink + '" stroke-width="2"/>';
+    var ty = y(SCN.B);
+    sv += '<line x1="' + pl + '" y1="' + ty + '" x2="' + (W - pr) + '" y2="' + ty + '" stroke="' + ok + '" stroke-width="2" stroke-dasharray="5 4"/>';
+    sv += '<text x="' + (W - pr - 4) + '" y="' + (ty - 6) + '" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10.5" font-weight="700" fill="' + ok + '">your target $' + SCN.B + '</text>';
+    sv += '<text x="' + pl + '" y="' + (H - 14) + '" font-family="IBM Plex Mono,monospace" font-size="10" fill="' + dim + '">today</text>';
+    sv += '<text x="' + (W - pr) + '" y="' + (H - 14) + '" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="' + dim + '">' + esc(fmtDateUtc(SCN.deadline)) + '</text>';
+    sv += '<text x="' + (W / 2) + '" y="' + (H - 14) + '" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="700" fill="' + dim + '">Time to deadline</text>';
+    el.innerHTML = sv;
+
+    var lg = $('fanLegend');
+    if (lg) {
+      lg.innerHTML =
+        '<span class="lg"><i style="background:' + ink + '"></i>Median path — half of outcomes above, half below</span>' +
+        '<span class="lg"><i style="background:' + ok + ';opacity:.22"></i>Middle 50% of outcomes (25th–75th)</span>' +
+        '<span class="lg"><i style="background:' + ok + ';opacity:.12"></i>Middle 80% of outcomes (10th–90th)</span>' +
+        '<span class="lg"><i class="dash" style="background:' + ok + '"></i>Your target</span>';
+    }
+    if ($('fanSummary')) {
+      $('fanSummary').textContent = 'Modelled range of prices for ' + SCN.tick + ' between today and ' +
+        fmtDateUtc(SCN.deadline, { year: 'numeric' }) + '. The median path ends near $' + SCN.median.toFixed(2) +
+        ', with the middle 80% of outcomes between $' + bands[steps].v[0.10].toFixed(0) + ' and $' +
+        bands[steps].v[0.90].toFixed(0) + '. These are distributions of possible outcomes, not predicted ' +
+        'trajectories — no individual path is a forecast.';
+    }
   }
 
-  if ($('inTicker')) {
-    $('inTicker').innerHTML = WATCH.map(function (s) {
-      return '<option value="' + esc(s) + '">' + esc(s) + ' — ' + esc(NAMES[s] || s) + '</option>';
+  /* ============ COMPARISON ============ */
+  var CMP = [];
+  try {
+    var savedCmp = JSON.parse(localStorage.getItem('t2c-compare') || '[]');
+    if (Array.isArray(savedCmp)) CMP = savedCmp.slice(0, MAX_COMPARE);
+  } catch (e) {}
+
+  function persistCmp() { try { localStorage.setItem('t2c-compare', JSON.stringify(CMP)); } catch (e) {} }
+
+  (function initCmp() {
+    var box = $('cmpChips'); if (!box) return;
+    box.querySelectorAll('input[name="compare"]').forEach(function (input) {
+      input.checked = CMP.indexOf(input.value) !== -1;
+      input.addEventListener('change', function () {
+        if (input.checked) {
+          if (CMP.length >= MAX_COMPARE) {
+            input.checked = false;
+            var hint = $('cmpHint');
+            if (hint) hint.textContent = 'You can compare at most ' + MAX_COMPARE + ' companies. Remove one first.';
+            return;
+          }
+          CMP.push(input.value);
+        } else {
+          CMP = CMP.filter(function (t) { return t !== input.value; });
+        }
+        persistCmp(); syncCmpDisabled(); renderCompare();
+      });
+    });
+    var clear = $('cmpClear');
+    if (clear) clear.addEventListener('click', function () {
+      CMP = []; persistCmp();
+      box.querySelectorAll('input[name="compare"]').forEach(function (i) { i.checked = false; });
+      syncCmpDisabled(); renderCompare();
+    });
+    ['cmpPeriod', 'cmpMode'].forEach(function (id) {
+      var el = $(id); if (el) el.addEventListener('change', renderCompare);
+    });
+    syncCmpDisabled();
+  })();
+
+  function syncCmpDisabled() {
+    var box = $('cmpChips'); if (!box) return;
+    var full = CMP.length >= MAX_COMPARE;
+    box.querySelectorAll('input[name="compare"]').forEach(function (i) {
+      i.disabled = full && !i.checked;
+      i.closest('.cchip').classList.toggle('is-disabled', i.disabled);
+    });
+    var hint = $('cmpHint');
+    if (hint) {
+      hint.textContent = CMP.length === 0
+        ? 'Select up to ' + MAX_COMPARE + ' companies.'
+        : CMP.length + ' of ' + MAX_COMPARE + ' selected' + (full ? ' — the maximum' : '');
+    }
+  }
+
+  function renderCompare() {
+    var chart = $('cmpChart'), table = $('cmpTable'), pot = $('cmpPotential');
+    if (!table) return;
+    if (!CMP.length) {
+      var msg = emptyBlock('No companies selected', 'Choose up to ' + MAX_COMPARE + ' companies above to compare them.');
+      if (chart) chart.innerHTML = '';
+      table.innerHTML = msg;
+      if (pot) pot.innerHTML = '';
+      return;
+    }
+
+    // Historical series are unavailable on this plan, so the performance chart
+    // states that rather than drawing an empty axis.
+    if (chart) {
+      chart.innerHTML = '<div class="unavail compact">' +
+        '<h3>Performance chart unavailable</h3>' +
+        '<p>A normalised performance chart needs daily price history. The connected market-data plan does ' +
+        'not grant historical candles, so no series can be drawn. Current prices below are live.</p>' +
+        '<p class="unavail-note">The normalisation, drawdown and volatility calculations are implemented ' +
+        'and unit-tested; the chart renders as soon as a price-history source is connected.</p></div>';
+    }
+
+    var rows = CMP.map(function (t) {
+      var q = LASTQ[t];
+      var price = q && q.price != null ? '$' + Number(q.price).toFixed(2) : '<span class="nd">' + NOT_DISCLOSED + '</span>';
+      var chg = q && q.changePct != null
+        ? '<span style="color:' + (q.change > 0 ? 'var(--up)' : q.change < 0 ? 'var(--down)' : 'inherit') + '">' +
+          (q.change > 0 ? '▲ ' : q.change < 0 ? '▼ ' : '') + Math.abs(Number(q.changePct)).toFixed(2) + '%</span>'
+        : '<span class="nd">—</span>';
+      var nd = '<span class="nd">' + NOT_DISCLOSED + '</span>';
+      return '<tr><td><b>' + esc(t) + '</b><span class="sub">' + esc(NAMES[t] || '') + '</span></td>' +
+        '<td>' + price + '</td><td>' + chg + '</td>' +
+        '<td>' + nd + '<span class="sub">no history on this plan</span></td>' +
+        '<td>' + nd + '<span class="sub">no targets on this plan</span></td>' +
+        '<td>' + nd + '<span class="sub">no targets on this plan</span></td>' +
+        '</tr>';
     }).join('');
-    Object.keys({ inSpot: 'spot', inTarget: 'target', inVol: 'vol', inDate: 'date' }).forEach(function (id) {
+
+    table.innerHTML = '<div class="scrollnote">Scroll sideways for all columns →</div>' +
+      '<div class="tw"><table><thead><tr>' +
+      '<th scope="col">Company</th><th scope="col">Price</th><th scope="col">Today</th>' +
+      '<th scope="col">Period return</th><th scope="col">Median target</th><th scope="col">Implied upside</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="stamp">Operational comparison — secured power, contracted capacity and energised critical IT — ' +
+      'is on each company page, where every figure carries its measurement basis. Companies are not ranked ' +
+      'across incompatible bases.</div>';
+
+    if (pot) {
+      pot.innerHTML = '<div class="potgrid">' + CMP.map(function (t) {
+        var q = LASTQ[t];
+        return '<div class="potcard"><h4>' + esc(t) + '<span>' + esc(NAMES[t] || '') + '</span></h4>' +
+          '<dl><dt>Current price <span class="tag tag-live">live</span></dt><dd>' +
+          (q && q.price != null ? '$' + Number(q.price).toFixed(2) : NOT_DISCLOSED) + '</dd>' +
+          '<dt>Sell-side consensus <span class="tag tag-analyst">analyst opinion</span></dt><dd class="nd">Not available on this plan</dd>' +
+          '<dt>T2C scenario <span class="tag tag-model">your assumptions</span></dt><dd>' +
+          (SCN && SCN.tick === t ? 'Touch ' + (probTouch(SCN.S0, SCN.B, SCN.s, SCN.T, SCN.mu) * 100).toFixed(0) + '% at $' + SCN.B : 'Set inputs in Scenarios') + '</dd>' +
+          '<dt>Company operational data <span class="tag tag-filed">filed</span></dt><dd><a href="#capacity">See capacity record</a></dd>' +
+          '</dl></div>';
+      }).join('') + '</div>';
+    }
+  }
+
+  /* ============ wiring ============ */
+  if ($('inTicker')) {
+    ['inSpot', 'inTarget', 'inVol', 'inDate'].forEach(function (id) {
       var flag = { inSpot: 'spot', inTarget: 'target', inVol: 'vol', inDate: 'date' }[id];
       $(id).addEventListener('input', function () {
         DIRTY[flag] = true;
@@ -613,10 +885,16 @@
     syncTicker(true);
   }
 
-  /* ================= BOOT ================= */
   function refreshAll() { loadQuotes(); loadNews(); loadFilings(); }
   var rb = $('refreshBtn');
   if (rb) rb.addEventListener('click', refreshAll);
+  renderFeed();
+
+  // Everything is defined by this point, so a deep link can safely activate its tab.
+  if (document.querySelector('.tab[data-tab]')) {
+    showTab((location.hash || '#overview').slice(1), false);
+  }
+
   refreshAll();
   setInterval(loadQuotes, 60000);
   setInterval(loadNews, 300000);

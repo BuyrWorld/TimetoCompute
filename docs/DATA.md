@@ -1,92 +1,98 @@
 # Data definitions and verification rules
 
-The public version of this document is at `/methodology/`, generated from the same
-source. This file is the maintainer's copy.
+Public version at `/methodology/`, generated from the same source. This is the
+maintainer's copy. Audit cut-off: **15 August 2026**.
 
-## The problem this model exists to solve
+## The three distinctions
 
-"Contracted" was doing two incompatible jobs in the old data:
+Conflating any of these produces a number that looks authoritative and means nothing.
 
-- power a company has **contracted from** a utility or landlord — supply
-- compute a customer has **contracted to buy** — demand
+**1. What is being measured** — `powerBasis`
 
-A company can hold gigawatts of the first with none of the second. Adding them
-produced a meaningless total, and comparing companies on the combined figure
-flattered whoever had secured the most electricity. They are now separate fields
-in separate `family` groups, and `validate.js` fails the build if a total ever
-mixes families.
+| Basis | Meaning |
+|---|---|
+| `gross-utility` | Power at the utility connection, before conversion and cooling losses. The largest number a company can quote. |
+| `critical-it` | Power available to IT equipment in the hall. The industry's comparable measure. |
+| `gpu-load` | Accelerator draw specifically. |
+| `not-applicable` | Not a power measurement (a contract value, a count). |
 
-## Fields
+Aggregates are basis-restricted. `aggregate()` **throws** if asked to sum across bases.
 
-| Field | Family | Means |
+**2. What kind of number it is** — `valueStatus`
+
+| Status | Aggregatable | Meaning |
 |---|---|---|
-| `securedPowerMw` | power | Grid capacity contracted from a utility, or a powered site secured from a landlord. An agreement about electricity. |
-| `permittedPowerMw` | power | Planning, zoning and interconnection approvals granted. |
-| `constructionMw` | power | Physical build under way. |
-| `energisedCriticalItMw` | power | Critical IT load live and drawing power. Usually what a company calls "active" capacity. |
-| `gpuReadyMw` | compute | Accelerators racked and fabric commissioned. Not applicable to powered-shell landlords. |
-| `customerContractedMw` | customer | Compute a paying customer has committed to. Demand, not supply. |
-| `customerAcceptedMw` | customer | Formally accepted against the contract's acceptance criteria. Starts the revenue clock. |
-| `revenueLiveMw` | customer | Accepted and invoicing. The only figure corresponding to money arriving. |
+| `actual` | yes | Current operating figure. |
+| `minimum` | yes | At least this much, from itemised components. Renders with `≥`. |
+| `target` | **no** | A management goal for a future date. |
+| `pipeline` | **no** | Identified opportunity, not secured. |
+| `potential` | **no** | A theoretical "up to" ceiling. |
 
-## Every measure carries
+**3. How well evidenced it is** — `confidence`: `confirmed` / `reported` / `estimated` / `unknown`.
+Only `confirmed` counts toward a sourced percentage, and only a **primary** source
+(SEC filing, company IR, shareholder letter, regulator, utility) can support it.
+News can discover an event; it can never confirm a capacity value.
 
-`value`, `unit`, `definition`, `effectiveDate`, `source {title,url,publishedDate}`,
-`verifiedAt`, `confidence`, optional `note`, and a derived `sourceRequired` flag.
+## Project gates
 
-## Confidence
+Fourteen gates tracked independently, from `siteControl` to `revenueCommenced`.
+A project is not "at a stage" — Keel's Panther Creek holds 350 MW of contracted firm
+power and conditional zoning while environmental permits remain outstanding, and the
+data centre itself is **not** marked under construction.
 
-| Level | Counts as verified | Means |
-|---|---|---|
-| `confirmed` | yes | Stated in a primary document, and the document is linked. |
-| `reported` | no | Attributed to the company but read second-hand, or inherited without a recorded source. |
-| `estimated` | no | Derived rather than disclosed. Never in a confirmed total. |
-| `unknown` | no | Not published. Never zero. |
+## Rules the build enforces
 
-## The rules the build enforces
+Run `npm test` or `npm run build` — both execute `runChecks()`.
 
-1. A `null` value must carry `confidence: 'unknown'`. Nothing else may be null.
-2. A `confirmed` value must have both a source URL and a `verifiedAt`.
-3. `verifiedAt` may only be set when there is a source that was actually read. It is
-   never the render date — "checked today because the page loaded today" was the
-   specific failure this replaced.
+1. `null` must carry `confidence: 'unknown'`; nothing else may be null.
+2. `confirmed` requires a **primary** source, a `verifiedAt` and an `asOf`.
+3. `verifiedAt` only where a source exists and was read. Never the render date.
 4. A known value with no source must set `sourceRequired`, which renders visibly.
-5. Totals never mix measurement families.
-6. Every headline KPI must reconcile to the sum of its underlying records.
-7. Unknown values are excluded from totals and counted separately, so every total
-   can state how many companies contributed.
-8. Confirmed ledger events must have a source URL.
+5. Aggregates never mix power bases; the function throws rather than summing.
+6. Targets, pipeline and potential can never enter a current-capacity aggregate.
+7. Contributors + missing + excluded must equal the company count on every KPI.
+8. A `minimum` may not be flagged exhaustive.
+9. Customer acceptance requires its own acceptance source.
+10. A conditional maximum (`valueMaxBn`) must be flagged `conditional`.
+11. Catalysts need a source; `guided-window` may not carry an exact date;
+    `confirmed-date` must have one.
+12. Comparison is capped at three tickers and de-duplicates.
+13. Every source URL must parse and every cited source id must exist.
 
-Run `npm test` or `npm run build` — both execute the same `runChecks()`.
+## Corrections made on 2026-08-15
+
+| Company | Was | Now |
+|---|---|---|
+| CoreWeave | 3.5 GW pipeline, active blank | 4.2 GW contracted (11 Aug call), 1.5 GW active (30 Jun). 3.7→4.2 preserved in the ledger. |
+| Nebius | 310 MW energised critical IT | Not disclosed. 310 MW is Finland's **planned** capacity when fully deployed. 5 GW recorded as a year-end target; 3.5 GW as the measured floor. |
+| Keel | 2.2 GW secured | 648 MW secured + 1,513 MW pipeline. Contracted changed from numeric `0` to null with the label "No announced lease". |
+| Applied Digital | 600 MW | 1,410 MW critical IT across five itemised campuses; 2.15 GW gross utility; 100 MW operational. |
+| TeraWulf | Feb figures shown as current | 839 MW contracted minimum, 102 MW revenue-live, 336 MW building. Feb 2.2 GW / 642.5 MW retained as dated history. Abernathy disposal recorded. |
+| IREN | 480 MW construction, "76,000+ GPUs" | 480 MW reclassified as a 2026 target; construction not disclosed. GPU claim removed. 260 MW marked as a **minimum**. |
+| All | Bases summed together | Every figure carries a basis and status; aggregates are basis-restricted. |
 
 ## Genuine zero versus not disclosed
 
-Keel reports **0** customer-contracted MW: it has signed no lease and says so. That
-is stored as a real `0` and is `isKnown()`. Everything undisclosed is `null`. The
-distinction is load-bearing — a `null` coerced to `0` would invent a 0% delivery
-rate for companies that simply have not published a number.
+There is currently **no** genuine numeric zero in the capacity dataset. Keel has no
+announced lease — recorded as not disclosed with that label, because a `0` would imply
+a measured figure. The distinction is load-bearing: a null coerced to zero would
+manufacture a 0% delivery rate for companies that simply have not published.
 
 ## The delivery ledger
 
-`data/events.js`. **Never invent an event.** History that was not recorded is
-absent, not reconstructed. The ledger launched with three entries, all from
-CoreWeave's Q2 2026 release, and an explicit empty state everywhere else.
-
-One nuance worth knowing: the CoreWeave energisation event's `previousValue` of
-1000 MW is derived from the company's own "expanded active power by nearly 500 MWs
-to reach 1.5 GW" wording, not from a separately published Q1 figure. That derivation
-is stated in the event's `implication` text on the page rather than hidden.
+`data/events.js`. **Never invent an event.** Fourteen entries, every one sourced.
+The CoreWeave energisation event's `previousValue` of 1000 MW is derived from the
+company's own "expanded by nearly 500 MWs" wording, not a separately published Q1
+figure — that derivation is stated in the event's implication text rather than hidden.
 
 ## Outstanding verification
 
-Everything below needs a primary source attached, then promotion to `confirmed`:
+Every capacity figure in the dataset is now `confirmed` against a primary source. What
+remains unavailable is **third-party market data**, not company data:
 
-| Company | Fields awaiting a source |
-|---|---|
-| IREN | secured power, construction, customer-contracted, customer-accepted |
-| Nebius | secured power, energised |
-| TeraWulf | secured power, customer-contracted, energised |
-| Keel | secured power, construction, customer-contracted |
-| Applied Digital | customer-contracted |
+- Analyst price targets, per-firm attribution and target horizons — provider plan.
+- Daily price history, so no event-reaction study and no performance chart — provider plan.
 
-Contract records other than CoreWeave's backlog are likewise `reported`.
+Company figures that would benefit from a further source: IREN's company-wide
+construction total and energised critical IT (currently not disclosed rather than
+estimated), and Nebius's current energised MW.
