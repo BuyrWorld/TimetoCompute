@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "trailingSlash": true,
+  "//": "No trailingSlash rule: it applies globally and 308-redirected every /api/* call, adding a round trip to each poll. Pages are directory-index files, so /methodology/ resolves without it.",
   "headers": [
     {
       "source": "/(.*)",
