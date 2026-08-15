@@ -36,9 +36,9 @@ h1,h2,h3,h4,p,td,th,span,div,li,label,a,button,select,option{color:inherit}
 #nodes{position:absolute;inset:0;width:100%;height:100%;display:block}
 .heroin{position:relative;z-index:2;padding:26px 0 0}
 .hbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.logo{display:flex;align-items:baseline;gap:10px;text-decoration:none}
-.logo b{font-weight:900;font-size:22px;letter-spacing:-.05em;background:var(--chip);color:#0A0A0A;padding:4px 9px;border-radius:3px}
-.logo em{font-style:normal;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#9AA88C;font-weight:700}
+.logo{display:flex;align-items:center;text-decoration:none;flex:none}
+.logo img{height:42px;width:auto;display:block}
+@media(max-width:640px){.logo img{height:32px}}
 .hbar .right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .conn{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:#DDD;border:1px solid #2C2C2C;padding:5px 9px;border-radius:3px;background:rgba(255,255,255,.03)}
 .conn i{width:7px;height:7px;border-radius:50%;background:#666;display:block;flex:none}
@@ -210,7 +210,7 @@ svg{display:block;width:100%;height:auto}
   <canvas id="nodes" aria-hidden="true"></canvas>
   <div class="wrap heroin">
     <div class="hbar">
-      <a class="logo" href="#"><b>T2C</b><em>Time to Compute</em></a>
+      <a class="logo" href="#"><img src="/Logo/logo-header.png" width="514" height="120" alt="T2C — Time to Compute" /></a>
       <div class="right">
         <span class="conn" id="cQuote"><i></i> Prices</span>
         <span class="conn" id="cNews"><i></i> News</span>
@@ -881,7 +881,7 @@ const TERMS={
  'Drift':'Your own view of where the share is heading over a year, before any of the wobble. Setting it to zero means you have no directional opinion and are letting the maths speak. Notice how little it changes the answer compared with volatility.',
  'Touching':'The price reaches your target at any moment before the deadline, even for a second, even if it falls straight back. Always more likely than finishing above.',
  'Finishing above':'The price is still above your target on the deadline day itself. A stricter test, and usually about half as likely as touching.',
- 'Typical swings away':'How far the target sits from today\\'s price, measured in units of how much the share normally moves over that window. Under 1 is well within reach. Over 2 is a stretch.',
+ 'Typical swings away':'How far the target sits from today\'s price, measured in units of how much the share normally moves over that window. Under 1 is well within reach. Over 2 is a stretch.',
  'Normal range':'The band the price lands in roughly two times out of three. The other third of the time it lands outside — which is the part people forget.',
  'Square root of time':'Volatility does not scale straight with time. Four times the time gives only twice the swing. It is why a target that looks impossible in a week can be reasonable in a quarter.',
  'Chance it halves':'The probability the share loses half its value by the deadline. Included because upside targets get all the attention and this one decides how much you can afford to hold.'
