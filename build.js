@@ -1671,11 +1671,15 @@ const IMAGES = [
   },
   {
     /* Publisher mark for Yahoo stories. Every Yahoo item in the feed carries the
-       same generic yimg placeholder, so 22 identical stretched thumbnails were
-       loading from an external host. Padded to 16:9 on its own white ground
-       here, so the card can crop-to-fill without ever cutting the logo. */
+       same generic yimg placeholder, so identical stretched thumbnails were
+       loading from an external host.
+
+       Letterboxed to 16:5, not 16:9. Two in five stories in this feed are Yahoo,
+       and a full-height white tile repeated forty times down a dark page is
+       louder than the placeholder it replaced. A short band reads as a publisher
+       credit rather than as artwork for the story, which is what it actually is. */
     from: path.join(ROOT, 'Images', 'Yahoo', 'yahoo-news7577.jpg'),
-    name: 'news-yahoo', width: 480, height: 270, fit: 'contain',
+    name: 'news-yahoo', width: 480, height: 150, fit: 'contain',
     background: '#ffffff', quality: 88
   }
 ];

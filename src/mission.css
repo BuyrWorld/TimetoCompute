@@ -560,10 +560,13 @@ html[data-mode="focus"] .focusbar { display: flex; }
   width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block;
   background: var(--surface-2);
 }
-/* A publisher mark, not artwork for the story. It is already letterboxed to 16:9
-   on its own ground at build time, so it fills the slot without cropping; the
-   inset border keeps a white logo from bleeding into the card edge. */
+/* A publisher mark, not artwork for the story, so it gets a short credit band
+   rather than a full photo slot. Two in five stories here are Yahoo, and a
+   full-height white tile repeated down a dark page shouts louder than the
+   placeholder it replaced. The asset is letterboxed to the same 16:5 at build
+   time, so it fills the band exactly without cropping the logo. */
 .newsimg.is-brand {
+  aspect-ratio: 16 / 5;
   object-fit: contain;
   background: #fff;
   border-bottom: 1px solid var(--line);
