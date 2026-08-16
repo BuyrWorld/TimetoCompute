@@ -37,7 +37,7 @@ import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
 import { ART } from './data/artpack.js';
 import { explainerRoutes, explainerHref } from './src/lib/explain.js';
 import { explainerPageBody } from './src/explainer-page.js';
-import { aiNewsBody, aiNewsConfig } from './src/ainews-page.js';
+import { aiCatalystsBody, aiNewsConfig } from './src/ainews-page.js';
 import { timeMachineBody } from './src/timemachine-page.js';
 import { checkTimeMachine, CAMPAIGNS, chapterCount } from './src/lib/timemachine.js';
 import { aiFactoryGraph } from './src/lib/corridor.js';
@@ -393,7 +393,7 @@ ${footer()}
     signalIndex: active === 'today' ? signalIndex() : null,
     // Which signals exist and which belong to the latest set, so the filter and
     // progress code does not have to re-derive either from the DOM.
-    aiNews: active === 'ainews' ? aiNewsConfig() : null
+    aiNews: active === 'catalysts' ? aiNewsConfig() : null
   })}</script>
 ${inlineData ? `<script>Object.assign(window, ${JSON.stringify(inlineData)});</script>` : ''}
 <script src="/app.js" defer></script>
@@ -796,10 +796,11 @@ function comparePage() {
 
 function catalystsPage() {
   return page({
-    title: 'Catalysts — dated events for AI infrastructure | T2C',
+    title: 'AI catalysts — everything that influences the chain | T2C',
     description:
-      'Upcoming events that could move an operational metric, with the certainty of every date made ' +
-      'explicit and a guided window never presented as a deadline.',
+      'What has already moved the AI infrastructure record and what could move it next: every ' +
+      'sourced change written as what happened, why it matters and what may happen next, followed ' +
+      'by the dated events still ahead.',
     canonical: SITE + '/catalysts/',
     body: catalystsBody(),
     inlineData: { T2C_CATALYSTS: catalystPayload() },
@@ -916,28 +917,35 @@ function timeMachinePage() {
   });
 }
 
-function aiNewsPage() {
+/**
+ * AI news — the third-party wire.
+ *
+ * What most people mean by "news": real headlines, pulled live. Deliberately NOT
+ * the sourced record, which moved to /catalysts/ where it belongs beside the
+ * dated events still ahead of it.
+ *
+ * /news/ was the wire's original address and stays a working URL, rendering the
+ * same page with a canonical pointing here so the two do not compete.
+ */
+function aiNewsPage({ canonical = '/ai-news/', active = 'ainews' } = {}) {
   return page({
-    title: 'AI news — only what changes the chain | T2C',
+    title: 'AI news — live headlines for AI infrastructure | T2C',
     description:
-      'Every sourced change to the AI infrastructure record, written as what happened, why it ' +
-      'matters and what may happen next. A finite set with the documents behind each claim.',
-    canonical: SITE + '/ai-news/',
-    body: aiNewsBody(),
-    active: 'ainews'
+      'Live third-party headlines for the AI infrastructure operators T2C tracks, plus sector ' +
+      'coverage. Shown as published and clearly separated from the sourced delivery record.',
+    canonical: SITE + canonical,
+    body: newsBody(),
+    active
   });
 }
 
+/**
+ * The wire's original address. Same page, canonicalised to /ai-news/ so the two
+ * do not compete — but it keeps its own `active` id, so a reader who arrives on
+ * /news/ still sees the utility menu mark where they are.
+ */
 function newsPage() {
-  return page({
-    title: 'AI infrastructure news — live headlines | T2C',
-    description:
-      'Live news for the AI infrastructure operators T2C tracks, plus sector coverage. Third-party ' +
-      'headlines, kept separate from the sourced delivery ledger and clearly marked as unverified.',
-    canonical: SITE + '/news/',
-    body: newsBody(),
-    active: 'news'
-  });
+  return aiNewsPage({ canonical: '/ai-news/', active: 'news' });
 }
 
 function intelligencePage() {

@@ -53,11 +53,23 @@ html[data-theme="light"] .appbar { background: rgba(255, 255, 255, 0.92); }
   color: var(--soft); padding: 7px 11px; border-radius: 999px; background: var(--surface-2);
   white-space: nowrap;
 }
-.mstate i { width: 7px; height: 7px; border-radius: 50%; background: var(--unknown); flex: none; }
+/* The dot answers one question at a glance: is the market trading right now?
+   Lime for open, red for closed. Closed was previously a grey dot, which read as
+   "no data" rather than "shut" — and grey is the colour this site uses for
+   genuinely unknown, so it was saying the wrong thing. Amber stays for the
+   moment the feed is still loading and red-with-a-ring for a feed that failed,
+   because "closed" and "broken" are different facts. The pill always states the
+   session in words too, so none of this rests on colour alone. */
+.mstate i {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--unknown); flex: none;
+  transition: background 160ms ease, box-shadow 160ms ease;
+}
 .mstate.is-open i { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
-.mstate.is-closed i { background: var(--dim); }
+.mstate.is-closed i { background: var(--bad); box-shadow: 0 0 7px rgb(209 69 69 / 55%); }
 .mstate.is-loading i { background: var(--warn); }
-.mstate.is-off i { background: var(--bad); }
+.mstate.is-off i { background: var(--bad); box-shadow: 0 0 0 2px rgb(209 69 69 / 30%); }
+@media (prefers-reduced-motion: reduce) { .mstate i { transition: none; } }
 
 /* utility menu */
 .umenu { position: relative; }

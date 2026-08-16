@@ -392,10 +392,12 @@
         text = FEED.usingCache ? 'Cached · feed offline' : 'Feed offline';
       } else {
         cls += FEED.session && FEED.session.isOpen ? ' is-open' : ' is-closed';
+        /* The label alone. This used to append "· Last trade 16:00 ET" when the
+           market was shut, which pushed the pill past the edge of the header on
+           anything narrower than a desktop. The timestamp is not lost — it is in
+           the utility menu below, where there is room for it and where somebody
+           looking for it will actually go. */
         text = (FEED.session ? FEED.session.label : 'Market');
-        if (FEED.lastTradeIso && FEED.session && !FEED.session.isOpen) {
-          text += ' · Last trade ' + fmtEt(FEED.lastTradeIso);
-        }
       }
       el.className = cls;
       el.innerHTML = '<i aria-hidden="true"></i><span class="mstate-text">' + esc(text) + '</span>';
@@ -852,7 +854,9 @@
   /* ============ news ============
      A wire feed, not a T2C record. Every item is attributed to its publisher and
      opens off-site; nothing here is presented as evidenced. */
-  if (ROUTE === 'news') {
+  /* Gated on the DOM, not the route id: the wire moved from /news/ to /ai-news/
+     and serves both, so keying off a route name would strand its behaviour. */
+  if ($('newsFeed')) {
     var feed = $('newsFeed'), loading = $('newsLoading'), errEl = $('newsError');
     var ITEMS = [];
 
@@ -1013,7 +1017,8 @@
      bookmarks. The filter state is in the query string rather than in memory so
      a filtered view can be linked to and reopened — a research page whose state
      evaporates on refresh is a page nobody can cite. */
-  if (ROUTE === 'ainews') {
+  /* Likewise: the signal product moved from /ai-news/ to /catalysts/. */
+  if ($('anFeed')) {
     var anReviewed = readReviewed();
     var anMarks = readMarks();
     var anWatch = readWatch();

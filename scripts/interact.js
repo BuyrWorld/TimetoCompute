@@ -825,8 +825,11 @@ const run = async () => {
       marked.length === 1 && marked[0] === route, marked.join(', '));
   }
 
-  /* ---- AI News: finite, filterable, reviewable ---- */
-  await page.goto(base + '/ai-news/', { waitUntil: 'networkidle0' });
+  /* ---- AI catalysts: finite, filterable, reviewable ----
+     The signal product moved from /ai-news/ to /catalysts/, where it sits above
+     the dated events still ahead. /ai-news/ now carries the third-party wire,
+     exercised separately above. */
+  await page.goto(base + '/catalysts/', { waitUntil: 'networkidle0' });
   await new Promise(r => setTimeout(r, 300));
 
   const anTotal = await page.$$eval('#anFeed .an-row', els => els.length);

@@ -319,3 +319,99 @@
 }
 
 .an-feednote { font-size: 12px; color: var(--dim); margin: 0 0 var(--s2); }
+
+/* ============================================================
+   AI news — the third-party wire.
+
+   A deliberately different register from AI catalysts. Catalysts is the record:
+   dense, evidenced, finite. This is the wire: fast to scan, honest about being
+   unverified, and never dressed up to look like a T2C finding. The warning sits
+   beside the headline rather than beneath it, because a reader who scrolls past
+   it has already started reading the stories.
+   ============================================================ */
+
+.nw-page { padding-bottom: var(--s6, 64px); }
+
+.nw-head {
+  display: grid; gap: var(--s3); align-items: start;
+  grid-template-columns: minmax(0, 1fr); padding: var(--s3) 0 var(--s4);
+}
+@media (min-width: 900px) {
+  .nw-head { grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: var(--s5); }
+}
+.nw-head > * { min-width: 0; }
+
+.nw-h1 {
+  font-family: var(--ed-display); font-weight: 800;
+  font-size: clamp(2.2rem, 6vw, 4rem); line-height: .95;
+  text-transform: uppercase; letter-spacing: -.02em;
+  margin: 6px 0 var(--s2); color: var(--ink);
+}
+.nw-h1 .dot { color: var(--brand); }
+.nw-lede {
+  font-size: clamp(14px, 1.6vw, 17px); line-height: 1.55;
+  color: var(--soft); margin: 0; max-width: 60ch;
+}
+
+/* Amber, not lime. Lime on this site means evidenced, and nothing here is. */
+.nw-warn {
+  padding: var(--s3); border: 1px solid var(--warn);
+  border-radius: var(--m-radius); background: var(--warn-bg);
+}
+.nw-warnh {
+  font-family: var(--m-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--warn);
+  margin: 0 0 10px;
+}
+.nw-warn p { font-size: 12.5px; line-height: 1.6; color: var(--soft); margin: 0 0 8px; }
+.nw-warn p:last-child { margin-bottom: 0; }
+.nw-warn a { color: var(--brand); }
+
+.nw-filters {
+  display: flex; flex-wrap: wrap; align-items: end; gap: 12px;
+  padding: var(--s2) 0; margin-bottom: var(--s3);
+  border-block: 1px solid var(--line-2);
+}
+.nw-field { display: grid; gap: 5px; min-width: 0; }
+.nw-field--grow { flex: 1 1 220px; }
+.nw-field > span {
+  font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim);
+}
+.nw-field select, .nw-field input {
+  min-height: 40px; padding: 8px 11px; width: 100%;
+  font-family: inherit; font-size: 13px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--m-radius-sm);
+}
+.nw-field input::placeholder { color: var(--faint); }
+.nw-count {
+  margin-left: auto; align-self: center;
+  font-family: var(--m-mono); font-size: 11px; color: var(--dim); white-space: nowrap;
+}
+
+.nw-loading, .nw-error {
+  font-size: 13px; line-height: 1.6; color: var(--dim); margin: 0;
+  padding: var(--s3); border: 1px dashed var(--line); border-radius: var(--m-radius);
+  grid-column: 1 / -1;
+}
+.nw-error { color: var(--warn); border-color: var(--warn); border-style: solid; }
+
+.nw-why {
+  margin-top: var(--s5); padding-top: var(--s3); border-top: 1px solid var(--line);
+}
+.nw-whylede {
+  font-size: 13.5px; line-height: 1.65; color: var(--soft);
+  margin: 0 0 var(--s3); max-width: 82ch;
+}
+
+/* The catalyst register, now the second half of /catalysts/. */
+.an-catlede {
+  font-size: 13.5px; line-height: 1.6; color: var(--soft);
+  margin: 0 0 var(--s3); max-width: 82ch;
+}
+
+/* Wire cards size to their own content. Roughly half of a typical feed has no
+   artwork, and stretching those to match a neighbour with a 16:9 image left a
+   third of the card empty. A shorter card reads as a shorter story; a tall
+   card with a void in it reads as something failing to load. */
+.nw-page .newsgrid { align-items: start; }

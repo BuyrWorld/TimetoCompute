@@ -43,6 +43,7 @@ import { chainState, chainCoverage, STAGES } from './lib/chain.js';
 import { CORRIDORS, RELATIONSHIP_TYPES, aiFactoryGraph, relationshipRows } from './lib/corridor.js';
 import { customerMap, undisclosedCustomers, MODEL_ATTRIBUTION_CAVEAT } from './lib/customers.js';
 import { explainerIndexCards } from './explainer-page.js';
+import { aiCatalystsBody } from './ainews-page.js';
 import { STAGE_EXPLAINERS } from '../data/explainers.js';
 import { flagshipHero, chainTrack, chainCoverageNote, stageAsset } from './chain-ui.js';
 import { ASSET } from './lib/assets.js';
@@ -302,15 +303,30 @@ export function compareBody() {
 
 /* ================= /catalysts/ ================= */
 
+/**
+ * AI catalysts — everything that influences the chain.
+ *
+ * Two halves of one question, which is why they now share a page rather than
+ * sitting on two. WHAT HAS ALREADY MOVED IT: the sourced signal record, with
+ * what happened, why it matters and what may happen next. WHAT COULD MOVE IT
+ * NEXT: the dated catalyst register, with the certainty of each date explicit.
+ *
+ * They were split across /ai-news/ and /catalysts/, which asked a reader to know
+ * in advance whether the thing they cared about had happened yet. The signal
+ * product moved here whole; /ai-news/ now carries the third-party wire, which is
+ * what most people mean by "news".
+ */
 export function catalystsBody() {
-  return `<div class="shell">
-  ${pageHeadHtml({
-    title: 'Catalysts',
-    lede: 'Dated events that could move an operational metric — with the certainty of each date made ' +
-      'explicit, because a guided quarter is not a deadline.',
-    meta: `<span class="pill-lite">${CATALYSTS.length} tracked</span>
-           <span class="pill-lite">Earnings dates load live</span>`
-  })}
+  return `<div class="t2c-shell ed-main an-page">
+  ${aiCatalystsBody()}
+
+  <section class="an-section" id="upcoming" aria-labelledby="cat-upcoming-h">
+    <div class="ed-sectionhead">
+      <h2 class="ed-sectionh" id="cat-upcoming-h">What could move it next</h2>
+      <span class="ed-morelink">${CATALYSTS.length} dated catalysts</span>
+    </div>
+    <p class="an-catlede">Dated events that could move an operational metric, with the certainty of
+      each date made explicit &mdash; because a guided quarter is not a deadline.</p>
 
   <div class="filterbar" role="group" aria-label="Filter catalysts">
     <div class="fld"><label for="catCompany">Company</label>
@@ -335,8 +351,9 @@ export function catalystsBody() {
   <div class="keynote">A day countdown is shown <b>only</b> for a confirmed exact date. A guided window
     shows its period, because "Q4 2026" does not mean the first of October.</div>
 
-  <div id="catTimeline"></div>
-  <div id="liveCatalystList"></div>
+    <div id="catTimeline"></div>
+    <div id="liveCatalystList"></div>
+  </section>
 </div>`;
 }
 
@@ -1047,50 +1064,53 @@ export function notFoundBody() {
 export function newsBody() {
   const tickers = tickerOptions();
 
-  return `<div class="shell">
-  ${pageHeadHtml({
-    title: 'AI infrastructure news',
-    lede: 'Live headlines for the companies T2C tracks, plus sector coverage matching AI infrastructure ' +
-      'keywords. Updated continuously from the market data provider.',
-    meta: `<span class="pill-lite">Third-party wire</span>
-           <span class="pill-lite">Not verified by T2C</span>`
-  })}
+  return `<div class="t2c-shell ed-main nw-page">
+  <header class="nw-head">
+    <div class="nw-headcopy">
+      <p class="ed-eyebrow">Third-party wire &middot; not verified by T2C</p>
+      <h1 class="nw-h1">AI news<span class="dot">.</span></h1>
+      <p class="nw-lede">Live headlines for the companies T2C tracks, plus sector coverage matching
+        AI infrastructure keywords. Pulled continuously from the market-data provider and shown as
+        published.</p>
+    </div>
 
-  <p class="newsdisclaimer">
-    <b>These headlines are not T2C records.</b> Nothing here has been checked against a filing, given a
-    confidence level or entered into the delivery ledger. A headline is a claim by its publisher.
-    Where a story turns out to matter, it appears — sourced, dated and evidenced — in
-    <a class="press" href="/intelligence/">Intelligence</a>.
-  </p>
+    <aside class="nw-warn" aria-labelledby="nw-warn-h">
+      <p class="nw-warnh" id="nw-warn-h">These headlines are not T2C records</p>
+      <p>Nothing here has been checked against a filing, given a confidence level or entered into the
+        delivery ledger. A headline is a claim by its publisher.</p>
+      <p>Where a story turns out to matter it appears &mdash; sourced, dated and evidenced &mdash; in
+        <a class="press" href="/catalysts/">AI catalysts</a>.</p>
+    </aside>
+  </header>
 
-  <div class="filterbar" role="group" aria-label="Filter news">
-    <div class="fld">
-      <label for="newsCompany">Company</label>
+  <div class="nw-filters" role="group" aria-label="Filter news">
+    <label class="nw-field">
+      <span>Company</span>
       <select id="newsCompany">
         <option value="">All tracked companies</option>
         ${tickers.map(o => `<option value="${esc(o.ticker)}">${esc(o.ticker)} — ${esc(o.name)}</option>`).join('')}
       </select>
-    </div>
-    <div class="fld">
-      <label for="newsSearch">Search headlines</label>
+    </label>
+    <label class="nw-field nw-field--grow">
+      <span>Search headlines</span>
       <input type="search" id="newsSearch" placeholder="Keyword" autocomplete="off" />
-    </div>
-    <span class="filtercount" id="newsCount" aria-live="polite">Loading…</span>
+    </label>
+    <span class="nw-count" id="newsCount" aria-live="polite">Loading&hellip;</span>
   </div>
 
   <div id="newsFeed" class="newsgrid" aria-busy="true">
-    <p class="mnote" id="newsLoading">Fetching the latest headlines…</p>
+    <p class="nw-loading" id="newsLoading">Fetching the latest headlines&hellip;</p>
   </div>
 
-  <p class="mnote" id="newsError" hidden></p>
+  <p class="nw-error" id="newsError" hidden></p>
 
-  <div class="secondary">
-    ${section('why', 'Why news sits apart from the ledger', 'How T2C treats a headline',
-      `<p class="blocklede">A wire story can report a number the company never published, repeat an old
-        figure as if it were new, or describe a target as an achievement. T2C's delivery records only
-        move when a primary document says so.</p>
-       ${evidenceKey()}`)}
-  </div>
+  <section class="nw-why" aria-labelledby="nw-why-h">
+    <h2 class="ed-sectionh" id="nw-why-h">Why the wire sits apart from the record</h2>
+    <p class="nw-whylede">A wire story can report a number the company never published, repeat an old
+      figure as if it were new, or describe a target as an achievement. T2C's delivery records only
+      move when a primary document says so &mdash; which is why these two things live on two pages.</p>
+    ${evidenceKey()}
+  </section>
 </div>`;
 }
 

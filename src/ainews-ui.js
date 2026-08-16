@@ -28,9 +28,10 @@ import { MATERIALITY } from './lib/ainews.js';
 export function newsHeader({ set, total, disclosures, combined }) {
   return `<header class="an-head">
     <div class="an-headcopy">
-      <h1 class="an-h1">AI news &mdash; only what changes the chain<span class="dot">.</span></h1>
-      <p class="an-lede">T2C filters the record into supply-chain signals: what happened, why it
-        matters, who is affected, and what may happen next.</p>
+      <h1 class="an-h1">AI catalysts &mdash; everything that influences the chain<span class="dot">.</span></h1>
+      <p class="an-lede">What has already moved it, and what could move it next. Every sourced change
+        to the record, written as what happened, why it matters and what may happen next &mdash;
+        followed by the dated events still ahead.</p>
       <p class="an-simple">(In simple terms: the things that actually move a project forward, and
         nothing else.)</p>
     </div>
@@ -269,7 +270,7 @@ export function catalystPanel(rows) {
         </span>
       </li>`).join('')}
     </ul>
-    <a class="an-panellink press" href="/catalysts/">Full calendar <span aria-hidden="true">&rarr;</span></a>
+    <a class="an-panellink press" href="#upcoming">Full calendar <span aria-hidden="true">&darr;</span></a>
   </section>`;
 }
 

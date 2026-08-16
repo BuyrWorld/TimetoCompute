@@ -89,12 +89,21 @@ for (const f of htmlFiles) {
   }
 }
 
-/* ---- titles are unique ---- */
+/* ---- titles are unique, except for a declared alias ----
+   Two distinct pages sharing a title is a defect. An ALIAS sharing one is not:
+   /news/ is the wire's original published address and renders the same page as
+   /ai-news/, canonicalised to it so the two never compete for the same query.
+   The rule therefore ignores a page whose canonical points somewhere other than
+   itself, which is exactly what an alias is and nothing else is. */
 const titles = new Map();
+const canonicalOf = html => (html.match(/rel="canonical" href="([^"]+)"/) || [])[1] || '';
 for (const f of htmlFiles) {
-  const t = (fs.readFileSync(f, 'utf8').match(/<title>([^<]+)<\/title>/) || [])[1];
-  if (titles.has(t)) fail(`duplicate <title> "${t}" in ${rel(f)} and ${titles.get(t)}`);
-  titles.set(t, rel(f));
+  const html = fs.readFileSync(f, 'utf8');
+  const t = (html.match(/<title>([^<]+)<\/title>/) || [])[1];
+  const own = canonicalOf(html).replace(/^https?:\/\/[^/]+/, '');
+  const isAlias = own && own !== rel(f).replace(/index\.html$/, '');
+  if (titles.has(t) && !isAlias) fail(`duplicate <title> "${t}" in ${rel(f)} and ${titles.get(t)}`);
+  if (!isAlias) titles.set(t, rel(f));
 }
 
 /* ---- accessibility spot checks on the homepage ---- */

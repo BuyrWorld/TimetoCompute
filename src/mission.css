@@ -1130,8 +1130,14 @@ html[data-estimates="off"] [data-estimate] { display: none !important; }
 @media (max-width: 1560px) {
   .paltrigger .paltxt { display: none; }
 }
-@media (max-width: 1500px) {
+/* The pill used to be hidden below 1500px because it carried a trailing
+   "· Last trade 16:00 ET" and ran off the header. That timestamp now lives in
+   the utility menu, so the pill is 127px rather than ~260px and can stay
+   visible far further down. */
+@media (max-width: 1180px) {
   .appbarutil .mstate { display: none; }
+}
+@media (max-width: 1500px) {
   .navlink { padding: 0 10px; }
 }
 

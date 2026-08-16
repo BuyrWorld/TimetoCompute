@@ -23,7 +23,10 @@ import {
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const read = rel => fs.readFileSync(path.join(ROOT, 'dist', rel), 'utf8');
-const page = () => read('ai-news/index.html');
+/* The signal product moved to /catalysts/ — "AI catalysts: everything that
+   influences the chain" — and /ai-news/ now carries the third-party wire. */
+const page = () => read('catalysts/index.html');
+const wire = () => read('ai-news/index.html');
 
 /* ================= the triad ================= */
 
@@ -270,16 +273,39 @@ test('source quality counts the strongest document behind each signal', () => {
 
 /* ================= separation of the three news routes ================= */
 
-test('AI News, the ledger and the wire are distinct and say so', () => {
+test('catalysts, the ledger and the wire are distinct and say so', () => {
   const html = page();
-  assert.ok(html.includes('href="/intelligence/"'), 'AI News does not point at the expert view');
-  assert.ok(html.includes('href="/news/"'), 'AI News does not point at the wire');
+  assert.ok(html.includes('href="/intelligence/"'), 'catalysts does not point at the expert view');
+  assert.ok(html.includes('href="/ai-news/"'), 'catalysts does not point at the wire');
   assert.match(html, /third-party headlines T2C has not verified/i);
 });
 
+test('the page carries the headline it was asked for', () => {
+  const html = page();
+  assert.match(html, /AI catalysts &mdash; everything that influences the chain/i,
+    'the catalysts headline is missing');
+});
+
+test('the wire and the record are two different pages', () => {
+  const w = wire();
+  // The wire is real pulled headlines, not the sourced record.
+  assert.ok(w.includes('id="newsFeed"'), '/ai-news/ does not render the wire');
+  assert.ok(!w.includes('id="anFeed"'), '/ai-news/ still carries the signal product');
+  assert.match(w, /These headlines are not T2C records/i, 'the wire does not warn what it is');
+  assert.ok(w.includes('href="/catalysts/"'), 'the wire does not point back at the record');
+  // And the record no longer pretends to be news.
+  assert.ok(!page().includes('id="newsFeed"'), '/catalysts/ still renders the wire');
+});
+
 test('the wire is never presented as a T2C record', () => {
-  const wire = read('news/index.html');
-  assert.match(wire, /Third-party|unverified|not verified/i);
+  for (const f of ['ai-news/index.html', 'news/index.html']) {
+    assert.match(read(f), /Third-party|unverified|not verified/i, f + ' does not say what it is');
+  }
+});
+
+test('the wire has one canonical address, so the two do not compete', () => {
+  assert.match(read('news/index.html'), /rel="canonical" href="[^"]*\/ai-news\/"/,
+    '/news/ does not canonicalise to /ai-news/');
 });
 
 /* ================= no invention ================= */

@@ -25,7 +25,7 @@ import {
   companyImpact, upcomingCatalysts, filterOptions
 } from './lib/ainews.js';
 
-export function aiNewsBody() {
+export function aiCatalystsBody() {
   const grouped = signalGroups();
   const featured = featuredSignal();
   const set = dailySet();
@@ -43,8 +43,9 @@ export function aiNewsBody() {
     ? grouped.groups.filter(g => g.lead.id !== featured.id)
     : grouped.groups;
 
-  return `<div class="t2c-shell ed-main an-page">
-  ${newsHeader({
+  /* No page wrapper: this is a section of /catalysts/ now, and the wrapper is
+     supplied by the page that hosts it. */
+  return `${newsHeader({
     set,
     total: grouped.records,
     disclosures: grouped.disclosures,
@@ -88,7 +89,7 @@ export function aiNewsBody() {
       <p class="an-crosslink">Want the raw metric movements rather than the write-up?
         <a class="press" href="/intelligence/">The intelligence ledger</a> carries the same records
         with every figure and its previous value. For third-party headlines T2C has not verified,
-        see the <a class="press" href="/news/">news wire</a>.</p>
+        see <a class="press" href="/ai-news/">AI news</a>.</p>
     </div>
 
     <aside class="an-rail" aria-label="Context">
@@ -96,8 +97,7 @@ export function aiNewsBody() {
       ${catalystPanel(catalysts)}
       ${sourcePanel(quality)}
     </aside>
-  </div>
-</div>`;
+  </div>`;
 }
 
 /**
