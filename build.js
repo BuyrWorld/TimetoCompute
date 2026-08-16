@@ -29,9 +29,10 @@ import {
 } from './src/ui.js';
 import {
   todayBody, companiesBody, compareBody, catalystsBody, researchBody, labBody,
-  sitesBody, siteBody, intelligenceBody, newsBody
+  sitesBody, siteBody, intelligenceBody, newsBody, explainersBody, notFoundBody
 } from './src/pages.js';
 import { allSites, companyPath } from './src/lib/sites.js';
+import { ASSETS, ASSET_WIDTHS } from './src/lib/assets.js';
 import { signals, todaySet } from './src/lib/signals.js';
 import { signalIndex } from './src/lib/today.js';
 import { realityScore, FACTORS, MIN_WEIGHT_COVERAGE, THIN_SAMPLE } from './src/lib/score.js';
@@ -74,13 +75,18 @@ console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
  * tidiness. Compare, Catalysts and Research stay real routes, reachable from the
  * pages they belong to and from the utility menu — never orphaned.
  */
+/**
+ * Five destinations, named for what a reader wants rather than for the data
+ * model behind them. "Megaprojects" points at the existing /sites/ route:
+ * renaming the route would break every link already published to it, and the
+ * label is what the reader reads.
+ */
 const NAV = [
   { id: 'today', label: 'Today', href: '/' },
   { id: 'companies', label: 'Companies', href: '/companies/' },
-  { id: 'sites', label: 'Sites', href: '/sites/' },
-  { id: 'intelligence', label: 'Intelligence', href: '/intelligence/' },
-  { id: 'news', label: 'News', href: '/news/' },
-  { id: 'lab', label: 'Edge Lab', href: '/lab/', primary: true }
+  { id: 'sites', label: 'Megaprojects', href: '/sites/' },
+  { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
+  { id: 'explainers', label: 'Explainers', href: '/explainers/' }
 ];
 
 /**
@@ -89,8 +95,10 @@ const NAV = [
  * route must not become a page with no current marker anywhere.
  */
 const UTILITY_ROUTES = [
+  { id: 'intelligence', label: 'Intelligence ledger', href: '/intelligence/' },
+  { id: 'news', label: 'News wire', href: '/news/' },
+  { id: 'lab', label: 'Edge Lab', href: '/lab/' },
   { id: 'compare', label: 'Compare companies', href: '/compare/' },
-  { id: 'catalysts', label: 'Catalyst calendar', href: '/catalysts/' },
   { id: 'research', label: 'Research', href: '/research/' },
   { id: 'methodology', label: 'Methodology', href: '/methodology/' }
 ];
@@ -163,8 +171,14 @@ function appHeader(active = 'today') {
         <span class="paltxt">Search or run a command</span>
         <kbd class="palkbd" aria-hidden="true">Ctrl K</kbd>
       </button>
+      <a class="watchbtn-nav press" href="/companies/?filter=watching">
+        <span class="ed-icon" data-icon="watchlist" aria-hidden="true"></span>
+        <span class="watchtxt">My watchlist</span>
+      </a>
+      <!-- "Live" would read as telemetry this site does not have. Standard/Focus
+           describes the interface, which is what the control actually changes. -->
       <div class="modetoggle" role="group" aria-label="Interface mode">
-        <button class="modebtn press" type="button" data-mode="live" aria-pressed="true">Live</button>
+        <button class="modebtn press" type="button" data-mode="live" aria-pressed="true">Standard</button>
         <button class="modebtn press" type="button" data-mode="focus" aria-pressed="false">Focus</button>
       </div>
       <span class="mstate secondary" id="marketState" aria-live="polite">
@@ -177,6 +191,14 @@ function appHeader(active = 'today') {
             <div class="umenuhead">Data</div>
             <div class="umenurow" id="feedDetail">Checking the feed…</div>
             <button class="umenubtn press" id="refreshBtn" type="button">Refresh data</button>
+          </div>
+          <div class="umenugroup umenu-narrow">
+            <div class="umenuhead">You</div>
+            <a class="umenubtn press" href="/companies/?filter=watching">My watchlist</a>
+            <div class="modetoggle" role="group" aria-label="Interface mode">
+              <button class="modebtn press" type="button" data-mode="live" aria-pressed="true">Standard</button>
+              <button class="modebtn press" type="button" data-mode="focus" aria-pressed="false">Focus</button>
+            </div>
           </div>
           <div class="umenugroup">
             <div class="umenuhead">Display</div>
@@ -755,6 +777,30 @@ function sitePage(site) {
     canonical: `${SITE}/sites/${site.slug}/`,
     body: siteBody(site),
     active: 'sites'
+  });
+}
+
+function explainersPage() {
+  return page({
+    title: 'Explainers — how AI infrastructure actually gets delivered | T2C',
+    description:
+      'What the words mean and why the distinctions matter: gross power against critical IT, a target ' +
+      'against an actual, and how a promise becomes revenue. Written for readers new to the sector.',
+    canonical: SITE + '/explainers/',
+    body: explainersBody(),
+    active: 'explainers'
+  });
+}
+
+/** Branded 404. Vercel serves dist/404.html for any unmatched path. */
+function notFoundPage() {
+  return page({
+    title: 'Page not found | T2C — Time to Compute',
+    description: 'That page could not be found. Search T2C or jump to companies, megaprojects, ' +
+      'the intelligence ledger or the methodology.',
+    canonical: SITE + '/404',
+    body: notFoundBody(),
+    active: 'today'
   });
 }
 
@@ -1542,6 +1588,8 @@ bytes += write('research/index.html', researchPage());
 bytes += write('sites/index.html', sitesPage());
 bytes += write('intelligence/index.html', intelligencePage());
 bytes += write('news/index.html', newsPage());
+bytes += write('explainers/index.html', explainersPage());
+bytes += write('404.html', notFoundPage());
 const SITES = allSites();
 for (const s of SITES) bytes += write(`sites/${s.slug}/index.html`, sitePage(s));
 bytes += write('methodology/index.html', methodologyPage());
@@ -1601,6 +1649,7 @@ const urls = [
   { loc: SITE + '/sites/', priority: '0.9', freq: 'daily' },
   { loc: SITE + '/intelligence/', priority: '0.9', freq: 'daily' },
   { loc: SITE + '/news/', priority: '0.8', freq: 'hourly' },
+  { loc: SITE + '/explainers/', priority: '0.7', freq: 'monthly' },
   ...SITES.map(s => ({ loc: `${SITE}/sites/${s.slug}/`, priority: '0.7', freq: 'weekly' })),
   { loc: SITE + '/lab/', priority: '0.9', freq: 'weekly' },
   { loc: SITE + '/catalysts/', priority: '0.8', freq: 'daily' },
@@ -1631,7 +1680,7 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css']
+  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
 fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
@@ -1690,6 +1739,35 @@ try {
 } catch {
   console.warn('  warn: sharp unavailable — shipping full-size images. Run `npm install` to fix.');
 }
+
+/* Editorial illustrations from the asset pack.
+   The WebP variants ship as supplied — they are already 28–212 KB. The PNG
+   fallbacks are 1.8–2.8 MB each, which is far too heavy for a file only reached
+   by a browser without WebP, so each is re-encoded at the largest width the
+   layout ever uses. Icons are SVG and ship verbatim. */
+fs.mkdirSync(path.join(OUT, 'assets', 't2c', 'images'), { recursive: true });
+fs.cpSync(path.join(ROOT, 'assets', 't2c', 'icons'),
+  path.join(OUT, 'assets', 't2c', 'icons'), { recursive: true });
+
+let packBytes = 0;
+for (const a of ASSETS) {
+  for (const w of ASSET_WIDTHS) {
+    const rel = `${a.id}-${w}.webp`;
+    fs.cpSync(path.join(ROOT, 'assets', 't2c', 'images', rel),
+      path.join(OUT, 'assets', 't2c', 'images', rel));
+    packBytes += fs.statSync(path.join(OUT, 'assets', 't2c', 'images', rel)).size;
+  }
+  const srcPng = path.join(ROOT, 'assets', 't2c', 'images', `${a.id}.png`);
+  const outPng = path.join(OUT, 'assets', 't2c', 'images', `${a.id}.png`);
+  if (sharp) {
+    await sharp(srcPng).resize({ width: 1600, withoutEnlargement: true })
+      .png({ compressionLevel: 9, palette: true }).toFile(outPng);
+  } else {
+    fs.cpSync(srcPng, outPng);
+  }
+  packBytes += fs.statSync(outPng).size;
+}
+console.log(`  editorial pack: ${ASSETS.length} images + icons → ${(packBytes / 1024).toFixed(0)} KB`);
 
 let imageBytes = 0;
 for (const img of IMAGES) {

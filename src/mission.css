@@ -838,6 +838,11 @@ html[data-estimates="off"] [data-estimate] { display: none !important; }
   display: grid; gap: var(--s2); align-items: start;
   grid-template-columns: 1fr;
 }
+/* A grid item defaults to `min-width: auto`, so it refuses to shrink below its
+   content's min-content width and bursts out of its track. At 320px the panels
+   were 335px wide inside a 288px column. This is the fix for the whole class of
+   bug, so it is applied to every grid child here rather than case by case. */
+.mgrid > * { min-width: 0; }
 @media (min-width: 1000px) {
   .mgrid { grid-template-columns: minmax(0, 1.85fr) minmax(320px, 1fr); }
 }
@@ -1102,9 +1107,30 @@ html[data-estimates="off"] [data-estimate] { display: none !important; }
    free space and the utility cluster is allowed to shrink rather than push the
    document sideways. */
 
+/* ---- header overflow ----
+   The header is a flex row of brand + nav + utility cluster, and the utility
+   cluster was `flex: none`. Once the nav reached six destinations the row was
+   17px wider than the shell between 1080px (where the nav hides) and 1440px
+   (where it fits) — a band the visual QA did not sample, so it went unseen.
+
+   The cluster now shrinks, and its contents drop away in order of how much they
+   duplicate something else: the palette's label first (the icon and the shortcut
+   remain), then the market pill (the utility menu carries the same feed row).
+   Nothing that is the only route to a destination is ever hidden. */
+.appbarin { min-width: 0; }
+.appbarutil { min-width: 0; flex-shrink: 1; }
+.paltrigger { min-width: 0; }
+
+@media (max-width: 1460px) {
+  .paltrigger .paltxt { display: none; }
+}
+@media (max-width: 1240px) {
+  .appbarutil .mstate { display: none; }
+  .navlink { padding: 0 10px; }
+}
+
 @media (max-width: 1080px) {
   .brand { margin-right: auto; }
-  .appbarutil { min-width: 0; flex-shrink: 1; }
 }
 
 @media (max-width: 760px) {

@@ -19,7 +19,7 @@ import { MAX_TICKERS, tickerOptions } from './lib/compare.js';
 import { VOL_METHODOLOGY } from './lib/odds.js';
 import {
   briefingCards, snapshotCards, kpiCards, ledgerPanel, capacityTable, contractsTable,
-  countryPanel, evidenceKey, valueTypeKey, reconciliationPanel, dataHealthPanel,
+  countryPanel, evidenceKey, valueTypeKey, basisKey, reconciliationPanel, dataHealthPanel,
   deliveryRecordPanel, sourceChips, evidenceChip, pill, catalystPanel
 } from './ui.js';
 import { allSites, furthestStage, stageFilterOptions } from './lib/sites.js';
@@ -29,8 +29,17 @@ import {
   signalList, signalFilters, siteContracts, nextMilestonePanel,
   infrastructureMap, watchlistPanel, signalProgress
 } from './mission-ui.js';
-import { todaySignal, sinceCategories, watchCandidates } from './lib/today.js';
 import { GROSS_TO_CRITICAL_IT } from './lib/estimate.js';
+import { leadStory } from './lib/leadstory.js';
+import {
+  deliveryLeaders, nextCatalyst, promiseReality, megaprojects, imageForSite, EXPLAINER_STEPS
+} from './lib/homepage.js';
+import {
+  leadStoryHero, whyDrawer, returningSummary, nextCatalystCard, audienceLens,
+  megaprojectCard, explainer, deliveryLeaders as edDeliveryLeaders,
+  promiseReality as promiseRealityPanel
+} from './editorial-ui.js';
+import { ASSET } from './lib/assets.js';
 
 /* ================= shared bits ================= */
 
@@ -60,118 +69,108 @@ const section =(id, title, meta, body, { plain = false } = {}) => `
 
 /* ================= / — Today ================= */
 
+/**
+ * The audience-led editorial homepage.
+ *
+ * One dominant story, consequence before technical detail, and every figure
+ * still carrying the evidence that makes it checkable. The dense operational
+ * modules that used to live here are not deleted — they moved to the routes
+ * built for them, which is where a reader who wants them is already going.
+ */
 export function todayBody() {
-  const t = todaySignal();
-  const sites = allSites();
-  const cats = sinceCategories();
+  const story = leadStory();
+  const leaders = deliveryLeaders(3);
+  const catalyst = nextCatalyst();
+  const pair = story.available ? promiseReality(story.signal.companyId) : null;
+  const projects = megaprojects(3);
 
-  // Watchlist rows carry what the panel needs before any client state is known,
-  // so the module is useful on a first visit rather than an empty box.
-  const watchRows = watchCandidates().map(c => {
-    const owned = sites.filter(s => s.project.companyId === c.id);
-    const withCapacity = owned.filter(s => s.capacityMw !== null);
-    const stage = currentStage(COMPANIES.find(x => x.id === c.id));
-    return {
-      ...c,
-      sitesLabel: owned.length
-        ? `${owned.length} ${owned.length === 1 ? 'site' : 'sites'}${withCapacity.length ? ` · ${withCapacity.length} disclose capacity` : ''}`
-        : 'No site-level record',
-      stageLabel: stage ? stage.short : 'Not evidenced'
-    };
-  });
+  /* Lens copy. Each panel explains the SAME facts for a different reader; none
+     filters or recalculates anything. Power & communities deliberately stays
+     general: T2C holds no sourced record of a named project's energy mix,
+     water use, jobs or local impact, so it explains the topic without
+     attributing a claim to anyone. */
+  const lensCopy = {
+    investments: `<p>Delivery is the thing a contract cannot guarantee. T2C tracks each operator from
+        announcement to billing and shows which gate the evidence actually supports, so a signed
+        agreement is never mistaken for revenue.</p>
+      <ul class="ed-lenslist">
+        <li>What has been <b>accepted by a customer</b>, not merely contracted.</li>
+        <li>Where a guided window has <b>moved</b>, and by how long.</li>
+        <li>Which figures rest on a primary document and which are second-hand.</li>
+      </ul>
+      <a class="ed-cta secondary press" href="/companies/">Compare the operators →</a>`,
 
-  // Sites are pinned most-evidenced first, so the map leads with real progress.
-  const pinOrder = [...sites].sort((a, b) =>
-    b.gateSummary.completeCount - a.gateSummary.completeCount ||
-    (b.capacityMw ?? -1) - (a.capacityMw ?? -1));
+    race: `<p>The constraint on AI is no longer only chips. It is power, land, grid connections and the
+        years it takes to turn any of them into a hall a customer will accept.</p>
+      <ul class="ed-lenslist">
+        <li>Announced gigawatts are measured at the fence; usable compute is measured in the hall.</li>
+        <li>The gap between the two is the story, and it is measured in years.</li>
+        <li>${esc(String(projects.length))} of the tracked sites carry a dated change in the last quarter.</li>
+      </ul>
+      <a class="ed-cta secondary press" href="/sites/">See every tracked site →</a>`,
+
+    power: `<p>A data centre is an electrical project before it is a computing one. Securing power,
+        connecting to a grid and energising a site are separate gates that can each take years, and
+        T2C tracks them separately for that reason.</p>
+      <ul class="ed-lenslist">
+        <li>Gross utility power is what a site draws at the connection.</li>
+        <li>Critical IT load is what reaches the computing equipment — always the smaller figure.</li>
+        <li>T2C holds no sourced record of any named project's energy mix, water use or local
+          employment, so it makes no claim about them.</li>
+      </ul>
+      <a class="ed-cta secondary press" href="/methodology/#bases">How power is measured →</a>`
+  };
 
   return `
-<div class="shell mission">
-  <div class="mgrid">
+${leadStoryHero(story, ASSET.hero)}
+${whyDrawer(story)}
 
-    <section class="mpanel signalcard" id="todaysignal" aria-labelledby="tshead">
-      <div class="mhead">
-        <span class="mkicker">Today's signal</span>
-        ${t.at ? `<span class="mnote">${esc(date(t.at))}</span>` : ''}
-      </div>
-      ${t.available ? `
-        <h1 class="tshead" id="tshead"><b>${esc(t.headline.value)}</b> ${esc(t.headline.rest)}</h1>
-        <p class="tssent">${esc(t.sentence)}</p>
-        <div class="tsfoot">
-          <a class="cta primary press" href="/intelligence/?view=since-last-visit">
-            Show me what changed <span aria-hidden="true">→</span></a>
-          <div class="tsconf">
-            <span class="sitefactl">Evidence confidence</span>
-            <span class="sitefactv">${confidenceFact(t.confidence).value}</span>
-          </div>
-        </div>`
-        : `<h1 class="tshead" id="tshead">Nothing recorded yet</h1>
-           <p class="tssent">${esc(t.sentence)}</p>`}
-    </section>
+<div class="t2c-shell ed-main">
+  ${returningSummary()}
 
-    <section class="mpanel" id="sincelast" aria-labelledby="slh">
-      <div class="mhead">
-        <span class="mkicker" id="slh">Since last visit</span>
-        <span class="mnote" id="sinceWhen">First visit</span>
-      </div>
-      <ul class="sincelist" id="sinceList">
-        ${cats.map(c => `<li class="srow" data-cat="${esc(c.id)}" hidden>
-          <a class="press srowlink" href="/intelligence/?change=${esc(c.id)}">
-            <span class="srowglyph ${esc(c.tone)}" aria-hidden="true">${esc(c.glyph)}</span>
-            <span class="srowcount" data-count>0</span>
-            <span class="srowlabel">${esc(c.label.toLowerCase())}</span>
-            <span class="srowgo" aria-hidden="true">›</span>
-          </a>
-        </li>`).join('')}
-      </ul>
-      <p class="mnote" id="sinceEmpty">Your first visit — nothing to compare against yet. Come back and
-        this panel will list only what changed while you were away.</p>
-      <a class="cta ghost press wall" href="/intelligence/">Open the full ledger →</a>
-    </section>
+  <section class="ed-section" aria-labelledby="buildout-h">
+    <h2 class="ed-sectionh" id="buildout-h">The AI buildout today</h2>
+    <div class="ed-grid4">
+      <article class="ed-card">
+        <h3 class="ed-cardh"><span class="ed-cardn" aria-hidden="true">1</span> Who is delivering?</h3>
+        ${edDeliveryLeaders(leaders)}
+      </article>
 
-    <section class="mpanel flush mapcard" id="infrastructure" aria-labelledby="imh">
-      <div class="mhead mappad">
-        <span class="mkicker" id="imh">Infrastructure map</span>
-        <a class="mnote press" href="/sites/">All ${sites.length} sites →</a>
-      </div>
-      ${infrastructureMap(pinOrder)}
-    </section>
+      <article class="ed-card">
+        <h3 class="ed-cardh"><span class="ed-cardn" aria-hidden="true">2</span> Next big catalyst</h3>
+        ${nextCatalystCard(catalyst)}
+      </article>
 
-    <section class="mpanel" id="watchlist" aria-labelledby="wlh">
-      <div class="mhead">
-        <span class="mkicker" id="wlh">Your watchlist</span>
-        <span class="mnote secondary">Stored in this browser</span>
-      </div>
-      ${watchlistPanel(watchRows)}
-    </section>
-  </div>
+      <article class="ed-card">
+        <h3 class="ed-cardh"><span class="ed-cardn" aria-hidden="true">3</span> Promise vs reality</h3>
+        ${pair ? `<p class="ed-cardsub">${esc(pair.ticker)}</p>` : ''}
+        ${promiseRealityPanel(pair)}
+      </article>
 
-  <section class="mpanel progcard" aria-labelledby="dsp">
-    <span class="vh" id="dsp">Daily signal progress</span>
-    ${signalProgress(t.signals)}
+      <article class="ed-card">
+        <h3 class="ed-cardh"><span class="ed-cardn" aria-hidden="true">4</span> Why should I care?</h3>
+        ${audienceLens(lensCopy)}
+      </article>
+    </div>
   </section>
 
-  ${section('delivering', 'Who is delivering',
-    `${COMPANIES.length} tracked companies`,
-    `<p class="blocklede">Each card leads with capacity actually switched on, not power controlled on
-      paper. Add up to ${MAX_TICKERS} to a comparison.</p>
-     ${snapshotCards()}
-     <div class="blockacts"><a class="cta ghost press" href="/companies/">All companies and filters →</a></div>`)}
+  <section class="ed-section" aria-labelledby="mega-h">
+    <div class="ed-sectionhead">
+      <h2 class="ed-sectionh" id="mega-h">Megaprojects to watch</h2>
+      <a class="ed-morelink press" href="/sites/">All ${allSites().length} sites →</a>
+    </div>
+    <div class="ed-grid3">
+      ${projects.map(s => megaprojectCard(s, ASSET[imageForSite(s)])).join('')}
+    </div>
+  </section>
 
-  <div class="secondary">
-    ${section('difference', 'Announced power is not working compute', 'Why the distinction matters',
-      `<p class="blocklede">A gigawatt of secured power and a gigawatt of invoicing compute are separated
-        by construction, energisation, a signed customer, formal acceptance and a billing start. Most
-        coverage collapses them into one number. T2C does not.</p>
-       ${valueTypeKey()}`)}
-
-    ${section('aggregate', 'What the whole tracked set adds up to', 'Confirmed disclosure only',
-      `${kpiCards()}
-       <p class="blocknote">Contributor sets differ between these measures, so they are not stages of one
-        funnel and are never subtracted from one another. Each states its own basis and coverage.</p>`)}
-  </div>
+  <section class="ed-section" id="evidence" aria-labelledby="expl-h">
+    <h2 class="vh" id="expl-h">How an AI data centre makes money</h2>
+    ${explainer(EXPLAINER_STEPS, ASSET['explainer-ai-datacentre-cutaway'])}
+  </section>
 </div>`;
 }
+
 
 /* ================= /companies/ ================= */
 
@@ -590,6 +589,16 @@ export function sitesBody() {
     <span class="filtercount" id="siteCount" aria-live="polite">${sites.length} shown</span>
   </div>
 
+  <section class="mpanel flush mapcard" id="infrastructure" aria-labelledby="imh">
+    <div class="mhead mappad">
+      <span class="mkicker" id="imh">Infrastructure map</span>
+      <span class="mnote secondary">Schematic � positions are not geographic</span>
+    </div>
+    ${infrastructureMap([...sites].sort((a, b) =>
+      b.gateSummary.completeCount - a.gateSummary.completeCount ||
+      (b.capacityMw ?? -1) - (a.capacityMw ?? -1)))}
+  </section>
+
   <div class="sitegrid" id="siteGrid">${sites.map(siteCard).join('')}</div>
 
   <p class="blocknote">Capacity figures state what they measure, and half this estate quotes gross
@@ -698,6 +707,113 @@ export function siteBody(site) {
         signalList(site.events.map(toSignal), { reviewable: false })) : ''}
     </div>
   </div>
+</div>`;
+}
+
+/* ================= /explainers/ ================= */
+
+/**
+ * Explainers.
+ *
+ * For the reader who arrived without the vocabulary. Everything here already
+ * existed as definitions attached to the data model — this route gathers it into
+ * one place and leads with the question a newcomer actually has.
+ */
+export function explainersBody() {
+  return `<div class="t2c-shell ed-main">
+  ${pageHeadHtml({
+    title: 'Explainers',
+    lede: 'What the words mean, why the distinctions matter, and how a promise becomes revenue. ' +
+      'No prior knowledge assumed.',
+    meta: `<span class="pill-lite">For newcomers</span>
+           <span class="pill-lite">Definitions from the data model</span>`
+  })}
+
+  <section class="ed-section" id="lifecycle" aria-labelledby="expl-h">
+    <h2 class="vh" id="expl-h">How an AI data centre makes money</h2>
+    ${explainer(EXPLAINER_STEPS, ASSET['explainer-ai-datacentre-cutaway'])}
+  </section>
+
+  ${section('bases', 'A megawatt is not a megawatt', 'Three different quantities',
+    `<p class="blocklede">The most common error in AI infrastructure coverage is treating these as
+      interchangeable. They are separate fields in the data, they are never added together, and the
+      build fails if an aggregate mixes them.</p>
+     ${basisKey()}`)}
+
+  ${section('types', 'Actual, minimum, target, pipeline, potential', 'What kind of number it is',
+    `<p class="blocklede">A 5 GW ambition and a 1.5 GW operating figure are not the same kind of
+      claim. Only the first two below ever enter a current-capacity total.</p>
+     ${valueTypeKey()}`)}
+
+  ${section('evidence', 'How well evidenced is it?', 'Four confidence levels',
+    `<p class="blocklede">Every figure on this site carries one of these, and the level decides
+      whether it can enter a total at all.</p>
+     ${evidenceKey()}`)}
+
+  ${section('more', 'Where to go next', '',
+    `<div class="ed-grid3">
+      <a class="ed-card press" href="/methodology/">
+        <h3 class="ed-cardh">Methodology</h3>
+        <p class="ed-note">Every definition, the Reality Score formula, how estimates are derived and
+          the full corrections log.</p>
+      </a>
+      <a class="ed-card press" href="/sites/">
+        <h3 class="ed-cardh">Megaprojects</h3>
+        <p class="ed-note">Every tracked project at the level its milestones are actually evidenced.</p>
+      </a>
+      <a class="ed-card press" href="/intelligence/">
+        <h3 class="ed-cardh">Intelligence ledger</h3>
+        <p class="ed-note">Every sourced change to the delivery record, classified so you can read
+          only the kind you came for.</p>
+      </a>
+    </div>`)}
+</div>`;
+}
+
+/* ================= 404 ================= */
+
+export function notFoundBody() {
+  return `<div class="t2c-shell ed-main ed-404">
+  <p class="ed-eyebrow">Error 404</p>
+  <h1 class="ed-headline">This page isn't here</h1>
+  <p class="ed-consequence">The address may have changed, or the record may never have existed.
+    Nothing has gone wrong with the data.</p>
+
+  <div class="ed-heroacts">
+    <a class="ed-cta primary press" href="/">Back to today</a>
+    <button type="button" class="ed-cta secondary press" id="palOpen404"
+      aria-haspopup="dialog">Search the site</button>
+  </div>
+
+  <section class="ed-section" aria-labelledby="nf-h">
+    <h2 class="ed-sectionh" id="nf-h">Where you might be going</h2>
+    <div class="ed-grid3">
+      <a class="ed-card press" href="/companies/">
+        <h3 class="ed-cardh">Companies</h3>
+        <p class="ed-note">Every tracked operator, what is switched on and what customers signed for.</p>
+      </a>
+      <a class="ed-card press" href="/sites/">
+        <h3 class="ed-cardh">Megaprojects</h3>
+        <p class="ed-note">Every project, the gates it has passed and the documents behind each one.</p>
+      </a>
+      <a class="ed-card press" href="/intelligence/">
+        <h3 class="ed-cardh">Intelligence</h3>
+        <p class="ed-note">The full delivery ledger, newest first.</p>
+      </a>
+      <a class="ed-card press" href="/catalysts/">
+        <h3 class="ed-cardh">Catalysts</h3>
+        <p class="ed-note">Dated events that could move an operational metric.</p>
+      </a>
+      <a class="ed-card press" href="/explainers/">
+        <h3 class="ed-cardh">Explainers</h3>
+        <p class="ed-note">What the words mean, for a reader arriving without the vocabulary.</p>
+      </a>
+      <a class="ed-card press" href="/methodology/">
+        <h3 class="ed-cardh">Methodology</h3>
+        <p class="ed-note">How every figure is defined, measured, sourced and corrected.</p>
+      </a>
+    </div>
+  </section>
 </div>`;
 }
 

@@ -1,0 +1,159 @@
+:root {
+  color-scheme: dark;
+
+  /* Core brand */
+  --t2c-black: #070909;
+  --t2c-ink: #0b0e0f;
+  --t2c-panel: #111416;
+  --t2c-panel-raised: #171b1d;
+  --t2c-line: #2a3033;
+  --t2c-line-strong: #42494d;
+  --t2c-white: #f7f8f5;
+  --t2c-copy: #c5cbcc;
+  --t2c-muted: #8b9396;
+  --t2c-lime: #c8ff00;
+  --t2c-lime-soft: #9fc900;
+  --t2c-lime-wash: rgb(200 255 0 / 10%);
+  --t2c-amber: #ffb020;
+  --t2c-amber-wash: rgb(255 176 32 / 11%);
+  --t2c-danger: #ff5f57;
+
+  /* Type. Self-host licensed files in the real repository when possible. */
+  --t2c-font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --t2c-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --t2c-font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
+  --t2c-text-hero: clamp(3rem, 7vw, 7.25rem);
+  --t2c-text-h2: clamp(2rem, 4vw, 4.25rem);
+  --t2c-text-h3: clamp(1.35rem, 2vw, 2rem);
+  --t2c-text-body-lg: clamp(1.05rem, 1.4vw, 1.35rem);
+  --t2c-text-body: 1rem;
+  --t2c-text-meta: 0.8125rem;
+
+  /* Layout */
+  --t2c-shell: 1600px;
+  --t2c-gutter: clamp(1rem, 3vw, 3.5rem);
+  --t2c-section: clamp(3.5rem, 8vw, 8rem);
+  --t2c-grid-gap: clamp(0.875rem, 1.5vw, 1.5rem);
+  --t2c-radius-sm: 8px;
+  --t2c-radius-md: 14px;
+  --t2c-radius-lg: 22px;
+
+  /* Elevation and focus */
+  --t2c-shadow-panel: 0 20px 70px rgb(0 0 0 / 34%);
+  --t2c-shadow-lime: 0 0 0 1px rgb(200 255 0 / 65%), 0 0 34px rgb(200 255 0 / 16%);
+  --t2c-focus: 0 0 0 3px var(--t2c-black), 0 0 0 5px var(--t2c-lime);
+
+  /* Motion */
+  --t2c-fast: 140ms;
+  --t2c-medium: 260ms;
+  --t2c-slow: 520ms;
+  --t2c-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.t2c-shell {
+  inline-size: min(100% - (2 * var(--t2c-gutter)), var(--t2c-shell));
+  margin-inline: auto;
+}
+
+.t2c-eyebrow {
+  color: var(--t2c-lime);
+  font: 700 var(--t2c-text-meta) / 1.2 var(--t2c-font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.t2c-display {
+  color: var(--t2c-white);
+  font: 700 var(--t2c-text-hero) / 0.88 var(--t2c-font-display);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  text-transform: uppercase;
+}
+
+.t2c-panel {
+  border: 1px solid var(--t2c-line);
+  border-radius: var(--t2c-radius-md);
+  background: linear-gradient(145deg, rgb(23 27 29 / 96%), rgb(11 14 15 / 96%));
+  box-shadow: var(--t2c-shadow-panel);
+}
+
+.t2c-media {
+  position: relative;
+  overflow: clip;
+  background: var(--t2c-ink);
+}
+
+.t2c-media::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(7 9 9 / 94%) 0%, rgb(7 9 9 / 68%) 28%, transparent 63%),
+    linear-gradient(0deg, rgb(7 9 9 / 74%) 0%, transparent 48%);
+}
+
+.t2c-button-primary,
+.t2c-button-secondary {
+  min-block-size: 48px;
+  border-radius: var(--t2c-radius-sm);
+  padding: 0.85rem 1.15rem;
+  font: 800 0.875rem / 1 var(--t2c-font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: transform var(--t2c-fast) var(--t2c-ease), border-color var(--t2c-fast), background var(--t2c-fast);
+}
+
+.t2c-button-primary {
+  border: 1px solid var(--t2c-lime);
+  background: var(--t2c-lime);
+  color: var(--t2c-black);
+}
+
+.t2c-button-secondary {
+  border: 1px solid var(--t2c-line-strong);
+  background: rgb(7 9 9 / 62%);
+  color: var(--t2c-white);
+}
+
+.t2c-button-primary:hover,
+.t2c-button-secondary:hover {
+  transform: translateY(-2px);
+}
+
+:where(a, button, input, select, summary):focus-visible {
+  outline: 0;
+  box-shadow: var(--t2c-focus);
+}
+
+[data-evidence="confirmed"] {
+  --evidence-color: var(--t2c-lime);
+}
+
+[data-evidence="reported"],
+[data-evidence="estimated"] {
+  --evidence-color: var(--t2c-amber);
+}
+
+@media (max-width: 760px) {
+  .t2c-display {
+    font-size: clamp(2.7rem, 15vw, 4.8rem);
+  }
+
+  .t2c-media::after {
+    background:
+      linear-gradient(0deg, rgb(7 9 9 / 96%) 0%, rgb(7 9 9 / 70%) 52%, rgb(7 9 9 / 15%) 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

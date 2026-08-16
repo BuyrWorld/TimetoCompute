@@ -36,6 +36,16 @@ for (const slug of ['methodology', 'privacy', 'terms', 'contact']) {
 }
 
 /* ---- no secrets in client output ---- */
+/* Double-encoded UTF-8. A source file read as Windows-1252 and written back as
+   UTF-8 turns "—" into "â€"" and "→" into "â†’". It builds and tests clean and
+   only shows up as gibberish on the page, so it is checked for here. */
+const MOJIBAKE = /â€"|â€™|â†’|Ã©|Â·|Â»/;
+for (const f of htmlFiles) {
+  if (MOJIBAKE.test(fs.readFileSync(f, 'utf8'))) {
+    fail(`mojibake in ${rel(f)} — a source file was re-encoded from the wrong codepage`);
+  }
+}
+
 const SECRET = /(FINNHUB_KEY|SEC_UA)\s*[:=]\s*["'][^"']+["']|sk-[A-Za-z0-9]{20,}|Bearer\s+[A-Za-z0-9._-]{20,}/;
 for (const f of files.filter(f => /\.(html|js|css|json|svg|txt|xml)$/.test(f))) {
   const txt = fs.readFileSync(f, 'utf8');
@@ -106,13 +116,13 @@ if (controlIds.length < 6) fail(`expected the Edge Lab inputs, found ${controlId
 for (const [pageName, html] of [['home', home], ['lab', lab], ['research', research], ['companies', companiesPg]]) {
   if (!/<nav class="mainnav" aria-label="Primary">/.test(html)) fail(`${pageName}: no primary navigation`);
   const links = [...html.matchAll(/class="navlink[^"]*"\s+href="([^"]+)"/g)].map(m => m[1]);
-  if (links.length !== 6) fail(`${pageName}: expected 6 primary nav links, found ${links.length}`);
+  if (links.length !== 5) fail(`${pageName}: expected 5 primary nav links, found ${links.length}`);
   for (const href of links) {
     const clean = href.split('#')[0];
     if (!routes.has(clean)) fail(`${pageName}: nav points at unbuilt route ${href}`);
   }
   // Demoting a route to the utility menu is fine; orphaning it is not.
-  for (const href of ['/compare/', '/catalysts/', '/research/', '/methodology/']) {
+  for (const href of ['/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/']) {
     if (!html.includes(`href="${href}"`)) fail(`${pageName}: secondary route ${href} is unreachable`);
   }
   // exactly one page marks itself current
@@ -126,7 +136,15 @@ for (const [pageName, html] of [['home', home], ['lab', lab], ['research', resea
   if (/class="hero"/.test(html)) fail(`${pageName}: ships a marketing hero — every route starts with the tool`);
   if (/class="tapein"/.test(html)) fail(`${pageName}: repeats the ticker tape`);
 }
-if (!/id="todaysignal"/.test(home)) fail('the homepage lost its Today signal module');
+// The homepage leads with one dominant story. These are the load-bearing parts.
+if (!/class="ed-hero"/.test(home)) fail('the homepage lost its lead story hero');
+if (!/class="ed-headline"/.test(home)) fail('the homepage lost its lead story headline');
+if (!/id="whyDrawer"/.test(home)) fail('the homepage lost its why-this-matters drawer');
+if (!/class="ed-railstep/.test(home)) fail('the homepage lost its delivery rail');
+if (!/class="ed-disclosure"/.test(home)) fail('an illustration is on the homepage with no disclosure');
+// Exactly one image may load eagerly, and it must be the hero.
+const eagerImgs = (home.match(/loading="eager"/g) || []).length;
+if (eagerImgs !== 1) fail(`homepage has ${eagerImgs} eagerly-loaded images; exactly 1 (the hero) is allowed`);
 
 // mode switchers keep proper tab semantics
 if (!/role="tablist"/.test(lab)) fail('Edge Lab mode switcher is not a tablist');

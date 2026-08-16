@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Interaction QA. Drives the built site in a real browser and asserts the things
  * only a running page can prove: that the filters filter, that the Lab recomputes,
  * that a saved call survives a reload, that keyboard focus reaches the controls,
@@ -173,6 +173,114 @@ const run = async () => {
 
   await page.click('.calldel');
   await new Promise(r => setTimeout(r, 150));
+
+  /* ---- editorial homepage ---- */
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 300));
+
+  const h1s = await page.$$eval('h1', els => els.map(e => e.textContent.trim()));
+  check('the homepage has exactly one h1 and it is the story', h1s.length === 1 && h1s[0].length > 15,
+    h1s.join(' | '));
+
+  // The headline is selectable HTML, never part of the bitmap.
+  const selectable = await page.evaluate(() => {
+    const h = document.querySelector('.ed-headline');
+    return h && getComputedStyle(h).userSelect !== 'none' && h.textContent.trim().length > 0;
+  });
+  check('the headline is selectable text, not baked into the image', selectable);
+
+  /* why-this-matters drawer: focus trapped, Escape closes, focus restored */
+  await page.click('#whyBtn');
+  await new Promise(r => setTimeout(r, 250));
+  const drawerOpen = await page.$eval('#whyDrawer', el => el.open);
+  check('the why-this-matters drawer opens', drawerOpen);
+
+  const drawerHeads = await page.$$eval('#whyDrawer h3', els => els.map(e => e.textContent.trim()));
+  check('the drawer uses the fixed section order',
+    drawerHeads.join('|') === 'What happened|Why it matters|What changed|What happens next|What could block it|View the evidence',
+    drawerHeads.join(' | '));
+
+  const focusInside = await page.evaluate(() => document.querySelector('#whyDrawer').contains(document.activeElement));
+  check('focus moves into the drawer', focusInside);
+
+  await page.keyboard.press('Escape');
+  await new Promise(r => setTimeout(r, 250));
+  const drawerClosed = await page.$eval('#whyDrawer', el => !el.open);
+  const focusBack = await page.evaluate(() => document.activeElement.id);
+  check('Escape closes the drawer and returns focus to its trigger',
+    drawerClosed && focusBack === 'whyBtn', `closed=${drawerClosed} focus=${focusBack}`);
+
+  /* delivery rail */
+  const railSteps = await page.$$eval('.ed-railstep', els => els.length);
+  check('the delivery rail shows all seven stages', railSteps === 7, `${railSteps}`);
+
+  const railText = await page.$$eval('.ed-railstate', els => els.map(e => e.textContent.trim()));
+  check('every stage states its status in words, not colour alone',
+    railText.length === 7 && railText.every(t => t.length > 2), railText.join(', '));
+
+  const railBtn = await page.$('.ed-railbtn[aria-controls]');
+  if (railBtn) {
+    const before = await page.$eval('.ed-railev', el => el.hidden);
+    await railBtn.click();
+    await new Promise(r => setTimeout(r, 150));
+    const after = await page.$eval('.ed-railev', el => el.hidden);
+    check('an evidenced stage opens its sources', before === true && after === false);
+  }
+
+  /* audience lens: explanation only */
+  const factsBefore = await page.$$eval('.ed-prval', els => els.map(e => e.textContent.trim()));
+  await page.click('.ed-lenstab[data-lens="power"]');
+  await new Promise(r => setTimeout(r, 200));
+  const panelShown = await page.$eval('#lens-panel-power', el => !el.hidden);
+  const investmentsHidden = await page.$eval('#lens-panel-investments', el => el.hidden);
+  const factsAfter = await page.$$eval('.ed-prval', els => els.map(e => e.textContent.trim()));
+  check('selecting a lens swaps the explanation', panelShown && investmentsHidden);
+  check('selecting a lens changes no research figure',
+    factsBefore.join('|') === factsAfter.join('|'), `${factsBefore.join(',')} → ${factsAfter.join(',')}`);
+
+  const lensRoving = await page.evaluate(() => {
+    const tabs = [...document.querySelectorAll('.ed-lenstab')];
+    return tabs.filter(t => t.getAttribute('tabindex') === '0').length;
+  });
+  check('the lens tablist has exactly one tab stop', lensRoving === 1, `${lensRoving}`);
+
+  /* explainer: no autoplay, steps advance on demand */
+  const nextHidden = await page.$eval('#explNext', el => el.hidden);
+  const startVisible = await page.$eval('#explStart', el => !el.hidden);
+  check('the explainer does not autoplay', nextHidden && startVisible);
+
+  await page.click('#explStart');
+  await new Promise(r => setTimeout(r, 200));
+  const status1 = await page.$eval('#explStatus', el => el.textContent);
+  check('starting the explainer announces the first step', /step 1 of 5/i.test(status1), status1.slice(0, 50));
+
+  await page.click('#explNext');
+  await new Promise(r => setTimeout(r, 200));
+  const status2 = await page.$eval('#explStatus', el => el.textContent);
+  check('the explainer advances one step at a time', /step 2 of 5/i.test(status2), status2.slice(0, 50));
+
+  /* promise vs reality is never subtracted */
+  const promiseBlock = await page.$eval('.ed-card:nth-child(3)', el => el.textContent);
+  check('promise and reality carry the not-subtracted caveat',
+    /not subtracted/i.test(promiseBlock));
+  check('promise and reality state their bases and dates',
+    /as of/i.test(promiseBlock) && /(gross utility|critical it)/i.test(promiseBlock));
+
+  /* every illustration is disclosed */
+  const illos = await page.$$eval('img.ed-img', els => els.length);
+  const discs = await page.$$eval('.ed-disclosure', els => els.length);
+  check('every illustration carries a disclosure', discs >= illos, `${illos} images, ${discs} disclosures`);
+
+  /* 404 recovery */
+  await page.goto(base + '/404.html', { waitUntil: 'networkidle0' });
+  const nf = await page.evaluate(() => ({
+    h1: (document.querySelector('h1') || {}).textContent || '',
+    nav: !!document.querySelector('.mainnav'),
+    search: !!document.querySelector('#palette'),
+    routes: document.querySelectorAll('.ed-card[href]').length
+  }));
+  check('the 404 is branded and offers recovery routes',
+    /isn.t here/i.test(nf.h1) && nf.nav && nf.search && nf.routes >= 5, JSON.stringify(nf));
 
   /* ---- news feed ---- */
   await page.goto(base + '/news/', { waitUntil: 'networkidle0' });
@@ -430,111 +538,56 @@ const run = async () => {
     focusTrail.length === 15 && !focusTrail.includes('BODY'),
     `${walk.start} → ${focusTrail.join(',')}`);
 
-  /* ---- Mission Control homepage ---- */
+  /* ---- returning-user summary and the map's new home ---- */
   await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 300));
 
-  const headline = await page.$eval('h1.tshead', el => el.textContent.trim());
-  check('the homepage leads with a real figure from the ledger',
-    /\d/.test(headline) && headline.length > 6, headline);
+  // First visit: says so rather than manufacturing a return state.
+  const firstVisit = await page.$eval('#returnHead', el => el.textContent.trim());
+  check('a first visit says so instead of faking a return state',
+    /welcome/i.test(firstVisit), firstVisit);
 
-  // First visit: nothing to compare against, and the panel must say that rather
-  // than printing a row of zeros.
-  const firstVisit = await page.evaluate(() => ({
-    listHidden: document.getElementById('sinceList').hidden,
-    empty: document.getElementById('sinceEmpty').textContent.trim(),
-    when: document.getElementById('sinceWhen').textContent.trim()
-  }));
-  check('a first visit says so instead of showing zeros',
-    firstVisit.listHidden && /first visit/i.test(firstVisit.when), JSON.stringify(firstVisit));
-
-  // Now pretend the last visit predates the whole ledger and reload.
+  // Now pretend the last visit predates the whole ledger.
   await page.evaluate(() => {
     localStorage.setItem('t2c-last-visit', '2020-01-01T00:00:00.000Z');
     sessionStorage.removeItem('t2c-session-since');
   });
   await page.reload({ waitUntil: 'networkidle0' });
-  const sinceRows = await page.$$eval('#sinceList .srow', els =>
-    els.filter(e => !e.hidden).map(e => ({
-      cat: e.getAttribute('data-cat'),
-      n: Number(e.querySelector('[data-count]').textContent)
-    })));
-  check('since-last-visit counts real categories from the reader\'s own timestamp',
-    sinceRows.length > 0 && sinceRows.every(r => r.n > 0),
-    sinceRows.map(r => `${r.cat}:${r.n}`).join(' '));
+  await new Promise(r => setTimeout(r, 300));
+  const ret = await page.evaluate(() => ({
+    head: document.getElementById('returnHead').textContent.trim(),
+    sub: document.getElementById('returnSub').textContent.trim()
+  }));
+  check('a returning reader is told how many records changed',
+    /\d+ verified changes? while you were away/i.test(ret.head), ret.head);
+  check('the summary splits forward, back and evidence-only',
+    /moved forward .* moved back .* changed evidence only/i.test(ret.sub), ret.sub);
 
-  const sinceHref = await page.$eval('#sinceList .srow:not([hidden]) .srowlink', el => el.getAttribute('href'));
-  check('a since-last-visit row routes to the matching filter',
-    /\/intelligence\/\?change=/.test(sinceHref), sinceHref);
-
-  // The comparison point must not move while the reader is still in the session.
-  const beforeNav = await page.evaluate(() => sessionStorage.getItem('t2c-session-since'));
-  await page.goto(base + '/companies/', { waitUntil: 'networkidle0' });
-  await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  const afterNav = await page.evaluate(() => sessionStorage.getItem('t2c-session-since'));
-  const stillCounts = await page.$$eval('#sinceList .srow', els => els.filter(e => !e.hidden).length);
-  check('the comparison window survives moving between pages',
-    beforeNav === afterNav && stillCounts === sinceRows.length,
-    `${beforeNav} → ${afterNav}, ${stillCounts} rows`);
-
-  /* ---- watchlist ---- */
-  const allRows = await page.$$eval('#watchList .wrow', els => els.filter(e => !e.hidden).length);
-  check('an empty watchlist shows everything tracked rather than an empty box', allRows > 1, `${allRows}`);
-
-  await page.click('#watchList .wrow [data-watch]');
-  await new Promise(r => setTimeout(r, 200));
-  const afterWatch = await page.$$eval('#watchList .wrow', els => els.filter(e => !e.hidden).length);
-  const pressed = await page.$eval('#watchList .wrow [data-watch]', el => el.getAttribute('aria-pressed'));
-  check('watching a company narrows the list immediately',
-    afterWatch === 1 && pressed === 'true', `${afterWatch} shown, pressed=${pressed}`);
-
+  // Caught up: a last visit after the newest record.
+  await page.evaluate(() => {
+    localStorage.setItem('t2c-last-visit', '2099-01-01T00:00:00.000Z');
+    sessionStorage.removeItem('t2c-session-since');
+  });
   await page.reload({ waitUntil: 'networkidle0' });
-  const persistedWatch = await page.$$eval('#watchList .wrow', els => els.filter(e => !e.hidden).length);
-  check('the watchlist survives a reload', persistedWatch === 1, `${persistedWatch}`);
+  await new Promise(r => setTimeout(r, 300));
+  const caught = await page.$eval('#returnHead', el => el.textContent.trim());
+  check('a reader with nothing new sees the caught-up state', /caught up/i.test(caught), caught);
 
-  const watchPosts = [];
-  page.on('request', r => { if (r.method() !== 'GET') watchPosts.push(r.url()); });
-  await page.click('#watchList .wrow:not([hidden]) [data-watch]');
-  await new Promise(r => setTimeout(r, 200));
-  check('watching sends no request anywhere', watchPosts.length === 0, watchPosts.join(', '));
-
-  /* ---- map ---- */
+  /* ---- the map now lives on the Sites explorer ---- */
+  await page.goto(base + '/sites/', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 300));
   const zoomBefore = await page.$eval('#mapImg', el => getComputedStyle(el).transform);
   await page.click('#mapIn');
   await new Promise(r => setTimeout(r, 320));
   const zoomAfter = await page.$eval('#mapImg', el => getComputedStyle(el).transform);
-  check('the map zoom control actually zooms', zoomBefore !== zoomAfter, `${zoomBefore} → ${zoomAfter}`);
-
-  await page.click('#mapReset');
-  await new Promise(r => setTimeout(r, 320));
-  // The untouched map computes to "none"; after a reset it is the identity
-  // matrix. Both mean scale 1, so compare the meaning rather than the string.
-  const zoomReset = await page.$eval('#mapImg', el => getComputedStyle(el).transform);
-  const isIdentity = zoomReset === 'none' || /^matrix\(1,\s*0,\s*0,\s*1,\s*0,\s*0\)$/.test(zoomReset);
-  check('the map recentre control restores the view', isIdentity, zoomReset);
+  check('the map zoom control works on its new route', zoomBefore !== zoomAfter, `${zoomBefore} -> ${zoomAfter}`);
 
   const hotHref = await page.$eval('#mapView .hot', el => el.getAttribute('href'));
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'networkidle0' }),
     page.click('#mapView .hot')
   ]);
-  check('a map hotspot opens its site and not the Sites explorer',
-    page.url().endsWith(hotHref), `${page.url()} vs ${hotHref}`);
-
-  await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle0' }),
-    page.click('#mapView .mapsurface')
-  ]);
-  check('the map surface opens the Sites explorer', page.url().endsWith('/sites/'), page.url());
-
-  /* ---- signal progress ---- */
-  await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  const progText = await page.$eval('#progCount', el => el.textContent.trim());
-  check('signal progress states a finite reviewed count',
-    /\d+\s+signals?\s+·\s+(\d+ reviewed|all reviewed)/.test(progText), progText);
-
-  const nodeHref = await page.$eval('.pnodebtn', el => el.getAttribute('href'));
-  check('a progress node opens its own signal', /\/intelligence\/#/.test(nodeHref), nodeHref);
+  check('a map hotspot still opens its site', page.url().endsWith(hotHref), page.url());
 
   /* ---- the watchlist journey works end to end ---- */
   await page.evaluate(() => localStorage.removeItem('t2c-watch'));
@@ -550,9 +603,18 @@ const run = async () => {
   check('"view all watchlist" actually filters to watched companies',
     watchingShown === 1 && bannerOn, `${watchingShown} shown, banner=${bannerOn}`);
 
+  // The header's watchlist action is the route into it from anywhere.
   await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  const homeWatched = await page.$$eval('#watchList .wrow', els => els.filter(e => !e.hidden).length);
-  check('starring on a company page shows up on the homepage', homeWatched === 1, `${homeWatched}`);
+  const watchHref = await page.$eval('.watchbtn-nav', el => el.getAttribute('href'));
+  check('the header offers a watchlist destination',
+    watchHref === '/companies/?filter=watching', watchHref);
+
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle0' }),
+    page.click('.watchbtn-nav')
+  ]);
+  const viaHeader = await page.$$eval('#companyGrid .snap', els => els.filter(e => !e.hidden).length);
+  check('the header watchlist action lands on the watched companies', viaHeader === 1, `${viaHeader}`);
 
   /* ---- signal progress reaches a real anchor ---- */
   await page.goto(base + '/intelligence/?view=today', { waitUntil: 'networkidle0' });
@@ -561,12 +623,12 @@ const run = async () => {
   check('?view=today narrows the ledger to the finite daily set',
     todayOnly > 0 && todayOnly < totalSignals, `${todayOnly} of ${totalSignals}`);
 
-  await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  const nodeTarget = await page.$eval('.pnodebtn', el => el.getAttribute('href'));
-  await page.goto(base + nodeTarget, { waitUntil: 'networkidle0' });
-  const anchorId = nodeTarget.split('#')[1];
-  const anchorExists = await page.evaluate(id => !!document.getElementById(id), anchorId);
-  check('a progress node lands on the signal it names', anchorExists, nodeTarget);
+  // Ledger rows still carry an id, so any /intelligence/#<signal> link lands on
+  // the row it names rather than the top of the page.
+  const anchorTarget = await page.$eval('#signalAll .sig[id]', el => el.id);
+  await page.goto(base + '/intelligence/#' + anchorTarget, { waitUntil: 'networkidle0' });
+  const anchorExists = await page.evaluate(id => !!document.getElementById(id), anchorTarget);
+  check('a signal anchor lands on the row it names', anchorExists, anchorTarget);
 
   /* ---- click-glow behaves for pointer, Enter and Space alike ---- */
   await page.goto(base + '/', { waitUntil: 'networkidle0' });
@@ -671,12 +733,22 @@ const run = async () => {
     palClosed && focusRestored === 'palOpen', `closed=${palClosed} focus=${focusRestored}`);
 
   /* ---- nav marks exactly one destination current ---- */
-  for (const [route, expect] of [['/sites/', '/sites/'], ['/intelligence/', '/intelligence/']]) {
+  for (const [route, expect] of [['/sites/', '/sites/'], ['/catalysts/', '/catalysts/'],
+    ['/explainers/', '/explainers/']]) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const current = await page.$$eval('[aria-current="page"]', els =>
       els.filter(e => e.classList.contains('navlink')).map(e => e.getAttribute('href')));
     check(`${route} marks itself current in the nav`,
       current.length === 1 && current[0] === expect, current.join(', '));
+  }
+
+  // A route demoted to the utility menu still says where you are.
+  for (const route of ['/intelligence/', '/news/', '/lab/']) {
+    await page.goto(base + route, { waitUntil: 'networkidle0' });
+    const marked = await page.$$eval('.umenubtn[aria-current="page"]', els =>
+      els.map(e => e.getAttribute('href')));
+    check(`${route} marks itself current in the menu`,
+      marked.length === 1 && marked[0] === route, marked.join(', '));
   }
 
   /* ---- reduced motion is honoured ---- */

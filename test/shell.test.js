@@ -19,11 +19,14 @@ const read = rel => fs.readFileSync(path.join(DIST, rel), 'utf8');
 const exists = rel => fs.existsSync(path.join(DIST, rel));
 
 const ROUTES = ['index.html', 'companies/index.html', 'sites/index.html',
-  'intelligence/index.html', 'news/index.html', 'compare/index.html', 'catalysts/index.html',
-  'lab/index.html', 'research/index.html', 'methodology/index.html'];
+  'intelligence/index.html', 'news/index.html', 'explainers/index.html', 'compare/index.html',
+  'catalysts/index.html', 'lab/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/companies/', '/sites/', '/intelligence/', '/news/', '/lab/'];
+const NAV_HREFS = ['/', '/companies/', '/sites/', '/catalysts/', '/explainers/'];
+
+/** Demoted but never orphaned — reachable from the utility menu on every page. */
+const SECONDARY = ['/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/'];
 
 /* ================= routes ================= */
 
@@ -51,9 +54,36 @@ test('a route demoted from the nav is still reachable from every page', () => {
   // mean losing the route.
   for (const r of ROUTES) {
     const html = read(r);
-    for (const href of ['/compare/', '/catalysts/', '/research/', '/methodology/']) {
+    for (const href of SECONDARY) {
       assert.ok(html.includes(`href="${href}"`), `${r} orphans ${href}`);
     }
+  }
+});
+
+test('every previously published route still resolves', () => {
+  // Renaming a label must never break a link someone has already shared.
+  for (const route of ['/', '/companies/', '/sites/', '/intelligence/', '/news/', '/lab/',
+    '/compare/', '/catalysts/', '/research/', '/methodology/', '/privacy/', '/terms/', '/contact/']) {
+    const file = route === '/' ? 'index.html' : route.replace(/^\//, '') + 'index.html';
+    assert.ok(exists(file), `${route} no longer resolves`);
+  }
+  // "Megaprojects" is a label over the existing /sites/ route, not a new one.
+  const html = read('index.html');
+  assert.ok(/class="navlink[^"]*"\s+href="\/sites\/"[^>]*>Megaprojects</.test(html),
+    'Megaprojects does not point at the existing /sites/ route');
+});
+
+test('a branded 404 exists and offers real recovery routes', () => {
+  assert.ok(exists('404.html'), 'no 404 page was built');
+  const html = read('404.html');
+  assert.ok(/<h1[^>]*>[\s\S]*?isn.t here/i.test(html), 'the 404 has no headline');
+  assert.ok(html.includes('class="mainnav"'), 'the 404 has no primary navigation');
+  assert.ok(html.includes('id="palette"'), 'the 404 has no search');
+  // Every recovery link must resolve.
+  const hrefs = [...html.matchAll(/class="ed-card press" href="([^"]+)"/g)].map(m => m[1]);
+  assert.ok(hrefs.length >= 5, `expected several recovery routes, found ${hrefs.length}`);
+  for (const h of hrefs) {
+    assert.ok(exists(h.replace(/^\//, '') + 'index.html'), `404 offers ${h}, which was not built`);
   }
 });
 
@@ -61,7 +91,8 @@ test('a demoted route still tells the reader where they are', () => {
   // Research and Compare have no nav slot. They must still mark themselves
   // current somewhere, or the reader lands on a page the shell does not admit to.
   for (const [file, href] of [['research/index.html', '/research/'],
-    ['compare/index.html', '/compare/'], ['catalysts/index.html', '/catalysts/'],
+    ['compare/index.html', '/compare/'], ['lab/index.html', '/lab/'],
+    ['intelligence/index.html', '/intelligence/'], ['news/index.html', '/news/'],
     ['methodology/index.html', '/methodology/']]) {
     const html = read(file);
     const link = html.match(new RegExp(`<a class="umenubtn[^"]*"[^>]*href="${href}"[^>]*>`));
@@ -138,27 +169,102 @@ test('no page ships a marketing hero', () => {
   }
 });
 
-test('the homepage leads with the day’s signal, not a slogan', () => {
+test('the homepage leads with one dominant story, not a slogan', () => {
   const html = read('index.html');
-  const h1 = html.match(/<h1 class="tshead"[^>]*>([\s\S]*?)<\/h1>/);
-  assert.ok(h1, 'the homepage h1 is not the signal headline');
-  assert.ok(/<b>[^<]+<\/b>/.test(h1[1]), 'the headline has no leading figure');
-  assert.ok(html.includes('href="/intelligence/?view=since-last-visit"'),
-    'the homepage has no "show me what changed" destination');
+  const h1s = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)];
+  assert.equal(h1s.length, 1, 'the homepage does not have exactly one h1');
+  assert.ok(/class="ed-headline"/.test(h1s[0][0]), 'the h1 is not the lead story headline');
+  // The headline is HTML, not part of the bitmap.
+  assert.ok(h1s[0][1].trim().length > 15, 'the headline is empty or thin');
+  assert.ok(/class="ed-consequence"/.test(html), 'no plain-English consequence follows the headline');
 });
 
-test('every Mission Control module is present and points somewhere real', () => {
+test('the homepage answers its questions in order', () => {
   const html = read('index.html');
-  for (const id of ['todaysignal', 'sincelast', 'infrastructure', 'watchlist', 'signalProgress']) {
-    assert.ok(html.includes(`id="${id}"`), `the homepage is missing the ${id} module`);
+  const at = s => html.indexOf(s);
+  // What just happened → why care → who is delivering → what next → verify.
+  assert.ok(at('ed-headline') < at('The AI buildout today'), 'the story does not lead');
+  assert.ok(at('The AI buildout today') < at('Megaprojects to watch'), 'sections are out of order');
+  assert.ok(at('Megaprojects to watch') < at('ed-explainer'), 'the explainer is not last');
+});
+
+test('every editorial module is present and points somewhere real', () => {
+  const html = read('index.html');
+  for (const marker of ['ed-hero', 'whyDrawer', 'returnSummary', 'ed-grid4', 'ed-project', 'ed-explainer']) {
+    assert.ok(html.includes(marker), `the homepage is missing ${marker}`);
   }
   // Every homepage href must resolve to a built route.
   const hrefs = [...html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]);
   for (const h of new Set(hrefs)) {
     const file = h === '/' ? 'index.html' : h.replace(/^\//, '') + (h.endsWith('/') ? 'index.html' : '');
-    if (/\.(png|svg|css|js|xml|txt)$/.test(h)) continue;
+    if (/\.(png|svg|css|js|xml|txt|webp)$/.test(h)) continue;
     assert.ok(exists(file), `the homepage links to ${h}, which was not built`);
   }
+});
+
+test('the hero image is illustrative, disclosed, and never carries the claim', () => {
+  const html = read('index.html');
+  // Exactly one eagerly-loaded image, and it is the hero.
+  const eager = [...html.matchAll(/<img[^>]*loading="eager"[^>]*>/g)];
+  assert.equal(eager.length, 1, `expected 1 eager image, found ${eager.length}`);
+  assert.ok(/fetchpriority="high"/.test(eager[0][0]), 'the hero is not high priority');
+  assert.ok(/hero-ai-campus-dusk/.test(eager[0][0]), 'the eager image is not the hero');
+  assert.ok(/width="\d+"\s+height="\d+"/.test(eager[0][0]), 'the hero declares no dimensions');
+  assert.ok(/srcset=/.test(eager[0][0]), 'the hero ships no responsive variants');
+
+  assert.ok(/not a photograph of the named project/i.test(html),
+    'the hero carries no illustrative disclosure');
+});
+
+test('every illustration is disclosed and every non-hero image is lazy', () => {
+  const html = read('index.html');
+  const imgs = [...html.matchAll(/<img[^>]*class="ed-img[^>]*>/g)].map(m => m[0]);
+  assert.ok(imgs.length >= 3, `expected several illustrations, found ${imgs.length}`);
+  for (const img of imgs) {
+    assert.ok(/alt="[^"]{20,}"/.test(img), `an illustration has no meaningful alt: ${img.slice(0, 90)}`);
+    assert.ok(/width="\d+"/.test(img) && /height="\d+"/.test(img), 'an illustration declares no dimensions');
+  }
+  const lazy = imgs.filter(i => /loading="lazy"/.test(i));
+  assert.equal(lazy.length, imgs.length - 1, 'more than one image loads eagerly');
+  // One disclosure per illustration.
+  const disclosures = [...html.matchAll(/class="ed-disclosure"/g)].length;
+  assert.ok(disclosures >= imgs.length, `${imgs.length} illustrations but ${disclosures} disclosures`);
+});
+
+test('promise and reality are shown side by side and never subtracted', () => {
+  const html = read('index.html');
+  if (!html.includes('ed-promise')) return;   // no comparable pair on file
+  assert.ok(/are not subtracted/i.test(html), 'the promise/reality caveat is missing');
+  // Each figure states its own basis, qualifier and as-of date.
+  const metas = [...html.matchAll(/class="ed-prmeta">([^<]+)</g)].map(m => m[1]);
+  assert.ok(metas.some(t => /as of/i.test(t)), 'no as-of date is shown');
+  assert.ok(metas.some(t => /gross utility|critical it/i.test(t)), 'no measurement basis is shown');
+  // A percentage or difference between the two would be the bug this guards.
+  const promiseBlock = html.slice(html.indexOf('ed-promise'), html.indexOf('ed-caveat'));
+  assert.ok(!/%/.test(promiseBlock), 'a percentage appears inside the promise/reality pair');
+});
+
+test('the delivery rail exposes both label layers and never colour alone', () => {
+  const html = read('index.html');
+  const steps = [...html.matchAll(/class="ed-railstep[^"]*"/g)];
+  assert.equal(steps.length, 7, `expected 7 delivery stages, found ${steps.length}`);
+  for (const label of ['Promised', 'Power secured', 'Being built', 'Switched on',
+    'Customer signed', 'Customer accepted', 'Earning money']) {
+    assert.ok(html.includes(label), `the rail is missing the simple label "${label}"`);
+  }
+  // Every stage prints its status as words as well as a state class.
+  const states = [...html.matchAll(/class="ed-railstate">([^<]+)</g)].map(m => m[1].trim());
+  assert.equal(states.length, 7);
+  for (const s of states) assert.ok(s.length > 2, 'a stage has no textual status');
+});
+
+test('the why-this-matters drawer uses the fixed section order', () => {
+  const html = read('index.html');
+  const body = html.match(/<div class="ed-drawerbody">([\s\S]*?)<\/dialog>/);
+  assert.ok(body, 'no drawer body found');
+  const order = [...body[1].matchAll(/<h3>([^<]+)<\/h3>/g)].map(m => m[1]);
+  assert.deepEqual(order, ['What happened', 'Why it matters', 'What changed',
+    'What happens next', 'What could block it', 'View the evidence']);
 });
 
 test('the Reality Score publishes its formula and links to it', () => {
@@ -239,7 +345,7 @@ test('no shipped image exceeds its budget', () => {
 test('every raster image offers a WebP with a PNG fallback', () => {
   // <picture> in markup, image-set in CSS — a browser without WebP still gets
   // an image, and a build without sharp still gets a page.
-  for (const r of ['index.html', 'sites/iren-horizon-1/index.html']) {
+  for (const r of ['sites/index.html', 'sites/iren-horizon-1/index.html']) {
     const html = read(r);
     assert.ok(/<source srcset="\/assets\/campus\.webp" type="image\/webp"/.test(html),
       `${r} offers no WebP for the campus image`);
@@ -273,7 +379,9 @@ test('images declare their dimensions so the layout cannot shift', () => {
 });
 
 test('the map is schematic and says so', () => {
-  const html = read('index.html');
+  // The map lives on the Sites explorer, where a reader is already looking for
+  // sites; the homepage leads with the story instead.
+  const html = read('sites/index.html');
   assert.ok(/class="mapnote"/.test(html), 'the map carries no explanation');
   assert.ok(/not geographic/i.test(html),
     'the map does not disclaim that its positions are not geographic');
@@ -289,7 +397,7 @@ test('the map is schematic and says so', () => {
 });
 
 test('the map surface cannot steal a hotspot click', () => {
-  const html = read('index.html');
+  const html = read('sites/index.html');
   // The full-surface link must precede the hotspots in source order and must not
   // wrap them — a nested link would fire both destinations.
   const surface = html.indexOf('class="mapsurface"');
@@ -320,7 +428,8 @@ test('every page offers a skip link as its first focusable element', () => {
 });
 
 test('the current route is marked for assistive technology, not colour alone', () => {
-  const cases = [['companies/index.html', '/companies/'], ['lab/index.html', '/lab/'],
+  const cases = [['companies/index.html', '/companies/'], ['sites/index.html', '/sites/'],
+    ['catalysts/index.html', '/catalysts/'], ['explainers/index.html', '/explainers/'],
     ['companies/iren/index.html', '/companies/']];
   for (const [file, href] of cases) {
     const html = read(file);

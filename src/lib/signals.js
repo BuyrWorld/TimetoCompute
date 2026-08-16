@@ -14,7 +14,7 @@
  *     different failures and are never pooled.
  */
 import { EVENTS } from '../../data/events.js';
-import { EVENT_TYPES } from '../../data/schema.js';
+import { EVENT_TYPES, METRICS } from '../../data/schema.js';
 import { COMPANIES } from '../../data/companies.js';
 import { PROJECTS } from '../../data/projects.js';
 
@@ -117,6 +117,7 @@ export function toSignal(event) {
     newValue: event.newValue ?? null,
     unit: event.unit || null,
     metric: event.metric || null,
+    metricLabel: event.metric ? (METRICS[event.metric]?.label || null) : null,
     confidence: event.confidence,
     significance: event.significance,
     summary: event.summary,

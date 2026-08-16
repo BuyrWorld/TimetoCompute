@@ -267,6 +267,9 @@
     });
 
     trigger.addEventListener('click', open);
+    // The 404 offers its own way into search.
+    var alt = $('palOpen404');
+    if (alt) alt.addEventListener('click', open);
     input.addEventListener('input', function () { render(input.value); });
 
     dlg.addEventListener('keydown', function (e) {
@@ -555,98 +558,168 @@
     }
   }
 
-  /* ============ Mission Control — Today ============ */
+  /* ============ editorial homepage ============ */
   if (ROUTE === 'today') {
 
-    /* ---- since last visit ----
-       Counted in the browser, because only the browser knows when the last
-       visit was. A build-time count would show every reader the same number. */
-    (function since() {
+    /* ---- why-this-matters drawer ----
+       A <dialog>, so focus containment and Escape come from the platform. The
+       only things added are returning focus to the trigger and closing on a
+       backdrop click. Navigation is never delayed for it. */
+    (function whyThisMatters() {
+      var dlg = $('whyDrawer'), btn = $('whyBtn'), close = $('whyClose');
+      if (!dlg || !btn || !dlg.showModal) return;
+
+      btn.addEventListener('click', function () {
+        dlg.showModal();
+        track('lead_story_why_it_matters_open', { story: dlg.getAttribute('data-story') || '' });
+      });
+      if (close) close.addEventListener('click', function () { dlg.close(); });
+      dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+      dlg.addEventListener('close', function () { btn.focus(); });
+    })();
+
+    /* ---- delivery rail: a stage opens its own evidence ---- */
+    qsa('.ed-railbtn[aria-controls]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var panel = document.getElementById(b.getAttribute('aria-controls'));
+        var open = b.getAttribute('aria-expanded') === 'true';
+        b.setAttribute('aria-expanded', String(!open));
+        if (panel) panel.hidden = open;
+        if (!open) track('delivery_stage_interact', { stage: b.getAttribute('aria-controls') });
+      });
+    });
+
+    /* ---- returning-user summary ----
+       Counted in this browser against this browser's own last visit. A first
+       visit says so rather than manufacturing a return state. */
+    (function returning() {
+      var head = $('returnHead'), sub = $('returnSub'), cta = $('returnCta'), box = $('returnSummary');
+      if (!head || !box) return;
       var idx = CFG.signalIndex || [];
-      var listEl = $('sinceList'), emptyEl = $('sinceEmpty'), whenEl = $('sinceWhen');
-      if (!listEl) return;
 
       if (!SINCE) {
-        // No previous visit. Say so rather than printing zeros, which would read
-        // as "nothing happened" instead of "we have nothing to compare against".
-        listEl.hidden = true;
-        if (emptyEl) emptyEl.hidden = false;
-        if (whenEl) whenEl.textContent = 'First visit';
+        head.textContent = 'Welcome to T2C';
+        if (sub) {
+          sub.textContent = 'This is your first visit, so there is nothing to compare against yet. ' +
+            'Come back and this panel will list only what changed while you were away.';
+        }
+        if (cta) cta.textContent = 'Open the full ledger →';
         return;
       }
 
       var cut = String(SINCE).slice(0, 10);
-      var counts = {};
-      idx.forEach(function (r) { if (r.at >= cut) counts[r.c] = (counts[r.c] || 0) + 1; });
+      var since = idx.filter(function (r) { return r.at >= cut; });
 
-      var shown = 0;
-      qsa('#sinceList .srow').forEach(function (row) {
-        var n = counts[row.getAttribute('data-cat')] || 0;
-        row.querySelector('[data-count]').textContent = String(n);
-        row.hidden = n === 0;
-        if (n) shown++;
-      });
-
-      listEl.hidden = shown === 0;
-      if (emptyEl) {
-        emptyEl.hidden = shown > 0;
-        if (!shown) emptyEl.textContent = 'Nothing new since your last visit.';
+      if (!since.length) {
+        box.classList.add('is-caughtup');
+        head.textContent = "You're caught up";
+        if (sub) sub.textContent = 'No verified delivery records have changed since your last review.';
+        if (cta) { cta.textContent = 'Open the full ledger →'; cta.href = '/intelligence/'; }
+        return;
       }
-      if (whenEl) {
-        var d = new Date(SINCE);
-        whenEl.textContent = isNaN(d) ? 'Since your last visit'
-          : 'Since ' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+
+      // Forward, back, or evidence-only — the three shapes the copy deck names.
+      var FORWARD = ['advanced', 'contract'], BACK = ['slipped', 'reduced'];
+      var fwd = since.filter(function (r) { return FORWARD.indexOf(r.c) !== -1; }).length;
+      var back = since.filter(function (r) { return BACK.indexOf(r.c) !== -1; }).length;
+      var ev = since.length - fwd - back;
+
+      head.textContent = since.length + (since.length === 1
+        ? ' verified change while you were away' : ' verified changes while you were away');
+      if (sub) {
+        sub.textContent = fwd + ' moved forward · ' + back + ' moved back · ' +
+          ev + ' changed evidence only';
       }
     })();
 
-    /* ---- watchlist ----
-       Local to this browser. Nothing is sent anywhere, so there is no request to
-       fail; the optimistic update is simply the update. Writing is still guarded
-       because storage can be full or blocked, and a silent failure would leave
-       the star showing a state that will not survive a reload. */
-    (function watchlist() {
-      var list = $('watchList'), emptyEl = $('watchEmpty');
-      if (!list) return;
-      var watched = readWatch();
+    /* ---- audience lens ----
+       Changes the explanation only. No fact is filtered or recalculated. */
+    (function lens() {
+      var tabs = qsa('.ed-lenstab');
+      if (!tabs.length) return;
 
-      var paint = function () {
-        var any = watched.length > 0;
-        qsa('#watchList .wrow').forEach(function (row) {
-          var t = row.getAttribute('data-ticker');
-          var on = watched.indexOf(t) !== -1;
-          var btn = row.querySelector('[data-watch]');
-          btn.setAttribute('aria-pressed', String(on));
-          btn.firstElementChild.textContent = on ? '★' : '☆';
-          btn.setAttribute('aria-label', (on ? 'Stop watching ' : 'Watch ') + t);
-          // With nothing watched the panel shows everything tracked, which is
-          // more useful than an empty box on a first visit.
-          row.hidden = any && !on;
+      var select = function (id, focus) {
+        tabs.forEach(function (t) {
+          var on = t.getAttribute('data-lens') === id;
+          t.setAttribute('aria-selected', String(on));
+          t.setAttribute('tabindex', on ? '0' : '-1');
+          var panel = document.getElementById('lens-panel-' + t.getAttribute('data-lens'));
+          if (panel) panel.hidden = !on;
+          if (on && focus) t.focus();
         });
-        if (emptyEl) emptyEl.hidden = any;
+        track('audience_lens_select', { lens: id });
       };
 
-      list.addEventListener('click', function (e) {
-        var btn = e.target.closest ? e.target.closest('[data-watch]') : null;
-        if (!btn) return;
-        e.preventDefault();
-        var t = btn.getAttribute('data-watch');
-        var at = watched.indexOf(t);
-        var next = watched.slice();
-        if (at === -1) next.push(t); else next.splice(at, 1);
-
-        if (!writeWatch(next)) {
-          // Roll back rather than showing a star that will not survive a reload.
-          btn.setAttribute('aria-label', 'Could not save — storage unavailable');
-          return;
-        }
-        watched = next;
-        paint();
-        track('watchlist_changed', { watching: watched.length });
+      tabs.forEach(function (t, i) {
+        t.addEventListener('click', function () { select(t.getAttribute('data-lens'), false); });
+        // Arrow-key roving focus, as a tablist is expected to behave.
+        t.addEventListener('keydown', function (e) {
+          var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+          if (!d) return;
+          e.preventDefault();
+          select(tabs[(i + d + tabs.length) % tabs.length].getAttribute('data-lens'), true);
+        });
       });
-
-      paint();
     })();
 
+    /* ---- 60-second explainer ----
+       Never autoplays. Under reduced motion the states still change, just
+       without the transition. */
+    (function explainer() {
+      var steps = qsa('#explSteps .ed-step');
+      var start = $('explStart'), next = $('explNext'), status = $('explStatus');
+      if (!steps.length || !start) return;
+      var at = 0, started = false;
+
+      var paint = function () {
+        steps.forEach(function (s, i) {
+          s.classList.toggle('is-current', i === at);
+          s.classList.toggle('is-done', i < at);
+        });
+        if (status) {
+          status.textContent = 'Step ' + (at + 1) + ' of ' + steps.length + '. ' +
+            steps[at].querySelector('.ed-steptext').textContent;
+        }
+      };
+
+      start.addEventListener('click', function () {
+        started = true;
+        at = 0;
+        start.hidden = true;
+        if (next) next.hidden = false;
+        paint();
+        track('explainer_start', {});
+      });
+
+      if (next) {
+        next.addEventListener('click', function () {
+          if (at < steps.length - 1) {
+            at++;
+            paint();
+            if (at === steps.length - 1) {
+              next.textContent = 'Done';
+            }
+          } else {
+            next.hidden = true;
+            start.hidden = false;
+            start.textContent = 'Replay';
+            steps.forEach(function (s) { s.classList.add('is-done'); s.classList.remove('is-current'); });
+            if (status) status.textContent = 'Complete. Acceptance and billing are different stages.';
+            track('explainer_complete', {});
+          }
+        });
+      }
+    })();
+
+    qsa('.ed-project .ed-cta').forEach(function (a) {
+      a.addEventListener('click', function () {
+        track('project_card_open', { href: a.getAttribute('href') });
+      });
+    });
+  }
+
+  /* ============ infrastructure map (Sites) ============ */
+  if (ROUTE === 'sites') {
     /* ---- infrastructure map ---- */
     (function map() {
       var view = $('mapView'), img = $('mapImg'), car = $('mapVehicle');
@@ -744,33 +817,6 @@
         sync();
       };
       sync();
-    })();
-
-    /* ---- daily signal progress ---- */
-    (function progress() {
-      var nodes = qsa('#signalProgress .prognodes li');
-      var counter = $('progCount');
-      if (!nodes.length) return;
-      var reviewed = readReviewed();
-
-      var paint = function () {
-        var done = 0;
-        nodes.forEach(function (li) {
-          var a = li.querySelector('[data-node]');
-          var on = a && reviewed.indexOf(a.getAttribute('data-node')) !== -1;
-          li.classList.toggle('done', !!on);
-          if (on) done++;
-        });
-        // The first unreviewed node is where the reader is up to.
-        var next = nodes.filter(function (li) { return !li.classList.contains('done'); })[0];
-        nodes.forEach(function (li) { li.classList.remove('now'); });
-        if (next) next.classList.add('now');
-        if (counter) {
-          counter.textContent = nodes.length + (nodes.length === 1 ? ' signal · ' : ' signals · ') +
-            (done === nodes.length ? 'all reviewed' : done + ' reviewed');
-        }
-      };
-      paint();
     })();
   }
 

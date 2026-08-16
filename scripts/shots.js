@@ -40,7 +40,7 @@ const ROUTES = [
 
 const MIME = {
   '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json',
   '.xml': 'application/xml', '.txt': 'text/plain', '.webmanifest': 'application/manifest+json'
 };
 

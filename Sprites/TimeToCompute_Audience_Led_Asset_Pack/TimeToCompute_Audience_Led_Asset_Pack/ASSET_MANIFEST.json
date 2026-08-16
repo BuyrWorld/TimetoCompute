@@ -1,0 +1,98 @@
+{
+  "pack": "TimeToCompute audience-led editorial homepage",
+  "version": "1.0.0",
+  "generated": "2026-08-16",
+  "basePublicPath": "/assets/t2c/",
+  "rules": {
+    "bakedInText": false,
+    "bakedInLogos": false,
+    "primaryFiguresMustComeFromLiveData": true,
+    "generatedImagesAreIllustrative": true,
+    "defaultLoading": "lazy",
+    "heroLoading": "eager",
+    "defaultDecoding": "async"
+  },
+  "images": [
+    {
+      "id": "hero-ai-campus-dusk",
+      "role": "homepage hero",
+      "source": "public/assets/t2c/images/hero-ai-campus-dusk.png",
+      "responsiveWebp": [
+        "public/assets/t2c/images/hero-ai-campus-dusk-800.webp",
+        "public/assets/t2c/images/hero-ai-campus-dusk-1200.webp",
+        "public/assets/t2c/images/hero-ai-campus-dusk-1600.webp"
+      ],
+      "intrinsic": { "width": 1672, "height": 941 },
+      "objectPosition": "64% 50%",
+      "loading": "eager",
+      "fetchPriority": "high",
+      "alt": "Illustrative aerial view of a large modern data-centre campus at dusk",
+      "disclosure": "Illustrative image; not a photograph of the named project."
+    },
+    {
+      "id": "project-operational-campus",
+      "role": "operational or customer-accepted project card",
+      "source": "public/assets/t2c/images/project-operational-campus.png",
+      "responsiveWebp": [
+        "public/assets/t2c/images/project-operational-campus-800.webp",
+        "public/assets/t2c/images/project-operational-campus-1200.webp",
+        "public/assets/t2c/images/project-operational-campus-1600.webp"
+      ],
+      "intrinsic": { "width": 1672, "height": 941 },
+      "objectPosition": "62% 54%",
+      "alt": "Illustrative completed data-centre campus with electrical infrastructure at blue hour",
+      "disclosure": "Illustrative image; not site evidence."
+    },
+    {
+      "id": "project-construction-campus",
+      "role": "construction-stage project card",
+      "source": "public/assets/t2c/images/project-construction-campus.png",
+      "responsiveWebp": [
+        "public/assets/t2c/images/project-construction-campus-800.webp",
+        "public/assets/t2c/images/project-construction-campus-1200.webp",
+        "public/assets/t2c/images/project-construction-campus-1600.webp"
+      ],
+      "intrinsic": { "width": 1672, "height": 941 },
+      "objectPosition": "55% 52%",
+      "alt": "Illustrative aerial view of a large data-centre campus under construction",
+      "disclosure": "Illustrative image; not construction evidence for a named project."
+    },
+    {
+      "id": "project-power-community",
+      "role": "power and communities editorial card",
+      "source": "public/assets/t2c/images/project-power-community.png",
+      "responsiveWebp": [
+        "public/assets/t2c/images/project-power-community-800.webp",
+        "public/assets/t2c/images/project-power-community-1200.webp",
+        "public/assets/t2c/images/project-power-community-1600.webp"
+      ],
+      "intrinsic": { "width": 1672, "height": 941 },
+      "objectPosition": "50% 50%",
+      "alt": "Illustrative data-centre campus, electrical grid, renewable generation and nearby community",
+      "disclosure": "Illustrative context image; do not infer a named project's energy mix or local impact."
+    },
+    {
+      "id": "explainer-ai-datacentre-cutaway",
+      "role": "60-second explainer",
+      "source": "public/assets/t2c/images/explainer-ai-datacentre-cutaway.png",
+      "responsiveWebp": [
+        "public/assets/t2c/images/explainer-ai-datacentre-cutaway-800.webp",
+        "public/assets/t2c/images/explainer-ai-datacentre-cutaway-1200.webp",
+        "public/assets/t2c/images/explainer-ai-datacentre-cutaway-1600.webp"
+      ],
+      "intrinsic": { "width": 1672, "height": 941 },
+      "objectPosition": "50% 50%",
+      "alt": "Illustrative cutaway showing electricity, cooling, servers, networking and customer delivery in an AI data centre",
+      "disclosure": "Educational illustration; stages and architecture vary by project."
+    }
+  ],
+  "icons": [
+    "verified-shield.svg",
+    "power.svg",
+    "construction.svg",
+    "accepted.svg",
+    "billing.svg",
+    "watchlist.svg",
+    "evidence.svg"
+  ]
+}
