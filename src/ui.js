@@ -256,7 +256,7 @@ export function ledgerRow(e) {
   </article>`;
 }
 
-export function ledgerPanel(limit = null, { heading = 'Latest verified changes', filters = false } = {}) {
+export function ledgerPanel(limit = null, { heading = 'Latest verified changes', filters = false, id = null } = {}) {
   const rows = ledger({ limit });
   const all = ledger({});
   const body = rows.length
@@ -283,7 +283,7 @@ export function ledgerPanel(limit = null, { heading = 'Latest verified changes',
     <span class="fcount" id="ledCount" aria-live="polite">${rows.length} events</span>
   </div>` : '';
 
-  return `<section class="panel">
+  return `<section class="panel"${id ? ` id="${esc(id)}"` : ''}>
     <div class="ph"><h2>${esc(heading)}</h2><span class="meta">${all.length} verified events</span></div>
     ${filterBar}
     ${body}

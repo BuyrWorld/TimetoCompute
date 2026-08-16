@@ -164,8 +164,10 @@ ${whyDrawer(story)}
     </div>
   </section>
 
+  ${/* The explainer supplies its own visible <h2>; a hidden one repeating it
+        gave the page two identical headings. The section points its label at
+        the real one instead. */''}
   <section class="ed-section" id="evidence" aria-labelledby="expl-h">
-    <h2 class="vh" id="expl-h">How an AI data centre makes money</h2>
     ${explainer(EXPLAINER_STEPS, ASSET['explainer-ai-datacentre-cutaway'])}
   </section>
 </div>`;
@@ -384,7 +386,12 @@ export function researchBody(buildStamp) {
         <div class="scrollnote">Scroll sideways for all columns →</div>
         ${capacityTable()}`)}
 
-      ${section('ledger', 'Delivery ledger', '', ledgerPanel(null, { heading: 'Delivery ledger', filters: true }))}
+      ${/* These four panels are complete sections already: each carries its own
+            id, heading and meta. Wrapping them in section() declared the id and
+            printed the heading a second time, which made every anchor to them
+            ambiguous and the page read as duplicated. They are rendered
+            directly. */''}
+      ${ledgerPanel(null, { heading: 'Delivery ledger', filters: true, id: 'ledger' })}
 
       ${section('guidance', 'Guidance scorecard', 'Promised against delivered', deliveryRecordPanel())}
 
@@ -394,16 +401,16 @@ export function researchBody(buildStamp) {
         <p class="blocknote">Per-megawatt figures are <b>not comparable across business models</b>, so
           this table does not rank them.</p>`)}
 
-      ${section('geography', 'Delivery by country', 'Each basis in its own column', countryPanel())}
+      ${countryPanel()}
 
-      ${section('reconciliation', 'Why these differ from company headlines', '', reconciliationPanel())}
+      ${reconciliationPanel()}
 
       ${section('intelligence', 'Intelligence', '',
         `<div class="filters" id="newsFilters"></div><div id="newsHero"></div><div id="newsList"></div>`)}
 
       ${section('filings', 'SEC filings', '', `<div id="filingList"></div>`)}
 
-      ${section('data-health', 'Data health', '', dataHealthPanel(buildStamp))}
+      ${dataHealthPanel(buildStamp)}
     </div>
   </details>
 
@@ -730,7 +737,6 @@ export function explainersBody() {
   })}
 
   <section class="ed-section" id="lifecycle" aria-labelledby="expl-h">
-    <h2 class="vh" id="expl-h">How an AI data centre makes money</h2>
     ${explainer(EXPLAINER_STEPS, ASSET['explainer-ai-datacentre-cutaway'])}
   </section>
 

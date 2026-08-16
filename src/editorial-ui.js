@@ -353,7 +353,7 @@ export function explainer(steps, asset) {
     </div>
     <div class="ed-explbody">
       <p class="ed-eyebrow">60-second explainer</p>
-      <h2 class="ed-explh">How an AI data centre makes money</h2>
+      <h2 class="ed-explh" id="expl-h">How an AI data centre makes money</h2>
 
       <ol class="ed-steps" id="explSteps">
         ${steps.map((s, i) => `<li class="ed-step${i === 0 ? ' is-current' : ''}" data-step="${i}">

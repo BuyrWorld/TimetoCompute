@@ -14,7 +14,7 @@
     "//overflow": "samples the widths shots.js does not, and names the box that overflows rather than just reporting that one does",
     "overflow": "node scripts/overflow.js",
     "//verify": "build first: the shell tests read dist/, and build.js already gates itself on data validation",
-    "verify": "npm run build && npm run test && node scripts/audit.js",
+    "verify": "npm run build && npm run test && node scripts/audit.js && node scripts/anchors.js",
     "verify:visual": "npm run verify && npm run shots && npm run overflow && npm run interact"
   },
   "engines": {

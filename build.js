@@ -278,7 +278,7 @@ function footer() {
         <li><a href="/methodology/">Methodology</a></li>
         <li><a href="/methodology/#sources">Sources</a></li>
         <li><a href="/methodology/#corrections">Corrections</a></li>
-        <li><a href="/#data-health">Data health</a></li>
+        <li><a href="/research/#data-health">Data health</a></li>
       </ul></div>
       <div class="footcol"><h4>Companies</h4><ul>
         ${COMPANIES.map(c => `<li><a href="/companies/${esc(c.slug)}/">${esc(c.name)}</a></li>`).join('')}
@@ -1172,7 +1172,9 @@ function companyPage(c) {
     })()}
   </section>
 
-  <div id="story">${storybook(v)}</div>
+  ${/* storybook() already returns a <section id="story">; wrapping it in another
+        element with the same id made the anchor ambiguous. */''}
+  ${storybook(v)}
 
   <section class="panel" id="record">
     <div class="ph"><h2>Capacity record</h2><span class="meta">Every value with its evidence</span></div>
@@ -1294,7 +1296,7 @@ function companyPage(c) {
  */
 function watchOnlyPage(profile) {
   const body = `<div class="shell">
-  <p class="crumb"><a href="/">T2C</a> / <a href="/#companies">Companies</a> / ${esc(profile.tradingName)}</p>
+  <p class="crumb"><a href="/">T2C</a> / <a href="/companies/">Companies</a> / ${esc(profile.tradingName)}</p>
   <div class="chead">
     <div><h1>${esc(profile.tradingName)}</h1>
       <div class="tick">${esc(profile.ticker)}${profile.exchange ? ' · ' + esc(profile.exchange) : ''}</div></div>
@@ -1425,8 +1427,9 @@ function methodologyPage() {
       <b>"Horizon not stated"</b>. A target date is never manufactured by adding twelve months.</p>
     <p><b>Current availability.</b> The connected market-data plan grants a rating distribution but not
       price targets, per-firm rating actions or target history. T2C therefore does not display analyst
-      price targets at all, rather than showing an unattributed or placeholder figure. The
-      <a href="/#scenarios">Scenarios view</a> states this directly.</p>
+      price targets at all, rather than showing an unattributed or placeholder figure. Live provider
+      capability is reported on the <a href="/research/#data-health">data health panel</a>; there is no
+      analyst-target view to open, because there is no analyst-target data to show.</p>
 
     <h2 id="reactions">Historical catalyst reactions</h2>
     <p>Historical event reactions measure observed share-price movements around past announcements. They
