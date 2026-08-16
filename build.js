@@ -33,6 +33,7 @@ import {
 } from './src/pages.js';
 import { allSites } from './src/lib/sites.js';
 import { signals, todaySet } from './src/lib/signals.js';
+import { signalIndex } from './src/lib/today.js';
 import { LAB_COVERAGE, CONTRACT_ECONOMICS, CAPEX_REFERENCE, MODEL_DEFAULTS, ASSUMPTION_PROVENANCE } from './data/economics.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -295,7 +296,10 @@ ${footer()}
     tickers: WATCH_TICKERS, names: TICKER_NAMES, maxCompare: MAX_TICKERS, buildStamp: BUILD_STAMP,
     route: active, hashRoutes: HASH_ROUTES,
     labReady: Object.entries(LAB_COVERAGE).filter(([, v]) => v.ready).map(([k]) => k),
-    palette: paletteIndex()
+    palette: paletteIndex(),
+    // The whole ledger, compactly. The browser owns the "since last visit"
+    // comparison because only it knows when the last visit was.
+    signalIndex: active === 'today' ? signalIndex() : null
   })}</script>
 ${inlineData ? `<script>Object.assign(window, ${JSON.stringify(inlineData)});</script>` : ''}
 <script src="/app.js" defer></script>
@@ -1417,6 +1421,9 @@ fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
 // checkerboard baked into its pixels (it carries no alpha channel).
 fs.cpSync(path.join(ROOT, 'Sprites', 'datecenter', 'datacenterdrivableblack.png'),
   path.join(OUT, 'assets', 'campus.png'));
+// One delivery-vehicle sprite. It moves only in Live mode and only inside the map.
+fs.cpSync(path.join(ROOT, 'Sprites', 'teslasprite', 'T2C_EV_Vehicle_Pack_v1', 'sprites', 'ev-east.png'),
+  path.join(OUT, 'assets', 'vehicle.png'));
 
 const pageCount = fs.readdirSync(OUT, { recursive: true }).filter(f => String(f).endsWith('index.html')).length;
 console.log(`✓ built ${pageCount} pages + robots.txt + sitemap.xml (${(bytes / 1024).toFixed(0)} KB) → dist/`);

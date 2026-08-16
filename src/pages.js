@@ -11,7 +11,9 @@ import { COMPANIES, WATCH_TICKERS, TICKER_NAMES } from '../data/companies.js';
 import { PROFILES, PROFILE_BY_ID, PROFILE_BY_TICKER } from '../data/profiles.js';
 import { CATALYSTS } from '../data/catalysts.js';
 import { LAB_COVERAGE, CONTRACT_ECONOMICS, MODEL_DEFAULTS, CAPEX_REFERENCE, ASSUMPTION_PROVENANCE } from '../data/economics.js';
-import { aggregate, ledger, companySnapshots, briefing, companyView, deliveryRecord } from './lib/compute.js';
+import {
+  aggregate, ledger, companySnapshots, briefing, companyView, deliveryRecord, currentStage
+} from './lib/compute.js';
 import { esc, mw, pct, date, NOT_DISCLOSED, windowLabel } from './lib/format.js';
 import { MAX_TICKERS, tickerOptions } from './lib/compare.js';
 import { VOL_METHODOLOGY } from './lib/odds.js';
@@ -24,8 +26,10 @@ import { allSites, furthestStage, stageFilterOptions } from './lib/sites.js';
 import { signals, availableCategories, todaySet, toSignal, CATEGORIES } from './lib/signals.js';
 import {
   siteCard, pathTrack, statusLadder, dependencyGrid, replayTrack, confidenceFact,
-  signalList, signalFilters, siteContracts, nextMilestonePanel
+  signalList, signalFilters, siteContracts, nextMilestonePanel,
+  infrastructureMap, watchlistPanel, signalProgress
 } from './mission-ui.js';
+import { todaySignal, sinceCategories, watchCandidates } from './lib/today.js';
 
 /* ================= shared bits ================= */
 
@@ -56,60 +60,115 @@ const section =(id, title, meta, body, { plain = false } = {}) => `
 /* ================= / — Today ================= */
 
 export function todayBody() {
-  const b = briefing();
-  const lead = b.find(c => c.id === 'delivery' && c.available);
+  const t = todaySignal();
+  const sites = allSites();
+  const cats = sinceCategories();
+
+  // Watchlist rows carry what the panel needs before any client state is known,
+  // so the module is useful on a first visit rather than an empty box.
+  const watchRows = watchCandidates().map(c => {
+    const owned = sites.filter(s => s.project.companyId === c.id);
+    const withCapacity = owned.filter(s => s.capacityMw !== null);
+    const stage = currentStage(COMPANIES.find(x => x.id === c.id));
+    return {
+      ...c,
+      sitesLabel: owned.length
+        ? `${owned.length} ${owned.length === 1 ? 'site' : 'sites'}${withCapacity.length ? ` · ${withCapacity.length} disclose capacity` : ''}`
+        : 'No site-level record',
+      stageLabel: stage ? stage.short : 'Not evidenced'
+    };
+  });
+
+  // Sites are pinned most-evidenced first, so the map leads with real progress.
+  const pinOrder = [...sites].sort((a, b) =>
+    b.gateSummary.completeCount - a.gateSummary.completeCount ||
+    (b.capacityMw ?? -1) - (a.capacityMw ?? -1));
 
   return `
-<section class="hero">
-  <canvas id="flow" aria-hidden="true"></canvas>
-  <div class="shell heroin">
-    <div class="herocopy">
-      <h1>See which AI infrastructure companies are <u>actually delivering</u>.</h1>
-      <p class="herolede">Announced power is not working compute. T2C tracks the journey from secured
-        power to accepted, revenue-producing capacity — with the evidence attached to every figure.</p>
-      <div class="heroacts">
-        <a class="cta primary" href="/lab/">Open Edge Lab</a>
-        <a class="cta ghost" href="/compare/">Compare companies</a>
-      </div>
-    </div>
-    ${lead ? `<aside class="proof" aria-label="Latest verified proof">
-      <div class="proofkicker">Latest verified delivery</div>
-      <div class="proofco"><b>${esc(lead.ticker)}</b> ${esc(lead.company)}</div>
-      ${lead.figure ? `<div class="prooffig">${esc(lead.figure)}</div>` : ''}
-      <p class="proofsent">${esc(lead.sentence)}</p>
-      <div class="proofmeta">
-        <span class="asof">${esc(date(lead.dateLabel))}</span>
-        ${sourceChips(lead.sourceIds)}
-      </div>
-      <a class="prooflink" href="/companies/${esc(lead.slug)}/">Open ${esc(lead.ticker)} →</a>
-    </aside>` : ''}
-  </div>
-</section>
+<div class="shell mission">
+  <div class="mgrid">
 
-<div class="shell">
-  ${section('signal', 'The market in 30 seconds', 'Derived from sourced records', briefingCards())}
+    <section class="mpanel signalcard" id="todaysignal" aria-labelledby="tshead">
+      <div class="mhead">
+        <span class="mkicker">Today's signal</span>
+        ${t.at ? `<span class="mnote">${esc(date(t.at))}</span>` : ''}
+      </div>
+      ${t.available ? `
+        <h1 class="tshead" id="tshead"><b>${esc(t.headline.value)}</b> ${esc(t.headline.rest)}</h1>
+        <p class="tssent">${esc(t.sentence)}</p>
+        <div class="tsfoot">
+          <a class="cta primary press" href="/intelligence/?view=since-last-visit">
+            Show me what changed <span aria-hidden="true">→</span></a>
+          <div class="tsconf">
+            <span class="sitefactl">Evidence confidence</span>
+            <span class="sitefactv">${confidenceFact(t.confidence).value}</span>
+          </div>
+        </div>`
+        : `<h1 class="tshead" id="tshead">Nothing recorded yet</h1>
+           <p class="tssent">${esc(t.sentence)}</p>`}
+    </section>
+
+    <section class="mpanel" id="sincelast" aria-labelledby="slh">
+      <div class="mhead">
+        <span class="mkicker" id="slh">Since last visit</span>
+        <span class="mnote" id="sinceWhen">First visit</span>
+      </div>
+      <ul class="sincelist" id="sinceList">
+        ${cats.map(c => `<li class="srow" data-cat="${esc(c.id)}" hidden>
+          <a class="press srowlink" href="/intelligence/?change=${esc(c.id)}">
+            <span class="srowglyph ${esc(c.tone)}" aria-hidden="true">${esc(c.glyph)}</span>
+            <span class="srowcount" data-count>0</span>
+            <span class="srowlabel">${esc(c.label.toLowerCase())}</span>
+            <span class="srowgo" aria-hidden="true">›</span>
+          </a>
+        </li>`).join('')}
+      </ul>
+      <p class="mnote" id="sinceEmpty">Your first visit — nothing to compare against yet. Come back and
+        this panel will list only what changed while you were away.</p>
+      <a class="cta ghost press wall" href="/intelligence/">Open the full ledger →</a>
+    </section>
+
+    <section class="mpanel flush mapcard" id="infrastructure" aria-labelledby="imh">
+      <div class="mhead mappad">
+        <span class="mkicker" id="imh">Infrastructure map</span>
+        <a class="mnote press" href="/sites/">All ${sites.length} sites →</a>
+      </div>
+      ${infrastructureMap(pinOrder)}
+    </section>
+
+    <section class="mpanel" id="watchlist" aria-labelledby="wlh">
+      <div class="mhead">
+        <span class="mkicker" id="wlh">Your watchlist</span>
+        <span class="mnote secondary">Stored in this browser</span>
+      </div>
+      ${watchlistPanel(watchRows)}
+    </section>
+  </div>
+
+  <section class="mpanel progcard" aria-labelledby="dsp">
+    <span class="vh" id="dsp">Daily signal progress</span>
+    ${signalProgress(t.signals)}
+  </section>
 
   ${section('delivering', 'Who is delivering',
     `${COMPANIES.length} tracked companies`,
     `<p class="blocklede">Each card leads with capacity actually switched on, not power controlled on
       paper. Add up to ${MAX_TICKERS} to a comparison.</p>
      ${snapshotCards()}
-     <div class="blockacts"><a class="cta ghost" href="/companies/">All companies and filters →</a></div>`)}
+     <div class="blockacts"><a class="cta ghost press" href="/companies/">All companies and filters →</a></div>`)}
 
-  ${section('difference', 'Announced power is not working compute', 'Why the distinction matters',
-    `<p class="blocklede">A gigawatt of secured power and a gigawatt of invoicing compute are separated
-      by construction, energisation, a signed customer, formal acceptance and a billing start. Most
-      coverage collapses them into one number. T2C does not.</p>
-     ${valueTypeKey()}`)}
+  <div class="secondary">
+    ${section('difference', 'Announced power is not working compute', 'Why the distinction matters',
+      `<p class="blocklede">A gigawatt of secured power and a gigawatt of invoicing compute are separated
+        by construction, energisation, a signed customer, formal acceptance and a billing start. Most
+        coverage collapses them into one number. T2C does not.</p>
+       ${valueTypeKey()}`)}
 
-  ${section('aggregate', 'What the whole tracked set adds up to', 'Confirmed disclosure only',
-    `${kpiCards()}
-     <p class="blocknote">Contributor sets differ between these measures, so they are not stages of one
-      funnel and are never subtracted from one another. Each states its own basis and coverage.</p>`)}
-
-  ${section('changes', 'Latest verified changes', '',
-    `${ledgerPanel(4, { heading: 'Latest verified changes' })}
-     <div class="blockacts"><a class="cta ghost" href="/research/#ledger">Full delivery ledger →</a></div>`)}
+    ${section('aggregate', 'What the whole tracked set adds up to', 'Confirmed disclosure only',
+      `${kpiCards()}
+       <p class="blocknote">Contributor sets differ between these measures, so they are not stages of one
+        funnel and are never subtracted from one another. Each states its own basis and coverage.</p>`)}
+  </div>
 </div>`;
 }
 

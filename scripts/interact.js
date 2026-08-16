@@ -245,6 +245,112 @@ const run = async () => {
     focusTrail.length === 15 && !focusTrail.includes('BODY'),
     `${walk.start} → ${focusTrail.join(',')}`);
 
+  /* ---- Mission Control homepage ---- */
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+
+  const headline = await page.$eval('h1.tshead', el => el.textContent.trim());
+  check('the homepage leads with a real figure from the ledger',
+    /\d/.test(headline) && headline.length > 6, headline);
+
+  // First visit: nothing to compare against, and the panel must say that rather
+  // than printing a row of zeros.
+  const firstVisit = await page.evaluate(() => ({
+    listHidden: document.getElementById('sinceList').hidden,
+    empty: document.getElementById('sinceEmpty').textContent.trim(),
+    when: document.getElementById('sinceWhen').textContent.trim()
+  }));
+  check('a first visit says so instead of showing zeros',
+    firstVisit.listHidden && /first visit/i.test(firstVisit.when), JSON.stringify(firstVisit));
+
+  // Now pretend the last visit predates the whole ledger and reload.
+  await page.evaluate(() => {
+    localStorage.setItem('t2c-last-visit', '2020-01-01T00:00:00.000Z');
+    sessionStorage.removeItem('t2c-session-since');
+  });
+  await page.reload({ waitUntil: 'networkidle0' });
+  const sinceRows = await page.$$eval('#sinceList .srow', els =>
+    els.filter(e => !e.hidden).map(e => ({
+      cat: e.getAttribute('data-cat'),
+      n: Number(e.querySelector('[data-count]').textContent)
+    })));
+  check('since-last-visit counts real categories from the reader\'s own timestamp',
+    sinceRows.length > 0 && sinceRows.every(r => r.n > 0),
+    sinceRows.map(r => `${r.cat}:${r.n}`).join(' '));
+
+  const sinceHref = await page.$eval('#sinceList .srow:not([hidden]) .srowlink', el => el.getAttribute('href'));
+  check('a since-last-visit row routes to the matching filter',
+    /\/intelligence\/\?change=/.test(sinceHref), sinceHref);
+
+  // The comparison point must not move while the reader is still in the session.
+  const beforeNav = await page.evaluate(() => sessionStorage.getItem('t2c-session-since'));
+  await page.goto(base + '/companies/', { waitUntil: 'networkidle0' });
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  const afterNav = await page.evaluate(() => sessionStorage.getItem('t2c-session-since'));
+  const stillCounts = await page.$$eval('#sinceList .srow', els => els.filter(e => !e.hidden).length);
+  check('the comparison window survives moving between pages',
+    beforeNav === afterNav && stillCounts === sinceRows.length,
+    `${beforeNav} → ${afterNav}, ${stillCounts} rows`);
+
+  /* ---- watchlist ---- */
+  const allRows = await page.$$eval('#watchList .wrow', els => els.filter(e => !e.hidden).length);
+  check('an empty watchlist shows everything tracked rather than an empty box', allRows > 1, `${allRows}`);
+
+  await page.click('#watchList .wrow [data-watch]');
+  await new Promise(r => setTimeout(r, 200));
+  const afterWatch = await page.$$eval('#watchList .wrow', els => els.filter(e => !e.hidden).length);
+  const pressed = await page.$eval('#watchList .wrow [data-watch]', el => el.getAttribute('aria-pressed'));
+  check('watching a company narrows the list immediately',
+    afterWatch === 1 && pressed === 'true', `${afterWatch} shown, pressed=${pressed}`);
+
+  await page.reload({ waitUntil: 'networkidle0' });
+  const persistedWatch = await page.$$eval('#watchList .wrow', els => els.filter(e => !e.hidden).length);
+  check('the watchlist survives a reload', persistedWatch === 1, `${persistedWatch}`);
+
+  const watchPosts = [];
+  page.on('request', r => { if (r.method() !== 'GET') watchPosts.push(r.url()); });
+  await page.click('#watchList .wrow:not([hidden]) [data-watch]');
+  await new Promise(r => setTimeout(r, 200));
+  check('watching sends no request anywhere', watchPosts.length === 0, watchPosts.join(', '));
+
+  /* ---- map ---- */
+  const zoomBefore = await page.$eval('#mapImg', el => getComputedStyle(el).transform);
+  await page.click('#mapIn');
+  await new Promise(r => setTimeout(r, 320));
+  const zoomAfter = await page.$eval('#mapImg', el => getComputedStyle(el).transform);
+  check('the map zoom control actually zooms', zoomBefore !== zoomAfter, `${zoomBefore} → ${zoomAfter}`);
+
+  await page.click('#mapReset');
+  await new Promise(r => setTimeout(r, 320));
+  // The untouched map computes to "none"; after a reset it is the identity
+  // matrix. Both mean scale 1, so compare the meaning rather than the string.
+  const zoomReset = await page.$eval('#mapImg', el => getComputedStyle(el).transform);
+  const isIdentity = zoomReset === 'none' || /^matrix\(1,\s*0,\s*0,\s*1,\s*0,\s*0\)$/.test(zoomReset);
+  check('the map recentre control restores the view', isIdentity, zoomReset);
+
+  const hotHref = await page.$eval('#mapView .hot', el => el.getAttribute('href'));
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle0' }),
+    page.click('#mapView .hot')
+  ]);
+  check('a map hotspot opens its site and not the Sites explorer',
+    page.url().endsWith(hotHref), `${page.url()} vs ${hotHref}`);
+
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle0' }),
+    page.click('#mapView .mapsurface')
+  ]);
+  check('the map surface opens the Sites explorer', page.url().endsWith('/sites/'), page.url());
+
+  /* ---- signal progress ---- */
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  const progText = await page.$eval('#progCount', el => el.textContent.trim());
+  check('signal progress states a finite reviewed count',
+    /\d+\s+signals?\s+·\s+(\d+ reviewed|all reviewed)/.test(progText), progText);
+
+  const nodeHref = await page.$eval('.pnodebtn', el => el.getAttribute('href'));
+  check('a progress node opens its own signal', /\/intelligence\/#/.test(nodeHref), nodeHref);
+
   /* ---- click-glow behaves for pointer, Enter and Space alike ---- */
   await page.goto(base + '/', { waitUntil: 'networkidle0' });
 

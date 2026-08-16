@@ -130,11 +130,63 @@ test('every legacy hash maps to a route that exists', () => {
   }
 });
 
-test('the marketing hero appears on the homepage and nowhere else', () => {
-  assert.ok(read('index.html').includes('class="hero"'));
-  for (const r of ROUTES.slice(1)) {
-    assert.ok(!read(r).includes('class="hero"'), `${r} repeats the homepage hero`);
+test('no page ships a marketing hero', () => {
+  // Today is a tool, not a landing page. The homepage leads with the day's
+  // signal; the old hero is gone from every route including the homepage.
+  for (const r of ROUTES) {
+    assert.ok(!read(r).includes('class="hero"'), `${r} still ships the marketing hero`);
   }
+});
+
+test('the homepage leads with the day’s signal, not a slogan', () => {
+  const html = read('index.html');
+  const h1 = html.match(/<h1 class="tshead"[^>]*>([\s\S]*?)<\/h1>/);
+  assert.ok(h1, 'the homepage h1 is not the signal headline');
+  assert.ok(/<b>[^<]+<\/b>/.test(h1[1]), 'the headline has no leading figure');
+  assert.ok(html.includes('href="/intelligence/?view=since-last-visit"'),
+    'the homepage has no "show me what changed" destination');
+});
+
+test('every Mission Control module is present and points somewhere real', () => {
+  const html = read('index.html');
+  for (const id of ['todaysignal', 'sincelast', 'infrastructure', 'watchlist', 'signalProgress']) {
+    assert.ok(html.includes(`id="${id}"`), `the homepage is missing the ${id} module`);
+  }
+  // Every homepage href must resolve to a built route.
+  const hrefs = [...html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]);
+  for (const h of new Set(hrefs)) {
+    const file = h === '/' ? 'index.html' : h.replace(/^\//, '') + (h.endsWith('/') ? 'index.html' : '');
+    if (/\.(png|svg|css|js|xml|txt)$/.test(h)) continue;
+    assert.ok(exists(file), `the homepage links to ${h}, which was not built`);
+  }
+});
+
+test('the map is schematic and says so', () => {
+  const html = read('index.html');
+  assert.ok(/class="mapnote"/.test(html), 'the map carries no explanation');
+  assert.ok(/not geographic/i.test(html),
+    'the map does not disclaim that its positions are not geographic');
+  // Every hotspot opens a real site.
+  const hots = [...html.matchAll(/class="hot press[^"]*" href="(\/sites\/[^"]+)"/g)].map(m => m[1]);
+  assert.ok(hots.length > 0, 'the map has no hotspots');
+  for (const h of hots) {
+    assert.ok(exists(h.replace(/^\//, '') + 'index.html'), `hotspot points at unbuilt ${h}`);
+  }
+  // Every hotspot names itself for assistive technology, not by position alone.
+  const labelled = [...html.matchAll(/class="hot press[^"]*"[\s\S]{0,220}?aria-label="([^"]+)"/g)];
+  assert.equal(labelled.length, hots.length, 'a hotspot has no accessible name');
+});
+
+test('the map surface cannot steal a hotspot click', () => {
+  const html = read('index.html');
+  // The full-surface link must precede the hotspots in source order and must not
+  // wrap them — a nested link would fire both destinations.
+  const surface = html.indexOf('class="mapsurface"');
+  const firstHot = html.indexOf('class="hot press');
+  assert.ok(surface > -1 && firstHot > -1, 'the map is missing its surface or hotspots');
+  assert.ok(surface < firstHot, 'the map surface is drawn over the hotspots');
+  assert.ok(/<a class="mapsurface"[^>]*><\/a>/.test(html),
+    'the map surface is not an empty link — a hotspot may be nested inside it');
 });
 
 /* ================= document structure ================= */

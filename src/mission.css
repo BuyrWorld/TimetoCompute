@@ -495,7 +495,205 @@ html[data-mode="focus"] .secondary { display: none; }
 @media (max-width: 900px) { .paltrigger .paltxt { display: none; } }
 
 /* ============================================================
-   9. Active route — an underline, not a filled chip
+   9. Mission Control — the Today grid
+   ============================================================
+   Three dominant regions: the signal, the map, and the day's progress.
+   Everything else is deliberately quieter. */
+
+.mission { padding-top: var(--s3); }
+
+.mgrid {
+  display: grid; gap: var(--s2); align-items: start;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 1000px) {
+  .mgrid { grid-template-columns: minmax(0, 1.85fr) minmax(320px, 1fr); }
+}
+
+.signalcard { display: flex; flex-direction: column; justify-content: center; min-height: 260px; }
+.tshead {
+  font-size: clamp(30px, 5.2vw, 60px); line-height: 1.02; letter-spacing: -.03em;
+  margin: var(--s1) 0 0; font-weight: 800;
+}
+.tshead b { color: var(--brand); font-weight: 800; }
+.tssent {
+  font-size: clamp(15px, 1.5vw, 19px); color: var(--soft); margin: var(--s2) 0 0;
+  padding-top: var(--s2); border-top: 1px solid var(--line-2); max-width: 62ch;
+}
+.tsfoot {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--s2); margin-top: var(--s3);
+}
+.tsconf { text-align: right; }
+.tsconf .sitefactl { display: block; margin-bottom: 3px; }
+
+/* since last visit */
+.sincelist { list-style: none; margin: 0; padding: 0; }
+.srow + .srow { border-top: 1px solid var(--line-2); }
+.srow[hidden] { display: none; }
+.srowlink {
+  display: flex; align-items: center; gap: var(--s2); min-height: 56px;
+  padding: 0 var(--s1); text-decoration: none; color: inherit;
+}
+.srowglyph {
+  display: grid; place-items: center; width: 34px; height: 34px; flex: none;
+  border-radius: 50%; border: 1px solid var(--line); font-size: 15px; color: var(--dim);
+}
+.srowglyph.ok { border-color: rgba(214, 255, 0, .5); color: var(--brand); }
+.srowglyph.bad { border-color: rgba(209, 69, 69, .5); color: var(--bad); }
+.srowglyph.warn { border-color: rgba(196, 132, 0, .5); color: var(--warn); }
+.srowcount {
+  font-family: var(--m-mono); font-size: 22px; font-weight: 700; color: var(--ink);
+  min-width: 1.4em; text-align: right;
+}
+.srowlabel { flex: 1; font-size: 14.5px; color: var(--soft); }
+.srowgo { color: var(--dim); font-size: 19px; }
+.wall { display: block; text-align: center; margin-top: var(--s2); }
+
+/* ---- infrastructure map ---- */
+.mapcard { display: flex; flex-direction: column; }
+.mappad { padding: var(--s3) var(--s3) 0; margin-bottom: var(--s2); }
+.map { position: relative; }
+.mapview {
+  position: relative; overflow: hidden; background: #050607;
+  aspect-ratio: 3 / 2;   /* fixed, so nothing shifts while the image loads */
+}
+.mapimg {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  transform-origin: center; transition: transform .28s ease;
+}
+@media (prefers-reduced-motion: reduce) { .mapimg { transition: none; } }
+
+/* The surface sits under the hotspots, so a hotspot click never fires both. */
+.mapsurface { position: absolute; inset: 0; z-index: 1; }
+
+.hot {
+  position: absolute; z-index: 2; transform: translate(-50%, -50%);
+  display: block; padding: 6px; border-radius: var(--m-radius-sm); text-decoration: none;
+}
+.hotdot {
+  display: block; width: 12px; height: 12px; margin: 0 auto; border-radius: 50%;
+  background: var(--brand); box-shadow: 0 0 0 4px rgba(214, 255, 0, .18), 0 0 12px rgba(214, 255, 0, .6);
+}
+/* Labels are always drawn, as in the reference — a bare dot tells the reader
+   nothing, and hiding the name behind hover is useless on a touch screen.
+   They sit to one side of the pin so four pins do not collide. */
+.hotcard {
+  position: absolute; bottom: calc(100% + 8px);
+  min-width: 128px; padding: 7px 9px; border-radius: 8px;
+  background: rgba(8, 10, 9, .9); border: 1px solid rgba(214, 255, 0, .3);
+  pointer-events: none; transition: border-color .16s ease;
+  backdrop-filter: blur(3px);
+}
+.hot-left .hotcard { right: 50%; margin-right: 6px; }
+.hot-right .hotcard { left: 50%; margin-left: 6px; }
+.hot:hover .hotcard, .hot:focus-visible .hotcard { border-color: var(--brand); }
+@media (max-width: 560px) { .hotcard { min-width: 0; padding: 5px 7px; } }
+.hotname {
+  display: block; font-size: 12px; font-weight: 800; color: var(--ink); white-space: nowrap;
+}
+.hotcap {
+  display: block; font-family: var(--m-mono); font-size: 15px; font-weight: 700; color: var(--brand);
+}
+.hotstage {
+  display: block; font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim);
+}
+
+.vehicle {
+  position: absolute; z-index: 2; width: 26px; height: 34px;
+  background: url('/assets/vehicle.png') center/contain no-repeat;
+  filter: drop-shadow(0 0 6px rgba(214, 255, 0, .5));
+  pointer-events: none;
+}
+
+.mapctl {
+  position: absolute; left: var(--s2); bottom: var(--s2); z-index: 3;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.mapbtn {
+  width: 44px; height: 44px; border-radius: 8px; cursor: pointer;
+  background: rgba(8, 10, 9, .82); border: 1px solid var(--line);
+  color: var(--ink); font-size: 17px; line-height: 1;
+}
+.mapbtn:hover { border-color: rgba(214, 255, 0, .5); }
+.mapnote {
+  font-size: 11.5px; color: var(--dim); line-height: 1.5;
+  margin: 0; padding: var(--s2) var(--s3) var(--s3);
+}
+
+/* ---- watchlist ---- */
+.watchlist { list-style: none; margin: 0; padding: 0; }
+.wrow { display: flex; align-items: stretch; gap: 4px; }
+.wrow + .wrow { border-top: 1px solid var(--line-2); }
+.wrow[hidden] { display: none; }
+.wmain {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--s2);
+  min-height: 62px; padding: 0 var(--s1); text-decoration: none; color: inherit;
+}
+.wtick {
+  flex: none; display: grid; place-items: center; width: 52px; height: 40px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--m-panel-2);
+  font-family: var(--m-mono); font-size: 12px; font-weight: 700; color: var(--brand);
+}
+.wbody { flex: 1; min-width: 0; }
+.wname { display: block; font-size: 14.5px; font-weight: 700; }
+.wmeta { display: block; font-size: 12px; color: var(--dim); }
+.wstage {
+  flex: none; font-family: var(--m-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--soft); text-align: right;
+}
+.wbtn {
+  flex: none; width: 44px; border: 0; background: none; cursor: pointer;
+  color: var(--dim); font-size: 19px; border-radius: 8px;
+}
+.wbtn[aria-pressed="true"] { color: var(--brand); }
+.watchempty { font-size: 13px; color: var(--dim); padding: var(--s2) var(--s1); margin: 0; }
+
+/* ---- daily signal progress ---- */
+.progcard { margin-top: var(--s2); }
+.prog { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }
+.proghead { display: flex; align-items: center; gap: var(--s2); flex: none; }
+.progglyph {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid rgba(214, 255, 0, .45); color: var(--brand); font-size: 17px;
+}
+.progcount {
+  font-family: var(--m-mono); font-size: 13px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--soft);
+}
+.prognodes {
+  flex: 1; min-width: 180px; list-style: none; margin: 0; padding: 0;
+  display: flex; align-items: center; gap: 0; overflow-x: auto;
+}
+.prognodes li { position: relative; flex: 1 0 44px; display: grid; place-items: center; }
+.prognodes li::before {
+  content: ''; position: absolute; top: 50%; left: -50%; width: 100%; height: 2px;
+  background: var(--surface-3);
+}
+.prognodes li:first-child::before { display: none; }
+.prognodes li.done::before { background: var(--brand); }
+.pnodebtn {
+  position: relative; z-index: 1; display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid var(--surface-3); background: var(--bg);
+  color: var(--dim); font-family: var(--m-mono); font-size: 12px; text-decoration: none;
+}
+.prognodes li.done .pnodebtn { border-color: var(--brand); color: var(--brand); }
+.prognodes li.now .pnodebtn {
+  border-color: var(--brand); color: var(--brand);
+  box-shadow: 0 0 0 4px var(--m-lime-soft);
+}
+
+@media (max-width: 640px) {
+  .prog { gap: var(--s2); }
+  .prog .cta { width: 100%; text-align: center; }
+  .tsfoot { flex-direction: column; align-items: stretch; }
+  .tsconf { text-align: left; }
+}
+
+/* ============================================================
+   10. Active route — an underline, not a filled chip
    ============================================================
    The reference marks the current destination with a lime underline. A filled
    block reads as a button and competes with the one primary action. */
@@ -520,7 +718,7 @@ html[data-mode="focus"] .secondary { display: none; }
 .bottomnav .bnav.is-active { box-shadow: inset 0 2px 0 var(--brand); }
 
 /* ============================================================
-   10. The shell on small screens
+   11. The shell on small screens
    ============================================================
    The header gained a palette trigger and a Live/Focus toggle. Below the
    breakpoint where the primary nav moves to the bottom bar, the brand takes the

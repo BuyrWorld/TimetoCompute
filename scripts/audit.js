@@ -120,12 +120,13 @@ for (const [pageName, html] of [['home', home], ['lab', lab], ['research', resea
   if (current < 1) fail(`${pageName}: no nav item marked aria-current`);
 }
 
-// the marketing hero belongs to the homepage only
-for (const [pageName, html] of [['lab', lab], ['research', research], ['companies', companiesPg], ['compare', comparePg]]) {
-  if (/class="hero"/.test(html)) fail(`${pageName}: repeats the marketing hero — internal tools must start at the top`);
+// No page carries a marketing hero — Today leads with the day's signal.
+for (const [pageName, html] of [['home', home], ['lab', lab], ['research', research],
+  ['companies', companiesPg], ['compare', comparePg]]) {
+  if (/class="hero"/.test(html)) fail(`${pageName}: ships a marketing hero — every route starts with the tool`);
   if (/class="tapein"/.test(html)) fail(`${pageName}: repeats the ticker tape`);
 }
-if (!/class="hero"/.test(home)) fail('the homepage lost its hero');
+if (!/id="todaysignal"/.test(home)) fail('the homepage lost its Today signal module');
 
 // mode switchers keep proper tab semantics
 if (!/role="tablist"/.test(lab)) fail('Edge Lab mode switcher is not a tablist');

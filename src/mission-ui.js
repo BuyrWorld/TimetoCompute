@@ -53,9 +53,12 @@ export function confidenceFact(evidence) {
       label: 'Evidence confidence · fewer than two gates reported'
     };
   }
+  // showLabel is off: the level word is already the value beside the bar, and
+  // printing it twice reads as "High HIGH CONFIDENCE".
   const bar = meter(evidence.share * 6, 6, {
     tone: confidenceTone(evidence.level),
-    label: `${evidence.label} confidence`
+    showLabel: false,
+    label: `${evidence.label} confidence — ${evidence.confirmed} of ${evidence.total} confirmed`
   });
   return {
     value: `<span class="conflevel ${esc(evidence.level)}">${esc(evidence.label)}</span> ${bar}`,
@@ -257,6 +260,111 @@ export function siteContracts(contracts) {
         <span class="depstatus">${c.mw ? esc(mw(c.mw)) : NOT_DISCLOSED}${c.valueBn ? ` · ${esc(usdBn(c.valueBn))}` : ''}${c.years ? ` · ${esc(c.years)}-year term` : ''}</span>
       </span>
     </div>`).join('') + `</div>`;
+}
+
+/* ================= Mission Control homepage ================= */
+
+/**
+ * Hotspot anchor points over the campus illustration.
+ *
+ * These are positions on a drawing, not coordinates. The data carries no
+ * latitude or longitude for any site, so the map is explicitly schematic and
+ * says so on the page. Anchors are named after what they sit on in the artwork
+ * so the pairing stays stable if the list of sites changes.
+ */
+const CAMPUS_ANCHORS = [
+  { id: 'hall-b', x: 55, y: 22, place: 'right' },
+  { id: 'hall-a', x: 32, y: 40, place: 'left' },
+  { id: 'hall-c', x: 72, y: 45, place: 'right' },
+  { id: 'substation', x: 24, y: 62, place: 'left' }
+];
+
+/**
+ * The infrastructure map.
+ *
+ * Every hotspot is a real site and navigates to it. The surface behind them is a
+ * link to the Sites explorer, placed underneath rather than wrapping the
+ * hotspots, so a hotspot click can never trigger both.
+ */
+export function infrastructureMap(sites) {
+  const pinned = sites.slice(0, CAMPUS_ANCHORS.length);
+
+  const hotspots = pinned.map((s, i) => {
+    const a = CAMPUS_ANCHORS[i];
+    const stage = furthestStage(s);
+    return `<a class="hot press hot-${esc(a.place)}" href="/sites/${esc(s.slug)}/"
+        style="left:${a.x}%;top:${a.y}%"
+        data-site="${esc(s.slug)}"
+        aria-label="${esc(`${s.name}, ${s.ticker || s.companyName} — ${stage ? stage.label : 'no stage evidenced'}`)}">
+      <span class="hotdot" aria-hidden="true"></span>
+      <span class="hotcard">
+        <span class="hotname">${esc(s.name)}</span>
+        <span class="hotcap">${s.capacityMw === null ? NOT_DISCLOSED : esc(mw(s.capacityMw))}</span>
+        <span class="hotstage">${esc(stage ? stage.label : 'No stage evidenced')}</span>
+      </span>
+    </a>`;
+  }).join('');
+
+  return `<div class="map" id="infraMap">
+    <div class="mapview" id="mapView">
+      <img class="mapimg" id="mapImg" src="/assets/campus.png" alt="" width="1536" height="1024" />
+      <a class="mapsurface" href="/sites/" aria-label="Open the Sites explorer"></a>
+      ${hotspots}
+      <span class="vehicle" id="mapVehicle" hidden aria-hidden="true"></span>
+
+      <div class="mapctl" role="group" aria-label="Map controls">
+        <button class="mapbtn press" type="button" id="mapIn" aria-label="Zoom in">+</button>
+        <button class="mapbtn press" type="button" id="mapOut" aria-label="Zoom out">−</button>
+        <button class="mapbtn press" type="button" id="mapReset" aria-label="Recentre the map">◎</button>
+      </div>
+    </div>
+
+    <p class="mapnote">Schematic. The illustration is generic campus artwork and the pin positions are
+      drawing coordinates — they are not geographic, and no tracked company publishes site coordinates.
+      Each pin opens the real site record behind it.</p>
+  </div>`;
+}
+
+/** The watchlist rows. Client state decides which are watched; the markup carries all of them. */
+export function watchlistPanel(rows) {
+  return `<ul class="watchlist" id="watchList">` + rows.map(r => `
+    <li class="wrow" data-ticker="${esc(r.ticker)}">
+      <a class="wmain press" href="/companies/${esc(r.slug)}/">
+        <span class="wtick">${esc(r.ticker)}</span>
+        <span class="wbody">
+          <span class="wname">${esc(r.name)}</span>
+          <span class="wmeta">${esc(r.sitesLabel)}</span>
+        </span>
+        <span class="wstage">${esc(r.stageLabel)}</span>
+      </a>
+      <button class="wbtn press" type="button" data-watch="${esc(r.ticker)}"
+        aria-pressed="false" aria-label="Watch ${esc(r.name)}">
+        <span aria-hidden="true">☆</span>
+      </button>
+    </li>`).join('') + `</ul>
+    <p class="watchempty" id="watchEmpty" hidden>You are not watching anything yet. Star a company to
+      pin it here.</p>
+    <a class="cta ghost press wall" href="/companies/?filter=watching">View all watchlist →</a>`;
+}
+
+/** Finite progress across the day's signals. Each node opens its own signal. */
+export function signalProgress(rows) {
+  return `<div class="prog" id="signalProgress">
+    <div class="proghead">
+      <span class="progglyph" aria-hidden="true">⚡</span>
+      <span class="progcount" id="progCount" aria-live="polite">${rows.length}
+        ${rows.length === 1 ? 'signal' : 'signals'} · 0 reviewed</span>
+    </div>
+    <ol class="prognodes" aria-label="Today's signals">
+      ${rows.map((s, i) => `<li>
+        <a class="pnodebtn press" href="/intelligence/#${esc(s.id)}" data-node="${esc(s.id)}"
+           aria-label="${esc(`Signal ${i + 1} of ${rows.length}: ${s.summary}`)}">
+          <span aria-hidden="true">${i + 1}</span>
+        </a>
+      </li>`).join('')}
+    </ol>
+    <a class="cta primary press" href="/intelligence/?view=today">View all signals →</a>
+  </div>`;
 }
 
 /** The guided window for the next milestone, printed as a window and never as a date. */

@@ -456,6 +456,198 @@
     }
   }
 
+  /* ============ reviewed signals ============
+     This reader's own progress through the ledger. It stays in this browser and
+     records an id and nothing else — not what the signal said, not when it was
+     read. Shared by Today's progress track and the Intelligence feed. */
+  var REVIEW_KEY = 't2c-reviewed';
+  var readReviewed = function () {
+    try { return JSON.parse(localStorage.getItem(REVIEW_KEY) || '[]'); } catch (e) { return []; }
+  };
+  var writeReviewed = function (list) {
+    try { localStorage.setItem(REVIEW_KEY, JSON.stringify(list.slice(-400))); } catch (e) {}
+  };
+
+  /* ============ Mission Control — Today ============ */
+  if (ROUTE === 'today') {
+
+    /* ---- since last visit ----
+       Counted in the browser, because only the browser knows when the last
+       visit was. A build-time count would show every reader the same number. */
+    (function since() {
+      var idx = CFG.signalIndex || [];
+      var listEl = $('sinceList'), emptyEl = $('sinceEmpty'), whenEl = $('sinceWhen');
+      if (!listEl) return;
+
+      if (!SINCE) {
+        // No previous visit. Say so rather than printing zeros, which would read
+        // as "nothing happened" instead of "we have nothing to compare against".
+        listEl.hidden = true;
+        if (emptyEl) emptyEl.hidden = false;
+        if (whenEl) whenEl.textContent = 'First visit';
+        return;
+      }
+
+      var cut = String(SINCE).slice(0, 10);
+      var counts = {};
+      idx.forEach(function (r) { if (r.at >= cut) counts[r.c] = (counts[r.c] || 0) + 1; });
+
+      var shown = 0;
+      qsa('#sinceList .srow').forEach(function (row) {
+        var n = counts[row.getAttribute('data-cat')] || 0;
+        row.querySelector('[data-count]').textContent = String(n);
+        row.hidden = n === 0;
+        if (n) shown++;
+      });
+
+      listEl.hidden = shown === 0;
+      if (emptyEl) {
+        emptyEl.hidden = shown > 0;
+        if (!shown) emptyEl.textContent = 'Nothing new since your last visit.';
+      }
+      if (whenEl) {
+        var d = new Date(SINCE);
+        whenEl.textContent = isNaN(d) ? 'Since your last visit'
+          : 'Since ' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+      }
+    })();
+
+    /* ---- watchlist ----
+       Local to this browser. Nothing is sent anywhere, so there is no request to
+       fail; the optimistic update is simply the update. Writing is still guarded
+       because storage can be full or blocked, and a silent failure would leave
+       the star showing a state that will not survive a reload. */
+    (function watchlist() {
+      var KEY = 't2c-watch';
+      var list = $('watchList'), emptyEl = $('watchEmpty');
+      if (!list) return;
+
+      var read = function () {
+        try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; }
+      };
+      var write = function (v) {
+        try { localStorage.setItem(KEY, JSON.stringify(v)); return true; } catch (e) { return false; }
+      };
+      var watched = read();
+
+      var paint = function () {
+        var any = watched.length > 0;
+        qsa('#watchList .wrow').forEach(function (row) {
+          var t = row.getAttribute('data-ticker');
+          var on = watched.indexOf(t) !== -1;
+          var btn = row.querySelector('[data-watch]');
+          btn.setAttribute('aria-pressed', String(on));
+          btn.firstElementChild.textContent = on ? '★' : '☆';
+          btn.setAttribute('aria-label', (on ? 'Stop watching ' : 'Watch ') + t);
+          // With nothing watched the panel shows everything tracked, which is
+          // more useful than an empty box on a first visit.
+          row.hidden = any && !on;
+        });
+        if (emptyEl) emptyEl.hidden = any;
+      };
+
+      list.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('[data-watch]') : null;
+        if (!btn) return;
+        e.preventDefault();
+        var t = btn.getAttribute('data-watch');
+        var at = watched.indexOf(t);
+        var next = watched.slice();
+        if (at === -1) next.push(t); else next.splice(at, 1);
+
+        if (!write(next)) {
+          // Roll back rather than showing a star that will not survive a reload.
+          btn.setAttribute('aria-label', 'Could not save — storage unavailable');
+          return;
+        }
+        watched = next;
+        paint();
+        track('watchlist_changed', { watching: watched.length });
+      });
+
+      paint();
+    })();
+
+    /* ---- infrastructure map ---- */
+    (function map() {
+      var view = $('mapView'), img = $('mapImg'), car = $('mapVehicle');
+      if (!view || !img) return;
+
+      var zoom = 1;
+      var apply = function () {
+        img.style.transform = 'scale(' + zoom + ')';
+        qsa('#mapView .hot').forEach(function (h) {
+          h.style.transform = 'translate(-50%,-50%) scale(' + (1 / Math.max(1, zoom * 0.72)) + ')';
+        });
+      };
+      var setZoom = function (z) { zoom = Math.min(2.4, Math.max(1, z)); apply(); };
+
+      var zin = $('mapIn'), zout = $('mapOut'), zres = $('mapReset');
+      if (zin) zin.addEventListener('click', function () { setZoom(zoom + 0.3); });
+      if (zout) zout.addEventListener('click', function () { setZoom(zoom - 0.3); });
+      if (zres) zres.addEventListener('click', function () { setZoom(1); });
+
+      /* The one piece of decorative movement on the page, confined to the map
+         and to Live mode. It carries no meaning and is hidden from assistive
+         technology; a delivery vehicle we do not track must not look tracked. */
+      var raf = null, t0 = null;
+      var stop = function () {
+        if (raf) cancelAnimationFrame(raf);
+        raf = null;
+        if (car) car.hidden = true;
+      };
+      var start = function () {
+        if (!car || raf) return;
+        car.hidden = false;
+        t0 = performance.now();
+        var step = function (now) {
+          var p = ((now - t0) / 14000) % 1;
+          car.style.left = (8 + p * 78) + '%';
+          car.style.top = (84 - Math.sin(p * Math.PI) * 8) + '%';
+          raf = requestAnimationFrame(step);
+        };
+        raf = requestAnimationFrame(step);
+      };
+
+      var sync = function () {
+        if (motionAllowed()) start(); else stop();
+      };
+      var prevModeHook = window.__t2cModeChanged;
+      window.__t2cModeChanged = function (mode) {
+        if (prevModeHook) prevModeHook(mode);
+        sync();
+      };
+      sync();
+    })();
+
+    /* ---- daily signal progress ---- */
+    (function progress() {
+      var nodes = qsa('#signalProgress .prognodes li');
+      var counter = $('progCount');
+      if (!nodes.length) return;
+      var reviewed = readReviewed();
+
+      var paint = function () {
+        var done = 0;
+        nodes.forEach(function (li) {
+          var a = li.querySelector('[data-node]');
+          var on = a && reviewed.indexOf(a.getAttribute('data-node')) !== -1;
+          li.classList.toggle('done', !!on);
+          if (on) done++;
+        });
+        // The first unreviewed node is where the reader is up to.
+        var next = nodes.filter(function (li) { return !li.classList.contains('done'); })[0];
+        nodes.forEach(function (li) { li.classList.remove('now'); });
+        if (next) next.classList.add('now');
+        if (counter) {
+          counter.textContent = nodes.length + (nodes.length === 1 ? ' signal · ' : ' signals · ') +
+            (done === nodes.length ? 'all reviewed' : done + ' reviewed');
+        }
+      };
+      paint();
+    })();
+  }
+
   /* ============ sites directory ============ */
   if (ROUTE === 'sites') {
     var siteCards = qsa('#siteGrid .sitecard');
@@ -505,17 +697,7 @@
     })();
   }
 
-  /* ============ intelligence ============
-     Reviewed state is this reader's own and stays in this browser. It records an
-     id and nothing else — not what the signal said, not when it was read. */
-  var REVIEW_KEY = 't2c-reviewed';
-  var readReviewed = function () {
-    try { return JSON.parse(localStorage.getItem(REVIEW_KEY) || '[]'); } catch (e) { return []; }
-  };
-  var writeReviewed = function (list) {
-    try { localStorage.setItem(REVIEW_KEY, JSON.stringify(list.slice(-400))); } catch (e) {}
-  };
-
+  /* ============ intelligence ============ */
   if (ROUTE === 'intelligence') {
     var reviewed = readReviewed();
 
