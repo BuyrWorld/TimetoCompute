@@ -449,7 +449,7 @@ export function infrastructureMap(sites) {
 
     <p class="mapnote">Schematic. The illustration is generic campus artwork and the pin positions are
       drawing coordinates — they are not geographic, and no tracked company publishes site coordinates.
-      Each pin opens the real site record behind it.</p>
+      <span class="taphint">Tap a pin to open its site.</span> Each pin opens the real site record behind it.</p>
   </div>`;
 }
 
