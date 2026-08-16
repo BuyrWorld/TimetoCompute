@@ -2,27 +2,23 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "routes": [
+  "cleanUrls": false,
+  "headers": [
     {
-      "src": "/(.*)",
-      "headers": {
-        "X-Content-Type-Options": "nosniff",
-        "Referrer-Policy": "strict-origin-when-cross-origin",
-        "X-Frame-Options": "SAMEORIGIN"
-      },
-      "continue": true
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+      ]
     },
     {
-      "src": "/Logo/(.*)",
-      "headers": { "Cache-Control": "public, max-age=604800, immutable" },
-      "continue": true
+      "source": "/Logo/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800, immutable" }]
     },
     {
-      "src": "/assets/(.*)",
-      "headers": { "Cache-Control": "public, max-age=604800, immutable" },
-      "continue": true
-    },
-    { "handle": "filesystem" },
-    { "src": "/.*", "status": 404, "dest": "/404.html" }
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800, immutable" }]
+    }
   ]
 }
