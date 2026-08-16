@@ -11,7 +11,7 @@ import { PROFILE_BY_ID, PLATFORM_LABEL, chiefExecutives } from '../data/profiles
 import { companyTile, deliveryFunnel, businessModelDiagram, journeyStrip, footprintDots } from './lib/illustrations.js';
 import {
   companyView, headlineKpis, byCountry, ledger, aggregate, isKnown, gateSummary, dataHealth,
-  timeline, deliveryRecord, briefing, companySnapshots
+  timeline, deliveryRecord, briefing, companySnapshots, nextStage
 } from './lib/compute.js';
 import {
   esc, mw, mwWithStatus, pct, usdBn, date, hostOf, NOT_DISCLOSED, windowLabel, countdown, statusLabel, basisLabel
@@ -168,7 +168,11 @@ export function kpiCard(k) {
       <dt>As of</dt><dd>${k.asOfEarliest === k.asOfLatest ? esc(date(k.asOfLatest)) : `${esc(date(k.asOfEarliest))} – ${esc(date(k.asOfLatest))}`}</dd>
       <dt>Sourced</dt><dd>${pct(k.verifiedShare)} of the total is stated in a linked primary document</dd>
     </dl>
-    <a class="kpilink" href="#capacity">See the underlying records →</a>
+    <div class="covbar" role="img"
+      aria-label="${pct(k.verifiedShare)} of this total is backed by a linked primary document; ${k.contributorCount} of ${k.companyCount} companies contribute">
+      <i style="width:${(k.verifiedShare * 100).toFixed(1)}%"></i>
+    </div>
+    <a class="kpilink" href="/research/#capacity">See the underlying records →</a>
   </div>`;
 }
 
@@ -679,7 +683,25 @@ export function snapshotCards() {
     const when = next ? (next.expectedAt ? date(next.expectedAt)
       : windowLabel(next.expectedWindowStart, next.expectedWindowEnd)) : null;
 
-    return `<article class="snap" data-ticker="${esc(c.ticker)}">
+    // Sort keys. Every numeric sort in the client is descending, so anything where
+    // "sooner is better" is stored as a countdown rather than a date, and anything
+    // missing is stored as -1 so it lands at the bottom instead of the top.
+    const days = iso => {
+      const t = Date.parse(String(iso || ''));
+      return Number.isNaN(t) ? null : Math.round(t / 86400000);
+    };
+    const catalystAt = next ? (next.expectedAt || next.expectedWindowStart) : null;
+    const catalystKey = days(catalystAt) === null ? -1 : 999999 - days(catalystAt);
+    const recentKey = days(s.evidence.lastVerifiedAt) === null ? -1 : days(s.evidence.lastVerifiedAt);
+
+    return `<article class="snap" data-ticker="${esc(c.ticker)}"
+      data-name="${esc(c.name)}"
+      data-model="${esc(c.model)}"
+      data-stage="${s.stage ? esc(s.stage.id) : ''}"
+      data-operational="${isKnown(s.energised) ? s.energised.valueMw : -1}"
+      data-contracted="${isKnown(s.contracted) ? s.contracted.valueMw : -1}"
+      data-recent="${recentKey}"
+      data-catalyst="${catalystKey}">
       <header class="snaphead">
         <div>
           <a class="snapname" href="/companies/${esc(c.slug)}/">${esc(c.name)}</a>
@@ -756,4 +778,85 @@ export function storybook(view) {
       <p class="hintnote">A filled dot is a site with a published capacity figure; an outlined dot is a
         site named in filings without one. Positions are schematic, not geographic.</p></div>` : ''}
   </section>`;
+}
+
+/* ================= your own call ================= */
+
+/**
+ * A private, local forecast.
+ *
+ * The point is not to publish opinions — it is that a reader who writes down what
+ * they expect, before the quarter, finds out later whether they were right. Every
+ * call is scored against an evidenced delivery milestone rather than a share price,
+ * because delivery is what this site can actually verify.
+ *
+ * Nothing leaves the browser. There is no account, no server and no analytics event
+ * carrying the content of a call, and the copy says so plainly rather than burying
+ * it in a policy page.
+ */
+export function callPanel(c, view) {
+  const gate = nextStage(c);
+  return `<section class="block callblock" id="yourcall">
+  <div class="blockhead">
+    <h2>Make your call</h2>
+    <span class="blockmeta">Private to this browser</span>
+  </div>
+  <div class="blockbody">
+    <p class="blocklede">Write down what you expect ${esc(c.name)} to deliver, and by when. T2C scores it
+      later against the same evidenced gates it uses everywhere else — not against the share price.</p>
+
+    <form class="callform" data-call="${esc(c.ticker)}" data-company="${esc(c.id)}">
+      <div class="frow">
+        <div class="fld">
+          <label for="callGate-${esc(c.ticker)}">What happens next</label>
+          <select id="callGate-${esc(c.ticker)}" name="gate">
+            ${GATES.filter(g => !view.stage || g.order > view.stage.order)
+              .map(g => `<option value="${esc(g.id)}"${gate && g.id === gate.id ? ' selected' : ''}>${esc(g.label)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fld">
+          <label for="callBy-${esc(c.ticker)}">By the end of</label>
+          <select id="callBy-${esc(c.ticker)}" name="by">
+            ${quarterChoices().map(q => `<option value="${esc(q.value)}">${esc(q.label)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fld">
+          <label for="callMw-${esc(c.ticker)}">Capacity <span class="fldunit">MW, optional</span></label>
+          <input type="number" id="callMw-${esc(c.ticker)}" name="mw" step="1" min="0" placeholder="e.g. 150" />
+        </div>
+        <div class="fld">
+          <label for="callConf-${esc(c.ticker)}">How sure are you <span class="fldunit"><output id="callConfOut-${esc(c.ticker)}">60%</output></span></label>
+          <input type="range" id="callConf-${esc(c.ticker)}" name="confidence" min="10" max="95" step="5" value="60" />
+        </div>
+      </div>
+      <div class="fld field-wide">
+        <label for="callWhy-${esc(c.ticker)}">Why <span class="fldunit">optional, and only you will read it</span></label>
+        <textarea id="callWhy-${esc(c.ticker)}" name="why" rows="2"
+          placeholder="What would have to be true for this to happen?"></textarea>
+      </div>
+      <div class="callacts">
+        <button class="cta primary" type="submit">Save this call</button>
+        <span class="callsaved" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+
+    <div class="calllist" id="callList-${esc(c.ticker)}"></div>
+
+    <p class="blocknote">Stored in this browser only. Clearing your browser data deletes it, and T2C
+      never receives it — there is nowhere for it to be sent.</p>
+  </div>
+</section>`;
+}
+
+/** The next eight quarter-ends, which is as far ahead as a delivery call is useful. */
+function quarterChoices(from = new Date()) {
+  const out = [];
+  let y = from.getUTCFullYear();
+  let q = Math.floor(from.getUTCMonth() / 3) + 1;
+  for (let i = 0; i < 8; i++) {
+    out.push({ value: `${y}-Q${q}`, label: `Q${q} ${y}` });
+    q += 1;
+    if (q > 4) { q = 1; y += 1; }
+  }
+  return out;
 }

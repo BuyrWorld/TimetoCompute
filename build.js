@@ -12,7 +12,7 @@ import { SOURCES, SOURCE_BY_ID, AUDIT_CUTOFF } from './data/sources.js';
 import { COMPANIES, WATCH_TICKERS, TICKER_NAMES } from './data/companies.js';
 import { CONTRACTS_BY_COMPANY, COUNTRY_NAMES } from './data/projects.js';
 import { CORRECTIONS } from './data/events.js';
-import { CATALYSTS_BY_COMPANY } from './data/catalysts.js';
+import { CATALYSTS_BY_COMPANY, CATALYSTS, CATALYST_STATUS } from './data/catalysts.js';
 import { PROFILE_BY_ID, PROFILES, chiefExecutives } from './data/profiles.js';
 import { companyView, ledger, aggregate, isKnown, gateSummary } from './src/lib/compute.js';
 import { runChecks } from './src/lib/validate.js';
@@ -25,8 +25,15 @@ import {
   evidenceKey, valueTypeKey, basisKey, gateTrack, evidenceChip, statusChip, basisChip,
   sourceChips, evidencedValue, evidenceDrawer, reconciliationPanel, catalystPanel,
   dataHealthPanel, pill, timelinePanel, deliveryRecordPanel,
-  briefingCards, snapshotCards, aboutPanel, officialLinks, leadershipCards, storybook
+  briefingCards, snapshotCards, aboutPanel, officialLinks, leadershipCards, storybook, callPanel
 } from './src/ui.js';
+import {
+  todayBody, companiesBody, compareBody, catalystsBody, researchBody, labBody,
+  sitesBody, siteBody, intelligenceBody
+} from './src/pages.js';
+import { allSites } from './src/lib/sites.js';
+import { signals, todaySet } from './src/lib/signals.js';
+import { LAB_COVERAGE, CONTRACT_ECONOMICS, CAPEX_REFERENCE, MODEL_DEFAULTS, ASSUMPTION_PROVENANCE } from './data/economics.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(ROOT, 'dist');
@@ -47,20 +54,34 @@ console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
  * Six top-level views, ordered by what an ordinary visitor wants first.
  * Specialist material lives under Research rather than competing for the top bar.
  */
+/**
+ * Real routes, not tabs. Each is its own page, so an internal tool starts near the
+ * top of the screen instead of below a repeated marketing hero.
+ */
 const NAV = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'companies', label: 'Companies' },
-  { id: 'compare', label: 'Compare' },
-  { id: 'catalysts', label: 'Catalysts' },
-  { id: 'forecasts', label: 'Forecasts' },
-  { id: 'research', label: 'Research' }
+  { id: 'today', label: 'Today', href: '/' },
+  { id: 'companies', label: 'Companies', href: '/companies/' },
+  { id: 'compare', label: 'Compare', href: '/compare/' },
+  { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
+  { id: 'lab', label: 'Edge Lab', href: '/lab/', primary: true },
+  { id: 'research', label: 'Research', href: '/research/' }
 ];
 
-/** Old hash routes keep working. Shared links must not rot. */
-const HASH_ALIASES = {
-  odds: 'forecasts', scenarios: 'forecasts',
-  ledger: 'research', capacity: 'research', intelligence: 'research',
-  filings: 'research', geography: 'research', 'data-health': 'research'
+/**
+ * Every hash the old single-page build ever used maps to a route. Indexed links
+ * and anything a reader bookmarked must keep working.
+ */
+const HASH_ROUTES = {
+  overview: '/', today: '/',
+  companies: '/companies/',
+  compare: '/compare/',
+  catalysts: '/catalysts/',
+  odds: '/lab/#odds', forecasts: '/lab/', scenarios: '/lab/', lab: '/lab/',
+  sites: '/sites/', projects: '/sites/',
+  research: '/research/', ledger: '/intelligence/', capacity: '/research/#capacity',
+  intelligence: '/intelligence/', filings: '/research/#filings',
+  geography: '/research/#geography', 'data-health': '/research/#data-health',
+  reconciliation: '/research/#reconciliation'
 };
 
 function head({ title, description, canonical, structured = null }) {
@@ -90,27 +111,71 @@ ${(Array.isArray(structured) ? structured : [structured]).filter(Boolean)
 }
 
 /** Feed status is filled in by the client once it knows the market session. */
-function header() {
-  return `<header class="top">
-  <div class="wrap topin">
-    <a class="logo" href="/"><img src="/Logo/logo-header.png" width="514" height="120" alt="T2C — Time to Compute" /></a>
-    <div class="right">
-      <span class="feed" id="feedStatus" aria-live="polite"><i aria-hidden="true"></i><span>Connecting…</span></span>
-      <button class="hbtn" id="refreshBtn" type="button">Refresh</button>
-      <button class="hbtn" id="themeBtn" type="button" aria-label="Switch to light theme">Light</button>
+/**
+ * Compact application header, ~68px. Navigation, a market-state pill and a utility
+ * menu. Refresh and theme moved into the menu so they stop competing with
+ * navigation for attention.
+ */
+function appHeader(active = 'today') {
+  const items = NAV.map(n =>
+    `<a class="navlink${n.id === active ? ' is-active' : ''}${n.primary ? ' is-primary' : ''}"
+        href="${n.href}"${n.id === active ? ' aria-current="page"' : ''}>${esc(n.label)}</a>`).join('');
+
+  return `<a class="skiplink" href="#main">Skip to content</a>
+<header class="appbar">
+  <div class="shell appbarin">
+    <a class="brand" href="/" aria-label="T2C — Time to Compute, home">
+      <img src="/Logo/logo-header.png" width="514" height="120" alt="" />
+    </a>
+    <nav class="mainnav" aria-label="Primary">${items}</nav>
+    <div class="appbarutil">
+      <span class="mstate" id="marketState" aria-live="polite">
+        <i aria-hidden="true"></i><span class="mstate-text">Updating…</span>
+      </span>
+      <details class="umenu">
+        <summary aria-label="Settings and data status"><span aria-hidden="true">⋯</span></summary>
+        <div class="umenupanel">
+          <div class="umenugroup">
+            <div class="umenuhead">Data</div>
+            <div class="umenurow" id="feedDetail">Checking the feed…</div>
+            <button class="umenubtn" id="refreshBtn" type="button">Refresh data</button>
+          </div>
+          <div class="umenugroup">
+            <div class="umenuhead">Display</div>
+            <button class="umenubtn" id="themeBtn" type="button" aria-label="Switch to light theme">Light theme</button>
+          </div>
+          <div class="umenugroup">
+            <div class="umenuhead">Reference</div>
+            <a class="umenubtn" href="/methodology/">Methodology</a>
+            <a class="umenubtn" href="/research/#data-health">Data health</a>
+            <a class="umenubtn" href="/methodology/#corrections">Corrections</a>
+          </div>
+        </div>
+      </details>
     </div>
   </div>
-</header>`;
+</header>
+<nav class="bottomnav" aria-label="Primary, mobile">
+  ${NAV.filter(n => n.id !== 'research').map(n =>
+    `<a class="bnav${n.id === active ? ' is-active' : ''}" href="${n.href}"${n.id === active ? ' aria-current="page"' : ''}>
+      <span>${esc(n.label)}</span></a>`).join('')}
+  <a class="bnav${active === 'research' ? ' is-active' : ''}" href="/research/"><span>More</span></a>
+</nav>`;
 }
 
-function nav(mode, active = 'overview') {
-  const items = NAV.map(n => mode === 'tabs'
-    ? `<button class="tab" role="tab" type="button" id="tab-${n.id}" data-tab="${n.id}" aria-controls="view-${n.id}" aria-selected="${n.id === active}">${esc(n.label)}</button>`
-    : `<a class="tab" href="/#${n.id}">${esc(n.label)}</a>`).join('');
-  return `<nav class="nav" aria-label="Primary"><div class="wrap navin"${mode === 'tabs' ? ' role="tablist"' : ''}>` +
-    items +
-    `<a class="tab${active === 'methodology' ? ' active' : ''}" href="/methodology/">Methodology</a>` +
-    `</div></nav>`;
+/**
+ * Compact header for an internal page. Replaces the marketing hero so the tool
+ * itself starts near the top of the viewport.
+ */
+function pageHeader({ title, lede, actions = '', meta = '' }) {
+  return `<div class="pagehead">
+    <div class="pageheadin">
+      <h1>${esc(title)}</h1>
+      ${lede ? `<p class="pagelede">${lede}</p>` : ''}
+      ${meta ? `<div class="pagemeta">${meta}</div>` : ''}
+    </div>
+    ${actions ? `<div class="pageacts">${actions}</div>` : ''}
+  </div>`;
 }
 
 function footer() {
@@ -146,21 +211,24 @@ function footer() {
 </footer>`;
 }
 
-function page({ title, description, canonical, body, active = 'overview', structured = null }) {
+function page({ title, description, canonical, body, active = 'today', structured = null, extraScripts = [], inlineData = null }) {
   return `<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
 ${head({ title, description, canonical, structured })}
 </head>
-<body>
-${header()}
-${body}
+<body class="route-${active}">
+${appHeader(active)}
+<main id="main">${body}</main>
 ${footer()}
 <script type="application/json" id="t2c-config">${JSON.stringify({
     tickers: WATCH_TICKERS, names: TICKER_NAMES, maxCompare: MAX_TICKERS, buildStamp: BUILD_STAMP,
-    tabs: NAV.map(n => n.id), hashAliases: HASH_ALIASES
+    route: active, hashRoutes: HASH_ROUTES,
+    labReady: Object.entries(LAB_COVERAGE).filter(([, v]) => v.ready).map(([k]) => k)
   })}</script>
+${inlineData ? `<script>Object.assign(window, ${JSON.stringify(inlineData)});</script>` : ''}
 <script src="/app.js" defer></script>
+${extraScripts.map(s => `<script src="${s}" defer></script>`).join('\n')}
 </body>
 </html>`;
 }
@@ -184,282 +252,453 @@ function hero() {
 </section>`;
 }
 
-function scenariosView() {
-  const opts = tickerOptions();
-  return `
-  <div class="segbar" role="tablist" aria-label="Scenario views">
-    ${[['probability', 'Probability'], ['paths', 'Price paths'], ['targets', 'Analyst targets'], ['cats', 'Catalysts']]
-      .map(([id, label], i) => `<button class="seg-btn" role="tab" type="button" id="segtab-${id}" data-seg="${id}" aria-controls="seg-${id}" aria-selected="${i === 0}">${esc(label)}</button>`).join('')}
-  </div>
 
-  <section class="panel">
-    <div class="ph"><h2>Inputs</h2><span class="meta"><button class="resync" id="resyncBtn" type="button">Reset to live</button></span></div>
-    <div class="pb">
-      <div class="frow">
-        <div class="field field-wide"><label for="inTicker">Company<span class="hint">Switching resets every box</span></label>
-          <select id="inTicker" name="inTicker" title="Select a company — full names are shown in the list">${opts.map(o => `<option value="${esc(o.ticker)}">${esc(o.ticker)} — ${esc(o.name)}</option>`).join('')}</select></div>
-        <div class="field"><label for="inSpot">Price now <span class="hint" id="spotTag"></span></label><input id="inSpot" name="inSpot" type="number" step="0.01" inputmode="decimal" /></div>
-        <div class="field"><label for="inTarget">Your target<span class="hint">Price you want</span></label><input id="inTarget" name="inTarget" type="number" step="0.5" inputmode="decimal" /></div>
-        <div class="field"><label for="inDate">Deadline<span class="hint">Date-only, UTC</span></label><input id="inDate" name="inDate" type="date" /></div>
-        <div class="field"><label for="inVol">Volatility<span class="hint" id="volTag">Annualised %</span></label><input id="inVol" name="inVol" type="number" step="5" inputmode="decimal" /></div>
-        <div class="field"><label for="inDrift">Drift<span class="hint">Your view, %/yr</span></label><input id="inDrift" name="inDrift" type="number" step="5" value="0" inputmode="decimal" /></div>
-      </div>
-    </div>
-  </section>
 
-  <div id="seg-probability" role="tabpanel" aria-labelledby="segtab-probability">
-    <div class="grid g32">
-      <section class="panel">
-        <div class="ph"><h2 id="qLine">Probability</h2><span class="meta" id="oddsTicker"></span></div>
-        <div class="pb">
-          <div class="big" id="bigOdds">—</div>
-          <div class="pbar"><i id="oddsBar"></i></div>
-          <p class="note" style="margin-top:13px" id="oddsPlain"></p>
-        </div>
-        <div class="tw"><table id="oddsTable"></table></div>
-      </section>
-      <section class="panel">
-        <div class="ph"><h2>Distribution at the deadline</h2><span class="meta">Modelled, not predicted</span></div>
-        <div class="pb">
-          <svg id="distChart" viewBox="0 0 720 260" role="img" aria-labelledby="distSummary"></svg>
-          <div class="chartlegend" id="distLegend"></div>
-          <p id="distSummary" class="chartsummary"></p>
-        </div>
-      </section>
-    </div>
-    <section class="panel">
-      <div class="ph"><h2>How it reached that number</h2><span class="meta">Every step shown</span></div>
-      <div class="pb steps" id="stepsBox"></div>
-      <div class="stamp"><b>Model assumptions.</b> Prices follow a lognormal random walk with constant
-        volatility and no jumps. Real shares gap on news, which this cannot represent. Volatility default:
-        ${esc(VOL_METHODOLOGY.estimator)}, ${esc(VOL_METHODOLOGY.priceBasis)}, annualised by
-        ${esc(VOL_METHODOLOGY.annualisation)}. These are not options-implied probabilities and are not advice.</div>
-    </section>
-  </div>
+/* ================= Edge Lab payload ================= */
 
-  <div id="seg-paths" role="tabpanel" aria-labelledby="segtab-paths" hidden>
-    <section class="panel">
-      <div class="ph"><h2>Price paths</h2><span class="meta">Percentile bands over time</span></div>
-      <div class="pb">
-        <svg id="fanChart" viewBox="0 0 760 320" role="img" aria-labelledby="fanSummary"></svg>
-        <div class="chartlegend" id="fanLegend"></div>
-        <p id="fanSummary" class="chartsummary"></p>
-      </div>
-      <div class="stamp">These bands are a <b>modelled distribution of outcomes, not predicted trajectories</b>.
-        The median line is not a forecast: half of modelled outcomes finish above it and half below.</div>
-    </section>
-  </div>
+/**
+ * Build the tranches the Lab models, from real records only.
+ *
+ * A tranche exists where a CONTRACT discloses megawatts AND an economics entry
+ * derives a revenue rate from that contract's own value and term. Capacity with no
+ * disclosed contract terms is deliberately absent rather than modelled at a
+ * borrowed rate — that absence is what keeps the output honest.
+ */
+function labPayload() {
+  // The projection opens at the start of the current quarter, so anything already
+  // evidenced as complete is inside the window from its first period.
+  const now = new Date();
+  const START_Q = { year: now.getUTCFullYear(), q: Math.floor(now.getUTCMonth() / 3) + 1 };
+  const PROJECTION_START = `${START_Q.year}-${String((START_Q.q - 1) * 3 + 1).padStart(2, '0')}-01`;
 
-  <div id="seg-targets" role="tabpanel" aria-labelledby="segtab-targets" hidden>
-    <section class="panel">
-      <div class="ph"><h2>Analyst targets</h2><span class="meta" id="analystMeta">Checking provider…</span></div>
-      <div id="analystBody"></div>
-      <div class="stamp">Analyst price targets are attributable opinions published by third-party research
-        firms. They are not T2C forecasts, may use different horizons and assumptions, and can change
-        without warning. T2C never displays an unattributed target.</div>
-    </section>
-  </div>
+  const companies = COMPANIES.filter(c => LAB_COVERAGE[c.id]?.ready).map(c => {
+    const v = companyView(c);
+    const contracts = (CONTRACTS_BY_COMPANY[c.id] || []).filter(k => k.mw && CONTRACT_ECONOMICS[k.id]);
+    const projects = v.projects || [];
 
-  <div id="seg-cats" role="tabpanel" aria-labelledby="segtab-cats" hidden>
-    ${catalystPanel()}
-  </div>`;
-}
+    /* Delivery evidence sits on projects, contract terms sit on contracts, and the
+       link between them is declared in the data (`projectIds`) only where the company
+       named the site itself. A contract with no declared site gets no delivery date —
+       borrowing a sibling project's schedule would be a fabricated date, and every
+       figure downstream of it would inherit that fabrication. */
+    const byId = Object.fromEntries(projects.map(p => [p.id, p]));
 
-function compareView() {
-  const opts = tickerOptions();
-  return `<section class="panel">
-    <div class="ph"><h2>Compare companies</h2><span class="meta">Up to ${MAX_TICKERS} at once</span></div>
-    <div class="pb">
-      <fieldset class="cmpsel">
-        <legend>Select companies to compare</legend>
-        <div class="chiprow" id="cmpChips">
-          ${opts.map(o => `<label class="cchip">
-            <input type="checkbox" value="${esc(o.ticker)}" name="compare" />
-            <span class="cct">${esc(o.ticker)}</span>
-            <span class="ccn">${esc(o.name)}</span>
-          </label>`).join('')}
-        </div>
-        <p class="cmphint" id="cmpHint" aria-live="polite">Select up to ${MAX_TICKERS} companies.</p>
-      </fieldset>
-      <div class="cmpcontrols">
-        <div class="fsel"><label for="cmpPeriod">Period</label><select id="cmpPeriod" name="cmpPeriod">
-          ${PERIODS.filter(p => p.id !== 'custom').map(p => `<option value="${esc(p.id)}"${p.id === '3M' ? ' selected' : ''}>${esc(p.label)}</option>`).join('')}
-        </select></div>
-        <div class="fsel"><label for="cmpMode">Display</label><select id="cmpMode" name="cmpMode">
-          ${DISPLAY_MODES.map(m => `<option value="${esc(m.id)}" title="${esc(m.hint)}">${esc(m.label)}</option>`).join('')}
-        </select></div>
-        <button class="resync" id="cmpClear" type="button">Clear all</button>
-      </div>
-    </div>
-    <div id="cmpChart"></div>
-    <div id="cmpTable"></div>
-    <div class="stamp">Current prices are never joined to analyst targets as though a trajectory existed.
-      Companies are not ranked on figures measured on different bases — where a comparable figure does not
-      exist the cell reads <b>${NOT_DISCLOSED}</b>.</div>
-  </section>
-  <section class="panel">
-    <div class="ph"><h2>Potential</h2><span class="meta">Four separate things, kept separate</span></div>
-    <div id="cmpPotential"></div>
-    <div class="stamp">This panel deliberately separates <b>sell-side consensus</b> (analyst opinion),
-      the <b>T2C mathematical scenario</b> (your assumptions run through a lognormal model),
-      <b>company operational data</b> (sourced filings) and <b>your own selections</b>. They are never
-      blended into a single predicted price.</div>
-  </section>`;
-}
+    /**
+     * Completed acceptance or revenue gates on the sites that serve one contract.
+     *
+     * A gate can be complete without a disclosed date. That still tells us the site
+     * is earning now, so it is modelled as live from the start of the projection
+     * rather than never — treating evidenced revenue as zero would understate the
+     * company just as badly as inventing a date would overstate it. The two cases
+     * are reported separately so the reader can see which is which.
+     */
+    const liveDateFor = ids => {
+      const gates = (ids || []).flatMap(id => ((byId[id] || {}).gates || [])
+        .filter(g => g.status === 'complete' && (g.id === 'revenueCommenced' || g.id === 'customerAccepted')));
+      if (!gates.length) return { at: null, basis: 'none' };
+      const dated = gates.map(g => g.effectiveAt).filter(Boolean).sort();
+      return dated.length
+        ? { at: dated[0], basis: 'evidenced-gate' }
+        : { at: PROJECTION_START, basis: 'evidenced-undated' };
+    };
 
-function homepage() {
-  const views = {
-    /* 1. What changed, who is delivering, what happens next — before any table. */
-    overview: `
-      <section class="panel brief-panel">
-        <div class="ph"><h2>The market in 30 seconds</h2>
-          <span class="meta">Derived from sourced records</span></div>
-        ${briefingCards()}
-      </section>
+    /**
+     * Forward delivery windows on the sites that serve one contract. The END of a
+     * guided window is used, never the start: "some time in this window" read
+     * optimistically is how a model quietly flatters a company.
+     */
+    const windowsFor = (ids, after) => (ids || []).flatMap(id => {
+      const p = byId[id];
+      return ((p || {}).schedules || [])
+        .filter(s => s.gate === 'criticalItEnergised' || s.gate === 'customerAccepted' || s.gate === 'revenueCommenced')
+        .map(s => ({
+          projectId: id, projectName: p.name, gate: s.gate, scope: s.scope || null,
+          exact: s.exact || null, start: s.start || null, end: s.end || null,
+          effective: s.exact || s.end || null
+        }));
+    }).filter(s => s.effective && (!after || s.effective > after))
+      .sort((a, b) => a.effective.localeCompare(b.effective));
 
-      <section class="panel">
-        <div class="ph"><h2>Who is delivering</h2>
-          <span class="meta">${COMPANIES.length} tracked companies</span></div>
-        <div class="keynote">Each card leads with capacity that is actually switched on, not power a
-          company controls on paper. Select <b>Compare</b> on up to three to put them side by side.</div>
-        ${snapshotCards()}
-      </section>
+    /* One contract becomes up to two tranches: what has been delivered and is
+       already earning, and what has not. They are separated because only the
+       undelivered half still carries capex and still carries delivery risk. */
+    const tranches = [];
+    const allWindows = [];
+    for (const k of contracts) {
+      const e = CONTRACT_ECONOMICS[k.id];
+      const delivered = k.deliveredMw || 0;
+      const remaining = Math.max(0, k.mw - delivered);
+      const live = liveDateFor(k.projectIds);
+      const liveFrom = live.at;
+      const windows = windowsFor(k.projectIds, liveFrom);
+      const next = windows.length ? windows[0] : null;
+      allWindows.push(...windows);
 
-      <section class="panel">
-        <div class="ph"><h2>Compare up to three companies</h2><span class="meta">Side by side</span></div>
-        <div class="pb"><p class="note">Pick any three of the tracked companies to compare delivery,
-          contracted capacity and evidence coverage on one screen.</p>
-          <div class="heroacts"><a class="cta primary" href="#compare">Open comparison</a></div></div>
-      </section>
+      if (delivered > 0) {
+        tranches.push({
+          id: k.id + '-delivered',
+          label: `${k.customer} — delivered`,
+          capacityMw: delivered, ownershipPct: 1,
+          energisedAt: liveFrom, acceptedAt: liveFrom, revenueFrom: liveFrom,
+          contracted: true, delivered: true,
+          revenuePerMwYearM: e.revenuePerMwYearM,
+          remainingCapexM: null,             // already spent
+          dateBasis: live.basis,
+          dateNote: live.basis === 'evidenced-gate'
+            ? `Accepted ${date(liveFrom)}, evidenced by a completed delivery gate.`
+            : live.basis === 'evidenced-undated'
+              ? 'The delivery gate is complete but the company did not disclose the date, so this is modelled as earning from the start of the projection.'
+              : 'No completed acceptance gate is on record for this site, so this capacity earns nothing in the model.',
+          sourceIds: k.sourceIds
+        });
+      }
 
-      ${ledgerPanel(4, { heading: 'Latest verified changes' })}
+      if (remaining > 0) {
+        /* Where the serving site is already through its revenue gate but the company
+           has not split how much of the contract that covers, the remainder is dated
+           from the same evidenced start. That is the upper bound, not a measurement,
+           and the note says so — the alternative, modelling a site that is demonstrably
+           invoicing as earning nothing, is a different kind of wrong. */
+        const carriesLive = live.basis !== 'none' && !next;
+        const from = next ? next.effective : (carriesLive ? liveFrom : null);
 
-      <section class="panel">
-        <div class="ph"><h2>Research and evidence</h2><span class="meta">For the detail</span></div>
-        <div class="pb"><p class="note">Every figure on this site carries its source, its measurement
-          basis and the date it was verified. The full records, the delivery ledger, the capacity tables
-          and the corrections log all live under Research.</p>
-          <div class="heroacts">
-            <a class="cta ghost" href="#research">Open research</a>
-            <a class="cta ghost" href="/methodology/">Read the methodology</a>
-          </div></div>
-      </section>`,
-
-    /* 2. Companies — snapshots plus the watchlist prices. */
-    companies: `
-      <section class="panel">
-        <div class="ph"><h2>Tracked companies</h2><span class="meta" id="quoteMeta">—</span></div>
-        <div class="keynote">Six companies have sourced delivery records. Cipher and NVIDIA are carried on
-          the watchlist for price and news context only — their company profiles are available, but
-          <b>detailed delivery tracking is not yet available</b> for them.</div>
-        ${snapshotCards()}
-      </section>
-      <section class="panel">
-        <div class="ph"><h2>Watchlist prices</h2><span class="meta">Including watch-only tickers</span></div>
-        <div id="quoteWrap"></div>
-      </section>`,
-
-    compare: compareView(),
-
-    catalysts: catalystPanel() + `
-      <section class="panel">
-        <div class="ph"><h2>Scheduled events</h2><span class="meta">From the provider calendar</span></div>
-        <div id="liveCatalystList"></div>
-      </section>`,
-
-    forecasts: scenariosView(),
-
-    /* 3. Research — everything specialist, in one place. */
-    research: `
-      <section class="panel">
-        <div class="ph"><h2>Where the megawatts actually are</h2><span class="meta">Confirmed disclosure only</span></div>
-        ${kpiCards()}
-        <div class="stamp">Every card states its measurement basis, its contributors and its exclusions.
-          A <b>≥</b> means at least this much. Undisclosed figures are excluded, never treated as zero.</div>
-      </section>
-      ${reconciliationPanel()}
-      ${deliveryRecordPanel()}
-      ${ledgerPanel(null, { heading: 'Delivery ledger', filters: true })}
-      <section class="panel">
-        <div class="ph"><h2>Capacity by company</h2><span class="meta">Every value with its evidence</span></div>
-        ${evidenceKey()}
-        <div class="keynote">Each figure carries its measurement basis and value type. <b>Gross utility power
-          is never added to critical IT load</b>, and targets never enter a current total.</div>
-        <div class="scrollnote">Scroll sideways for all columns →</div>
-        ${capacityTable()}
-      </section>
-      <section class="panel">
-        <div class="ph"><h2>What the value types mean</h2></div>
-        ${valueTypeKey()}
-      </section>
-      <section class="panel">
-        <div class="ph"><h2>Contract economics</h2><span class="meta">Compiled from filings</span></div>
-        <div class="scrollnote">Scroll sideways for all columns →</div>
-        ${contractsTable()}
-        <div class="stamp">Per-megawatt figures are <b>not comparable across business models</b>, so this
-          table does not rank them. A conditional maximum is shown as conditional, never as committed revenue.</div>
-      </section>
-      ${countryPanel()}
-      <section class="panel">
-        <div class="ph"><h2>Intelligence</h2><span class="meta" id="newsMeta">—</span></div>
-        <div class="filters" id="newsFilters"></div>
-        <div id="newsHero"></div>
-        <div id="newsList"></div>
-        <div class="stamp">News can help discover an event but <b>can never make a capacity value
-          confirmed</b>. T2C does not draw a materiality conclusion from a story it has not linked.</div>
-      </section>
-      <section class="panel">
-        <div class="ph"><h2>SEC filings</h2><span class="meta" id="filingMeta">—</span></div>
-        <div id="filingList"></div>
-      </section>
-      ${dataHealthPanel(BUILD_STAMP)}`
-  };
-
-  const body = `${hero()}
-${nav('tabs', 'overview')}
-<main class="wrap">
-${NAV.map(n => `<div id="view-${n.id}" role="tabpanel" aria-labelledby="tab-${n.id}"${n.id === 'overview' ? '' : ' hidden'}>${views[n.id]}</div>`).join('\n')}
-</main>`;
-
-  const secured = aggregate('securedPowerMw', { basis: 'gross-utility' });
-  return page({
-    title: 'T2C — Time to Compute | AI infrastructure delivery tracking',
-    description:
-      'Track the journey from secured power to customer-accepted, invoicing AI compute. Sourced capacity, ' +
-      'contract economics, a verified delivery ledger and upcoming catalysts for listed AI infrastructure operators.',
-    canonical: SITE + '/',
-    body,
-    structured: {
-      '@context': 'https://schema.org',
-      '@type': 'Dataset',
-      name: 'T2C AI infrastructure delivery dataset',
-      description:
-        'Sourced capacity, delivery-stage and contract records for listed AI infrastructure operators. ' +
-        'Every figure carries its measurement basis, value type, confidence level and primary source.',
-      url: SITE + '/',
-      dateModified: BUILD_DATE,
-      temporalCoverage: `2026-02-01/${AUDIT_CUTOFF}`,
-      isAccessibleForFree: true,
-      creator: { '@type': 'Organization', name: 'T2C — Time to Compute', url: SITE },
-      measurementTechnique:
-        'Manual extraction from primary company disclosures (SEC filings, investor-relations releases and ' +
-        'shareholder letters), classified by power basis (gross utility, critical IT, GPU load) and value ' +
-        'status (actual, minimum, target, pipeline, potential).',
-      citation: SOURCES.filter(s => s.isPrimary).slice(0, 12).map(s => ({
-        '@type': 'CreativeWork', name: s.title, url: s.url, publisher: s.publisher, datePublished: s.publishedAt
-      })),
-      // Only measures actually held on a confirmed basis appear here.
-      variableMeasured: [
-        { '@type': 'PropertyValue', name: METRICS.securedPowerMw.label, unitText: 'MW',
-          value: secured.total, description: `${secured.contributorCount} of ${secured.companyCount} companies, gross-utility basis` },
-        { '@type': 'PropertyValue', name: METRICS.customerContractedMw.label, unitText: 'MW',
-          description: 'Critical IT basis; disclosed minimum' },
-        { '@type': 'PropertyValue', name: METRICS.energisedCriticalItMw.label, unitText: 'MW',
-          description: 'Critical IT basis' },
-        { '@type': 'PropertyValue', name: METRICS.customerAcceptedMw.label, unitText: 'MW',
-          description: 'Critical IT basis' }
-      ]
+        tranches.push({
+          id: k.id + '-remaining',
+          label: `${k.customer} — still to deliver`,
+          capacityMw: remaining, ownershipPct: 1,
+          energisedAt: from, acceptedAt: from, revenueFrom: from,
+          contracted: true, delivered: false,
+          revenuePerMwYearM: e.revenuePerMwYearM,
+          // TeraWulf's own disclosure is the only build cost T2C has; applying it
+          // to another operator is an assumption, and the Lab labels it as one.
+          remainingCapexM: remaining * CAPEX_REFERENCE.wulfPerMwM.midpoint,
+          capexBasis: 'assumed-peer',
+          dateBasis: next ? 'evidenced-window'
+            : carriesLive ? 'upper-bound'
+            : (k.projectIds ? 'no-window' : 'no-site'),
+          dateNote: next
+            ? `Dated from the end of the guided delivery window for ${next.projectName}${next.scope ? ' (' + next.scope + ')' : ''}. Shift the delivery slider to test other timings.`
+            : carriesLive
+              ? 'The site serving this contract has passed its revenue gate, but the company has not said how much of the contract is live. The model assumes all of it, which is the upper bound.'
+              : (k.projectIds
+                ? 'The site is known but no delivery window has been guided, so this capacity earns nothing until you set a date.'
+                : 'The company has not named the site that serves this contract, so T2C has no delivery date for it and models no revenue from it.'),
+          sourceIds: k.sourceIds
+        });
+      }
     }
+    const schedule = allWindows.sort((a, b) => a.effective.localeCompare(b.effective));
+    const liveFrom = tranches.filter(t => t.delivered && t.revenueFrom).map(t => t.revenueFrom).sort()[0] || null;
+    const nextDelivery = schedule.length ? schedule[0].effective : null;
+
+    const energisedM = v.measures.energisedCriticalItMw;
+    const contractedM = v.measures.customerContractedMw;
+
+    return {
+      id: c.id, ticker: c.ticker, name: c.name, model: c.model,
+      tranches,
+      schedule: schedule.slice(0, 8),
+      liveFrom, nextDelivery,
+      totalTrancheMw: tranches.reduce((a, t) => a + (t.capacityMw || 0), 0),
+      deliveredMw: tranches.filter(t => t.delivered).reduce((a, t) => a + t.capacityMw, 0),
+      undatedMw: tranches.filter(t => !t.revenueFrom).reduce((a, t) => a + t.capacityMw, 0),
+      evidencedMw: isKnown(energisedM) ? energisedM.valueMw : null,
+      contractedMw: isKnown(contractedM) ? contractedM.valueMw : null,
+      // Never sourced by T2C — the reader supplies these and the UI says so.
+      balance: { cashM: null, debtM: null, sharesOutstandingM: null, equityIssuePrice: null },
+      contractEconomics: contracts.map(k => ({
+        id: k.id, label: k.customer,
+        displayPerMwYearM: CONTRACT_ECONOMICS[k.id].displayPerMwYearM,
+        derivation: CONTRACT_ECONOMICS[k.id].derivation
+      })),
+      coverage: LAB_COVERAGE[c.id]
+    };
+  });
+
+  return {
+    companies,
+    startQuarter: START_Q,
+    projectionStart: PROJECTION_START,
+    defaults: MODEL_DEFAULTS,
+    provenance: ASSUMPTION_PROVENANCE,
+    capexReference: CAPEX_REFERENCE
+  };
+}
+
+/** Ship the engine to the browser without a bundler: strip ESM, attach to window. */
+function labEngineScript() {
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'lib', 'edgelab.js'), 'utf8')
+    .replace(/^import[^;]+;$/gm, '')
+    .replace(/^export (const|function|class|let|var)/gm, '$1')
+    .replace(/^export \{[^}]*\};?$/gm, '');
+
+  const payload = labPayload();
+  return `/* Edge Lab engine — generated from src/lib/edgelab.js at build time. */
+(function(){
+${src}
+var LAB = ${JSON.stringify(payload)};
+LAB.engine = {
+  runScenario: runScenario, solveFor: solveFor, simulate: simulate, stress: stress,
+  sensitivityGrid: sensitivityGrid, classifyRequirement: classifyRequirement,
+  project: project, funding: funding, valuation: valuation, perShare: perShare,
+  quarterOf: quarterOf, addQuarters: addQuarters, quarterEnd: quarterEnd,
+  STRESS_TESTS: STRESS_TESTS, SOLVABLE: SOLVABLE, REQUIREMENT_VERDICT: REQUIREMENT_VERDICT
+};
+LAB.horizonLabel = function(q){ return quarterLabel(addQuarters(LAB.startQuarter, q)); };
+window.T2C_LAB = LAB;
+})();`;
+}
+
+/* ================= client payloads ================= */
+
+/** Compare rows. Only like-for-like measures; nulls stay null. */
+function comparePayload() {
+  const out = {};
+  for (const c of COMPANIES) {
+    const v = companyView(c);
+    const val = key => {
+      const m = v.measures[key];
+      return isKnown(m) ? `${m.valueStatus === 'minimum' ? '≥' : ''}${mw(m.valueMw)}` : null;
+    };
+    const records = [...(c.measures || [])];
+    const known = records.filter(isKnown);
+    const next = (v.catalysts || [])
+      .filter(x => x.status !== 'completed')
+      .sort((a, b) => String(a.expectedAt || a.expectedWindowStart || '')
+        .localeCompare(String(b.expectedAt || b.expectedWindowStart || '')))[0];
+
+    out[c.ticker] = {
+      ticker: c.ticker, name: c.name, slug: c.slug,
+      energised: val('energisedCriticalItMw'),
+      contracted: isKnown(v.measures.customerContractedMw)
+        ? val('customerContractedMw') : (c.contractedLabel || null),
+      secured: val('securedPowerMw'),
+      accepted: val('customerAcceptedMw'),
+      revenueLive: val('revenueLiveMw'),
+      stage: v.stage ? v.stage.short : null,
+      nextCatalyst: next ? (next.expectedAt ? date(next.expectedAt)
+        : windowText(next.expectedWindowStart, next.expectedWindowEnd)) : null,
+      sourced: known.length
+        ? `${Math.round((known.filter(m => m.confidence === 'confirmed').length / known.length) * 100)}%` : null,
+      notDisclosed: String(records.length - known.length),
+      lastVerified: v.lastVerifiedAt ? date(v.lastVerifiedAt) : null,
+      catalysts: (v.catalysts || []).map(x => ({
+        title: x.title,
+        when: x.expectedAt ? date(x.expectedAt) : windowText(x.expectedWindowStart, x.expectedWindowEnd),
+        certainty: CATALYST_STATUS[x.status]?.label || x.status
+      }))
+    };
+  }
+  return out;
+}
+
+/** "Q4 2026", never "in 47 days from the first of October". */
+function windowText(start, end) {
+  if (!start || !end) return 'Date unknown';
+  const [sy, sm] = start.split('-').map(Number);
+  const [ey, em] = end.split('-').map(Number);
+  if (sy === ey) {
+    if (sm === 1 && em === 6) return `H1 ${sy}`;
+    if (sm === 7 && em === 12) return `H2 ${sy}`;
+    if (sm === 1 && em === 3) return `Q1 ${sy}`;
+    if (sm === 4 && em === 6) return `Q2 ${sy}`;
+    if (sm === 7 && em === 9) return `Q3 ${sy}`;
+    if (sm === 10 && em === 12) return `Q4 ${sy}`;
+    if (sm === 1 && em === 12) return `During ${sy}`;
+  }
+  return `${date(start)} – ${date(end)}`;
+}
+
+/**
+ * Catalyst payload.
+ *
+ * A day countdown appears ONLY for a confirmed exact date. A guided window shows
+ * its period and an explicit "Expected during…", because counting days from the
+ * first of a quarter implies a precision the company never gave.
+ */
+function catalystPayload() {
+  const today = new Date();
+  const todayIso = today.toISOString().slice(0, 10);
+  const days = iso => Math.round(
+    (Date.parse(iso + 'T00:00:00Z') - Date.parse(todayIso + 'T00:00:00Z')) / 86400000);
+
+  return CATALYSTS.map(c => {
+    const co = COMPANIES.find(x => x.id === c.companyId);
+    const exact = c.status === 'confirmed-date' && c.expectedAt;
+    const start = c.expectedAt || c.expectedWindowStart || null;
+
+    let when, countdown = null, group, tone;
+    if (exact) {
+      when = date(c.expectedAt);
+      const d = days(c.expectedAt);
+      countdown = d === 0 ? 'Today' : d > 0 ? `in ${d} days` : `${Math.abs(d)} days ago`;
+      group = d <= 30 ? 'Next 30 days' : d <= 92 ? 'Next quarter' : 'Later';
+      tone = 'ok';
+    } else if (c.expectedWindowStart && c.expectedWindowEnd) {
+      when = windowText(c.expectedWindowStart, c.expectedWindowEnd);
+      group = 'Guided windows';
+      tone = 'warn';
+    } else {
+      when = 'Date unknown';
+      group = 'Date unknown';
+      tone = 'unknown';
+    }
+
+    return {
+      id: c.id, companyId: c.companyId, ticker: c.ticker,
+      company: co ? co.name : c.companyId,
+      title: c.title, description: c.description,
+      category: c.category, status: c.status,
+      certainty: exact ? 'Confirmed date'
+        : c.expectedWindowStart ? `Expected during ${when}`
+        : 'No date published',
+      when, countdown, group, tone,
+      affects: c.affectsMetric ? METRICS[c.affectsMetric]?.label : null,
+      sourceHtml: sourceChips(c.sourceIds),
+      sortKey: start || '9999-12-31'
+    };
+  }).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+}
+
+/* ================= route pages ================= */
+
+const DATASET_LD = () => ({
+  '@context': 'https://schema.org',
+  '@type': 'Dataset',
+  name: 'T2C AI infrastructure delivery dataset',
+  description:
+    'Sourced capacity, delivery-stage and contract records for listed AI infrastructure operators. ' +
+    'Every figure carries its measurement basis, value type, confidence level and primary source.',
+  url: SITE + '/',
+  dateModified: BUILD_DATE,
+  temporalCoverage: `2026-02-01/${AUDIT_CUTOFF}`,
+  isAccessibleForFree: true,
+  creator: { '@type': 'Organization', name: 'T2C — Time to Compute', url: SITE },
+  measurementTechnique:
+    'Manual extraction from primary company disclosures, classified by power basis (gross utility, ' +
+    'critical IT, GPU load) and value status (actual, minimum, target, pipeline, potential).',
+  citation: SOURCES.filter(s => s.isPrimary).slice(0, 12).map(s => ({
+    '@type': 'CreativeWork', name: s.title, url: s.url, publisher: s.publisher, datePublished: s.publishedAt
+  })),
+  variableMeasured: Object.keys(METRICS).map(k => ({
+    '@type': 'PropertyValue', name: METRICS[k].label, unitText: METRICS[k].unit
+  }))
+});
+
+function todayPage() {
+  return page({
+    title: 'T2C — Time to Compute | Which AI infrastructure companies are actually delivering',
+    description:
+      'Track the journey from secured power to accepted, revenue-producing AI compute. Sourced capacity, ' +
+      'contract economics, catalysts and a valuation lab that shows what would need to go right.',
+    canonical: SITE + '/',
+    body: todayBody(),
+    inlineData: { T2C_COMPARE: comparePayload() },
+    active: 'today',
+    structured: DATASET_LD()
+  });
+}
+
+function companiesPage() {
+  return page({
+    title: 'Companies — AI infrastructure delivery tracking | T2C',
+    description:
+      'Every tracked AI infrastructure operator: capacity switched on, capacity customers have signed ' +
+      'for, delivery stage and next catalyst, each figure carrying its source.',
+    canonical: SITE + '/companies/',
+    body: companiesBody(),
+    inlineData: { T2C_COMPARE: comparePayload() },
+    active: 'companies'
+  });
+}
+
+function comparePage() {
+  return page({
+    title: 'Compare AI infrastructure companies | T2C',
+    description:
+      'Put up to three AI infrastructure operators side by side on delivered capacity, contracted ' +
+      'capacity, catalysts and evidence coverage.',
+    canonical: SITE + '/compare/',
+    body: compareBody(),
+    inlineData: { T2C_COMPARE: comparePayload() },
+    active: 'compare'
+  });
+}
+
+function catalystsPage() {
+  return page({
+    title: 'Catalysts — dated events for AI infrastructure | T2C',
+    description:
+      'Upcoming events that could move an operational metric, with the certainty of every date made ' +
+      'explicit and a guided window never presented as a deadline.',
+    canonical: SITE + '/catalysts/',
+    body: catalystsBody(),
+    inlineData: { T2C_CATALYSTS: catalystPayload() },
+    active: 'catalysts'
+  });
+}
+
+function sitesPage() {
+  return page({
+    title: 'Sites — every tracked AI data centre project | T2C',
+    description:
+      'Every AI infrastructure project tracked at site level: the gates it has passed, the capacity it ' +
+      'discloses, the customer that signed for it and the document behind each one.',
+    canonical: SITE + '/sites/',
+    body: sitesBody(),
+    active: 'sites'
+  });
+}
+
+function sitePage(site) {
+  const stage = [...site.path].reverse().find(p => p.status === 'complete');
+  return page({
+    title: `${site.name} — ${site.companyName} site intelligence | T2C`,
+    description:
+      `${site.name}, operated by ${site.companyName} in ${site.countryName}. ` +
+      `${stage ? `Furthest evidenced stage: ${stage.label}.` : 'No delivery stage evidenced yet.'} ` +
+      'Gates, dependencies, contracts and sources for the site.',
+    canonical: `${SITE}/sites/${site.slug}/`,
+    body: siteBody(site),
+    active: 'sites'
+  });
+}
+
+function intelligencePage() {
+  return page({
+    title: 'Intelligence — every sourced change to the delivery record | T2C',
+    description:
+      'The full delivery ledger, classified: what advanced, what slipped, which contracts were signed ' +
+      'and which targets moved — each entry carrying the document that evidences it.',
+    canonical: SITE + '/intelligence/',
+    body: intelligenceBody(),
+    active: 'intelligence'
+  });
+}
+
+function labPage() {
+  return page({
+    title: 'Edge Lab — what must go right? | T2C',
+    description:
+      'See the capacity, timing, contracts and financing a valuation appears to require, and how much ' +
+      'of it the evidence already supports.',
+    canonical: SITE + '/lab/',
+    body: labBody(),
+    extraScripts: ['/lab-engine.js', '/lab-ui.js'],
+    active: 'lab'
+  });
+}
+
+function researchPage() {
+  return page({
+    title: 'Research — the full evidence base | T2C',
+    description:
+      'Capacity records, the delivery ledger, contract economics, guidance scorecard, sources and ' +
+      'corrections for listed AI infrastructure operators.',
+    canonical: SITE + '/research/',
+    body: researchBody(BUILD_STAMP),
+    active: 'research',
+    structured: DATASET_LD()
   });
 }
 
@@ -507,6 +746,82 @@ function organizationLd(profile) {
 }
 
 /* ================= company pages ================= */
+
+/**
+ * The four numbers a reader came for, above everything else.
+ *
+ * Deliberately not a summary of the page: it is the page's conclusion, stated first.
+ * How much is switched on, how much is signed for, how far through delivery the
+ * company is, and what happens next — then a route into the Lab where those numbers
+ * become a scenario. Anything not disclosed says so; nothing here is inferred.
+ */
+function investmentSnapshot(c, v) {
+  const live = v.measures.energisedCriticalItMw;
+  const signed = v.measures.customerContractedMw;
+  const canModel = LAB_COVERAGE[c.id]?.ready;
+  const nextCat = (CATALYSTS_BY_COMPANY[c.id] || [])
+    .filter(x => x.status !== 'completed' && x.status !== 'cancelled')
+    .sort((a, b) => String(a.expectedAt || a.expectedWindowStart || '')
+      .localeCompare(String(b.expectedAt || b.expectedWindowStart || '')))[0] || null;
+
+  const figure = (m, fallback) => isKnown(m)
+    ? `<b>${esc(mw(m.valueMw))}</b>${statusChip(m.valueStatus)}`
+    : `<span class="nd">${esc(fallback || NOT_DISCLOSED)}</span>`;
+
+  return `<section class="csnap">
+  <div class="csnaphead">
+    <div>
+      <h1>${esc(c.name)}</h1>
+      <div class="csnapsub">
+        <span class="mono">${esc(c.ticker)}</span> · ${esc(MODELS[c.model].label)}
+        <span class="csnappx mono" data-price="${esc(c.ticker)}"><span class="skel" style="width:70px;height:15px"></span></span>
+      </div>
+    </div>
+    <div class="csnapstate">
+      ${v.needsSource ? pill('warn', '◐', 'Some values unsourced') : pill('ok', '●', 'All values sourced')}
+      <span class="csnapverified">Last verified ${v.lastVerifiedAt ? esc(date(v.lastVerifiedAt)) : 'never'}</span>
+    </div>
+  </div>
+
+  <p class="csnaplede">${esc(c.summary)}</p>
+
+  <div class="csnapfigs">
+    <div class="csnapfig">
+      <dt>Switched on</dt>
+      <dd>${figure(live)}</dd>
+      <p>Critical IT load live and drawing power.</p>
+    </div>
+    <div class="csnapfig">
+      <dt>Customers have signed for</dt>
+      <dd>${figure(signed, c.contractedLabel)}</dd>
+      <p>Capacity under a signed customer agreement.</p>
+    </div>
+    <div class="csnapfig">
+      <dt>Delivery stage</dt>
+      <dd>${v.stage ? `<b>${esc(v.stage.short)}</b>` : `<span class="nd">${NOT_DISCLOSED}</span>`}</dd>
+      <p>The furthest gate with evidence behind it.</p>
+    </div>
+    <div class="csnapfig">
+      <dt>Next catalyst</dt>
+      <dd>${nextCat
+        ? `<b>${esc(nextCat.expectedAt ? date(nextCat.expectedAt)
+            : windowText(nextCat.expectedWindowStart, nextCat.expectedWindowEnd))}</b>`
+        : `<span class="nd">None dated</span>`}</dd>
+      <p>${nextCat ? esc(nextCat.title) : 'Nothing with a date on record.'}</p>
+    </div>
+  </div>
+
+  <div class="csnapacts">
+    ${canModel
+      ? `<a class="cta primary" href="/lab/?company=${esc(c.id)}">Open in Edge Lab</a>`
+      : `<span class="cta disabled" aria-disabled="true"
+           title="${esc(LAB_COVERAGE[c.id]?.reason || 'No contract discloses value, megawatts and term together.')}">Not modellable yet</span>`}
+    <a class="cta ghost" href="/compare/?c=${esc(c.ticker)}">Compare with peers</a>
+    <a class="cta ghost" href="#sources">Read the sources</a>
+  </div>
+  ${canModel ? '' : `<p class="csnapwhy">${esc(LAB_COVERAGE[c.id]?.reason || '')}</p>`}
+</section>`;
+}
 
 function companyPage(c) {
   const v = companyView(c);
@@ -564,30 +879,42 @@ function companyPage(c) {
   const sources = v.sourceIds.map(id => SOURCE_BY_ID[id]).filter(Boolean)
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 
-  const body = `<main class="wrap">
-  <p class="crumb"><a href="/">T2C</a> / <a href="/#capacity">Companies</a> / ${esc(c.name)}</p>
-  <div class="chead">
-    <div>
-      <h1>${esc(c.name)}</h1>
-      <div class="tick">${esc(c.ticker)} · ${esc(MODELS[c.model].label)}</div>
-    </div>
-    <div class="right">
-      ${v.needsSource ? pill('warn', '◐', 'Some values unsourced') : pill('ok', '●', 'All values sourced')}
-      <div class="tick">Last verified ${v.lastVerifiedAt ? esc(date(v.lastVerifiedAt)) : 'never'}</div>
-    </div>
-  </div>
-  <p class="note lede">${esc(c.summary)}</p>
+  /* The sections a reader can jump between. Built from what this company actually
+     has, so the sticky nav never offers a link to an absent section. */
+  const sections = [
+    ['story', 'The story'],
+    ['record', 'Capacity record'],
+    ...(targetRows ? [['targets', 'Targets']] : []),
+    ['projects', 'Projects'],
+    ...(contracts.length ? [['contracts', 'Contracts']] : []),
+    ['changes', 'Changes'],
+    ...(cats.length ? [['catalysts', 'Catalysts']] : []),
+    ['yourcall', 'Your call'],
+    ['sources', 'Sources']
+  ];
 
-  ${storybook(v)}
+  const body = `<div class="shell">
+  <nav class="crumb" aria-label="Breadcrumb">
+    <a href="/">T2C</a> <span aria-hidden="true">/</span> <a href="/companies/">Companies</a>
+    <span aria-hidden="true">/</span> <span aria-current="page">${esc(c.name)}</span>
+  </nav>
 
-  <section class="panel">
+  ${investmentSnapshot(c, v)}
+
+  <nav class="secnav" aria-label="Sections of this page">
+    ${sections.map(([id, label]) => `<a href="#${id}">${esc(label)}</a>`).join('')}
+  </nav>
+
+  <div id="story">${storybook(v)}</div>
+
+  <section class="panel" id="record">
     <div class="ph"><h2>Capacity record</h2><span class="meta">Every value with its evidence</span></div>
     <div class="tw"><table class="rectable">
       <thead><tr><th scope="col">Measure</th><th scope="col">Value and evidence</th></tr></thead>
       <tbody>${measureRows}</tbody></table></div>
   </section>
 
-  ${targetRows ? `<section class="panel">
+  ${targetRows ? `<section class="panel" id="targets">
     <div class="ph"><h2>Targets</h2><span class="meta">Management goals — excluded from all current totals</span></div>
     <div class="tw"><table class="rectable"><tbody>${targetRows}</tbody></table></div>
   </section>` : ''}
@@ -597,14 +924,14 @@ function companyPage(c) {
     <div class="tw"><table class="rectable"><tbody>${historyRows}</tbody></table></div>
   </section>` : ''}
 
-  <section class="panel">
+  <section class="panel" id="projects">
     <div class="ph"><h2>Projects and gates</h2><span class="meta">${v.projects.length} recorded</span></div>
     <div class="keynote">Gates advance independently. Zoning can be granted while environmental approval,
       financing and interconnection all remain outstanding — a single stage label would hide that.</div>
     <div class="projgrid">${projects}</div>
   </section>
 
-  ${contracts.length ? `<section class="panel">
+  ${contracts.length ? `<section class="panel" id="contracts">
     <div class="ph"><h2>Major contracts</h2><span class="meta">${contracts.length}</span></div>
     <div class="scrollnote">Scroll sideways for all columns →</div>
     <div class="tw"><table>
@@ -622,12 +949,12 @@ function companyPage(c) {
       </tr>`).join('')}</tbody></table></div>
   </section>` : ''}
 
-  <section class="panel">
+  <section class="panel" id="changes">
     <div class="ph"><h2>Verified changes</h2><span class="meta">${v.events.length} event${v.events.length === 1 ? '' : 's'}</span></div>
     ${events}
   </section>
 
-  ${cats.length ? `<section class="panel">
+  ${cats.length ? `<section class="panel" id="catalysts">
     <div class="ph"><h2>Upcoming catalysts</h2><span class="meta">${cats.length}</span></div>
     <div class="catgrid">${cats.map(cat => `<article class="cat">
       <div class="cathead"><span class="cattick">${esc(cat.ticker)}</span></div>
@@ -637,9 +964,11 @@ function companyPage(c) {
     </article>`).join('')}</div>
   </section>` : ''}
 
+  ${callPanel(c, v)}
+
   ${PROFILE_BY_ID[c.id] ? aboutPanel(PROFILE_BY_ID[c.id]) : ''}
 
-  <section class="panel">
+  <section class="panel" id="sources">
     <div class="ph"><h2>Sources</h2><span class="meta">${sources.length} documents</span></div>
     <div class="pb">${sources.length ? `<ul class="srclist">${sources.map(s => `<li>
       <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>
@@ -647,7 +976,7 @@ function companyPage(c) {
       ${s.supportingExcerpt ? `<blockquote>${esc(s.supportingExcerpt)}</blockquote>` : ''}
     </li>`).join('')}</ul>` : `<p class="note">No primary documents linked yet.</p>`}</div>
   </section>
-</main>`;
+</div>`;
 
   return page({
     title: `${c.name} (${c.ticker}) — AI infrastructure delivery | T2C`,
@@ -656,6 +985,7 @@ function companyPage(c) {
       `and accepted megawatts, each figure carrying its measurement basis and primary source.`,
     canonical: `${SITE}/companies/${c.slug}/`,
     body,
+    active: 'companies',
     structured: [organizationLd(PROFILE_BY_ID[c.id]), {
       '@context': 'https://schema.org',
       '@type': 'Dataset',
@@ -686,7 +1016,7 @@ function companyPage(c) {
  * records. The page says so plainly rather than rendering an empty capacity table.
  */
 function watchOnlyPage(profile) {
-  const body = `<main class="wrap">
+  const body = `<div class="shell">
   <p class="crumb"><a href="/">T2C</a> / <a href="/#companies">Companies</a> / ${esc(profile.tradingName)}</p>
   <div class="chead">
     <div><h1>${esc(profile.tradingName)}</h1>
@@ -705,7 +1035,7 @@ function watchOnlyPage(profile) {
     </div></div>
   </section>
   ${aboutPanel(profile)}
-</main>`;
+</div>`;
 
   return page({
     title: `${profile.legalName} (${profile.ticker}) — company profile | T2C`,
@@ -714,6 +1044,7 @@ function watchOnlyPage(profile) {
       `links and verified social accounts. Delivery tracking is not yet maintained for this ticker.`,
     canonical: `${SITE}/companies/${profile.id}/`,
     body,
+    active: 'companies',
     structured: [organizationLd(profile)].filter(Boolean)
   });
 }
@@ -721,7 +1052,7 @@ function watchOnlyPage(profile) {
 /* ================= methodology ================= */
 
 function methodologyPage() {
-  const body = `<main class="wrap">
+  const body = `<div class="shell">
   <p class="crumb"><a href="/">T2C</a> / Methodology</p>
   <div class="chead"><div><h1>Methodology</h1>
     <div class="tick">How every figure is defined, measured, sourced and corrected · audit cut-off ${esc(date(AUDIT_CUTOFF))}</div></div></div>
@@ -868,7 +1199,7 @@ function methodologyPage() {
       <span class="d">${esc(s.publisher)} · ${esc(s.sourceType)} · published ${esc(date(s.publishedAt))} · accessed ${esc(date(s.accessedAt))}${s.isPrimary ? ' · primary' : ''}</span>
     </li>`).join('')}</ul></div>
   </section>
-</main>`;
+</div>`;
 
   return page({
     title: 'Methodology — how T2C defines, measures and sources every figure',
@@ -884,11 +1215,11 @@ function methodologyPage() {
 function simplePage(slug, title, description, inner) {
   return page({
     title: `${title} — T2C`, description, canonical: `${SITE}/${slug}/`,
-    body: `<main class="wrap">
+    body: `<div class="shell">
       <p class="crumb"><a href="/">T2C</a> / ${esc(title)}</p>
       <div class="chead"><div><h1>${esc(title)}</h1></div></div>
       <section class="panel"><div class="pb prose">${inner}</div></section>
-    </main>`
+    </div>`
   });
 }
 
@@ -905,7 +1236,16 @@ fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
 let bytes = 0;
-bytes += write('index.html', homepage());
+bytes += write('index.html', todayPage());
+bytes += write('companies/index.html', companiesPage());
+bytes += write('compare/index.html', comparePage());
+bytes += write('catalysts/index.html', catalystsPage());
+bytes += write('lab/index.html', labPage());
+bytes += write('research/index.html', researchPage());
+bytes += write('sites/index.html', sitesPage());
+bytes += write('intelligence/index.html', intelligencePage());
+const SITES = allSites();
+for (const s of SITES) bytes += write(`sites/${s.slug}/index.html`, sitePage(s));
 bytes += write('methodology/index.html', methodologyPage());
 for (const c of COMPANIES) bytes += write(`companies/${c.slug}/index.html`, companyPage(c));
 // Watch-only tickers: a real profile, an honest "not tracked" delivery state.
@@ -959,6 +1299,14 @@ bytes += write('contact/index.html', simplePage('contact', 'Contact',
 
 const urls = [
   { loc: SITE + '/', priority: '1.0', freq: 'hourly' },
+  { loc: SITE + '/companies/', priority: '0.9', freq: 'daily' },
+  { loc: SITE + '/sites/', priority: '0.9', freq: 'daily' },
+  { loc: SITE + '/intelligence/', priority: '0.9', freq: 'daily' },
+  ...SITES.map(s => ({ loc: `${SITE}/sites/${s.slug}/`, priority: '0.7', freq: 'weekly' })),
+  { loc: SITE + '/lab/', priority: '0.9', freq: 'weekly' },
+  { loc: SITE + '/catalysts/', priority: '0.8', freq: 'daily' },
+  { loc: SITE + '/compare/', priority: '0.7', freq: 'weekly' },
+  { loc: SITE + '/research/', priority: '0.8', freq: 'daily' },
   { loc: SITE + '/methodology/', priority: '0.9', freq: 'weekly' },
   ...COMPANIES.map(c => ({ loc: `${SITE}/companies/${c.slug}/`, priority: '0.8', freq: 'weekly' })),
   ...PROFILES.filter(p => p.deliveryTracked === false)
@@ -984,9 +1332,20 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  ['styles.css', 'components.css', 'profile.css']
+  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
+fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
+fs.cpSync(path.join(ROOT, 'src', 'lab-ui.js'), path.join(OUT, 'lab-ui.js'));
 fs.cpSync(path.join(ROOT, 'Logo'), path.join(OUT, 'Logo'), { recursive: true });
 
-console.log(`✓ built ${COMPANIES.length + 5} pages + robots.txt + sitemap.xml (${(bytes / 1024).toFixed(0)} KB) → dist/`);
+/* Illustrative campus artwork. Copied under a name that says what it is: a
+   generic illustration, not imagery of any tracked site. */
+fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
+// The "black" variant is the one with a near-black surround; the other has a
+// checkerboard baked into its pixels (it carries no alpha channel).
+fs.cpSync(path.join(ROOT, 'Sprites', 'datecenter', 'datacenterdrivableblack.png'),
+  path.join(OUT, 'assets', 'campus.png'));
+
+const pageCount = fs.readdirSync(OUT, { recursive: true }).filter(f => String(f).endsWith('index.html')).length;
+console.log(`✓ built ${pageCount} pages + robots.txt + sitemap.xml (${(bytes / 1024).toFixed(0)} KB) → dist/`);

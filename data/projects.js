@@ -412,14 +412,22 @@ export const COUNTRY_NAMES = { US: 'United States', CA: 'Canada', ES: 'Spain', A
 /**
  * Customer contracts. Dollar values are commitments, never converted to megawatts.
  * `conditional` marks a maximum that depends on events that have not occurred.
+ *
+ * `projectIds` links a contract to the sites that serve it, and only where the
+ * company itself has named the site — in the contract announcement, the campus name
+ * the company uses for the customer, or the delivery release. It is null where the
+ * disclosure names a customer but no location, because guessing the site would put
+ * a fabricated delivery date into every model downstream.
  */
 export const CONTRACTS = [
   { id: 'iren-msft', companyId: 'iren', customer: 'Microsoft', mw: 200, basis: 'critical-it', years: 5,
     valueBn: 9.7, deliveredMw: 50, confidence: 'confirmed', sourceIds: ['iren-8k-microsoft', 'iren-horizon1-delivery'],
+    projectIds: ['iren-horizon-1', 'iren-horizons-2-4'],
     terms: 'Five-year average term. Horizon 1 (50 MW) delivered and accepted 13 Aug 2026.' },
   { id: 'iren-nvda', companyId: 'iren', customer: 'NVIDIA', mw: 60, basis: 'critical-it', years: 5,
     valueBn: 3.4, deliveredMw: null, confidence: 'confirmed', sourceIds: ['iren-ex991-nvidia'],
-    terms: 'Five-year term.' },
+    projectIds: null,
+    terms: 'Five-year term. IREN has not named the site that will serve this agreement.' },
   { id: 'iren-developers', companyId: 'iren', customer: 'Other AI developer contracts', mw: null, basis: 'not-applicable',
     years: null, valueBn: 2.8, deliveredMw: null, confidence: 'confirmed', sourceIds: ['iren-ex991-nvidia'],
     terms: 'Approximately $2.8bn total contract value. Megawatts not disclosed.' },
@@ -439,25 +447,29 @@ export const CONTRACTS = [
 
   { id: 'wulf-anthropic', companyId: 'terawulf', customer: 'Anthropic (Justified Data Campus)', mw: 401,
     basis: 'critical-it', years: 20, valueBn: 19, deliveredMw: null, confidence: 'confirmed',
-    sourceIds: ['wulf-anthropic-lease'],
+    sourceIds: ['wulf-anthropic-lease'], projectIds: ['wulf-justified'],
     terms:
       '20-year initial lease term. Initial capacity expected H2 2027, full delivery expected early 2028.' },
 
   { id: 'apld-polaris-1', companyId: 'applied-digital', customer: 'CoreWeave (Polaris Forge 1)', mw: 400,
     basis: 'critical-it', years: 15, valueBn: 11, deliveredMw: null, confidence: 'confirmed',
-    sourceIds: ['apld-10k-20260531'], terms: '15-year initial term.' },
+    sourceIds: ['apld-10k-20260531'], projectIds: ['apld-polaris-1'], terms: '15-year initial term.' },
   { id: 'apld-polaris-2', companyId: 'applied-digital', customer: 'Investment-grade hyperscaler (Polaris Forge 2)',
     mw: 200, basis: 'critical-it', years: 15, valueBn: 5, deliveredMw: null, confidence: 'confirmed',
-    sourceIds: ['apld-10k-20260531'], terms: '15-year initial term. Customer not named by the company.' },
+    sourceIds: ['apld-10k-20260531'], projectIds: ['apld-polaris-2'],
+    terms: '15-year initial term. Customer not named by the company.' },
   { id: 'apld-polaris-3', companyId: 'applied-digital', customer: 'High investment-grade hyperscaler (Polaris Forge 3)',
     mw: 300, basis: 'critical-it', years: 15, valueBn: 7.5, deliveredMw: null, confidence: 'confirmed',
-    sourceIds: ['apld-10k-20260531'], terms: '15-year initial term. Customer not named by the company.' },
+    sourceIds: ['apld-10k-20260531'], projectIds: ['apld-polaris-3'],
+    terms: '15-year initial term. Customer not named by the company.' },
   { id: 'apld-delta-1', companyId: 'applied-digital', customer: 'High investment-grade hyperscaler (Delta Forge 1)',
     mw: 300, basis: 'critical-it', years: 15, valueBn: 7.5, deliveredMw: null, confidence: 'confirmed',
-    sourceIds: ['apld-10k-20260531'], terms: '15-year initial term. Customer not named by the company.' },
+    sourceIds: ['apld-10k-20260531'], projectIds: ['apld-delta-1'],
+    terms: '15-year initial term. Customer not named by the company.' },
   { id: 'apld-delta-2', companyId: 'applied-digital', customer: 'High investment-grade hyperscaler (Delta Forge 2)',
     mw: 210, basis: 'critical-it', years: 15, valueBn: 5.2, deliveredMw: null, confidence: 'confirmed',
-    sourceIds: ['apld-delta-forge-2'], terms: '15-year initial term. Under construction, expected delivery H1 2028.' }
+    sourceIds: ['apld-delta-forge-2'], projectIds: ['apld-delta-2'],
+    terms: '15-year initial term. Under construction, expected delivery H1 2028.' }
 ];
 
 export const PROJECTS_BY_COMPANY = PROJECTS.reduce((a, p) => { (a[p.companyId] ||= []).push(p); return a; }, {});

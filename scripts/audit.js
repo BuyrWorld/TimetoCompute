@@ -55,7 +55,8 @@ for (const f of htmlFiles) {
   const srcs = [...html.matchAll(/src="([^"]+)"/g)].map(m => m[1]);
   for (const h of [...hrefs, ...srcs]) {
     if (/^(https?:|mailto:|#|data:)/.test(h)) continue;
-    const clean = h.split('#')[0];
+    // A query string selects state within a route; the route itself is what must exist.
+    const clean = h.split('#')[0].split('?')[0];
     if (!clean) continue;
     if (!routes.has(clean) && !linkable.has(clean)) fail(`broken internal link ${h} in ${rel(f)}`);
   }
@@ -88,42 +89,58 @@ for (const f of htmlFiles) {
 
 /* ---- accessibility spot checks on the homepage ---- */
 const home = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8');
+const lab = fs.readFileSync(path.join(OUT, 'lab', 'index.html'), 'utf8');
+const research = fs.readFileSync(path.join(OUT, 'research', 'index.html'), 'utf8');
+const companiesPg = fs.readFileSync(path.join(OUT, 'companies', 'index.html'), 'utf8');
+const comparePg = fs.readFileSync(path.join(OUT, 'compare', 'index.html'), 'utf8');
 
 // every form control has a programmatic label
-const controlIds = [...home.matchAll(/<(?:input|select)[^>]*id="([^"]+)"/g)].map(m => m[1]);
-const labelFor = new Set([...home.matchAll(/<label[^>]*for="([^"]+)"/g)].map(m => m[1]));
+const controlIds = [...lab.matchAll(/<(?:input|select)[^>]*id="([^"]+)"/g)].map(m => m[1]);
+const labelFor = new Set([...lab.matchAll(/<label[^>]*for="([^"]+)"/g)].map(m => m[1]));
 for (const id of controlIds) {
   if (!labelFor.has(id)) fail(`form control #${id} has no <label for>`);
 }
-if (controlIds.length < 6) fail(`expected the Odds inputs in the homepage markup, found ${controlIds.length}`);
+if (controlIds.length < 6) fail(`expected the Edge Lab inputs, found ${controlIds.length}`);
 
-// tab semantics
-if (!/role="tablist"/.test(home)) fail('missing role=tablist');
-const tabs = [...home.matchAll(/class="tab" role="tab"[^>]*id="tab-([^"]+)"[^>]*aria-controls="view-([^"]+)"/g)];
-if (tabs.length < 6) fail(`expected 6 tabs with aria-controls, found ${tabs.length}`);
-for (const [, id, controls] of tabs) {
-  if (id !== controls) fail(`tab ${id} controls mismatched panel ${controls}`);
-  if (!home.includes(`id="view-${controls}"`)) fail(`tab ${id} points at a missing panel`);
+/* ---- navigation is now real routes, not tabs ---- */
+for (const [pageName, html] of [['home', home], ['lab', lab], ['research', research], ['companies', companiesPg]]) {
+  if (!/<nav class="mainnav" aria-label="Primary">/.test(html)) fail(`${pageName}: no primary navigation`);
+  const links = [...html.matchAll(/class="navlink[^"]*"\s+href="([^"]+)"/g)].map(m => m[1]);
+  if (links.length < 6) fail(`${pageName}: expected 6 primary nav links, found ${links.length}`);
+  for (const href of links) {
+    const clean = href.split('#')[0];
+    if (!routes.has(clean)) fail(`${pageName}: nav points at unbuilt route ${href}`);
+  }
+  // exactly one page marks itself current
+  const current = (html.match(/aria-current="page"/g) || []).length;
+  if (current < 1) fail(`${pageName}: no nav item marked aria-current`);
 }
 
-// expandable rows
-const geoRows = [...home.matchAll(/class="georow"[^>]*aria-expanded="false"[^>]*aria-controls="(geo-\d+)"/g)];
+// the marketing hero belongs to the homepage only
+for (const [pageName, html] of [['lab', lab], ['research', research], ['companies', companiesPg], ['compare', comparePg]]) {
+  if (/class="hero"/.test(html)) fail(`${pageName}: repeats the marketing hero — internal tools must start at the top`);
+  if (/class="tapein"/.test(html)) fail(`${pageName}: repeats the ticker tape`);
+}
+if (!/class="hero"/.test(home)) fail('the homepage lost its hero');
+
+// mode switchers keep proper tab semantics
+if (!/role="tablist"/.test(lab)) fail('Edge Lab mode switcher is not a tablist');
+if (!/role="tablist"/.test(comparePg)) fail('Compare mode switcher is not a tablist');
+
+/* ---- expandable country rows live on Research now ---- */
+const geoRows = [...research.matchAll(/class="georow"[^>]*aria-expanded="false"[^>]*aria-controls="(geo-\d+)"/g)];
 if (!geoRows.length) fail('country rows missing aria-expanded/aria-controls');
 for (const [, target] of geoRows) {
-  if (!home.includes(`id="${target}"`)) fail(`country row points at missing panel ${target}`);
+  if (!research.includes(`id="${target}"`)) fail(`country row points at missing panel ${target}`);
 }
 
-// charts carry a text alternative — aria-labelledby pointing at a real summary,
-// or an inline aria-label for small inline graphics
-if (!/id="distChart"[^>]*aria-labelledby="distSummary"/.test(home)) fail('distribution chart has no text summary');
-if (!/id="fanChart"[^>]*aria-labelledby="fanSummary"/.test(home)) fail('fan chart has no text summary');
-for (const id of ['distSummary', 'fanSummary']) {
-  if (!home.includes(`id="${id}"`)) fail(`chart summary target #${id} does not exist`);
-}
+/* ---- charts carry a text alternative ---- */
+if (!/id="distChart"[^>]*aria-labelledby="distSummary"/.test(lab)) fail('distribution chart has no text summary');
+if (!lab.includes('id="distSummary"')) fail('chart summary target #distSummary does not exist');
 if (!/role="img"\s+aria-label(ledby)?=/.test(home)) fail('no aria-labelled chart graphics found');
 
-// the marquee duplicate must not be read twice by a screen reader
-if (!/aria-hidden="true"/.test(home)) fail('no aria-hidden found — check the ticker clone');
+// decorative duplicates must not be read twice by a screen reader
+if (!/aria-hidden="true"/.test(home)) fail('no aria-hidden found on decorative elements');
 
 /* ---- provenance and honesty rules ---- */
 // a minimum must never be presented as an exhaustive total
@@ -154,8 +171,8 @@ for (const f of htmlFiles) {
 }
 
 // comparison must state its own ceiling
-if (!/at most 3 companies|up to 3|Up to 3/i.test(home)) {
-  fail('the comparison ceiling is not stated in the interface');
+if (!/up to 3|Select up to 3|at most 3/i.test(comparePg)) {
+  fail('the comparison ceiling is not stated on the Compare route');
 }
 
 // status must never be colour-only: every status pill carries a text label

@@ -1,0 +1,19 @@
+{
+  "sheet": "t2c-ev-spritesheet-8-direction.png",
+  "sheetWidth": 1536,
+  "sheetHeight": 1024,
+  "columns": 4,
+  "rows": 2,
+  "cellWidth": 384,
+  "cellHeight": 512,
+  "directions": [
+    { "id": "n", "name": "north", "column": 0, "row": 0, "file": "sprites/ev-north.png" },
+    { "id": "ne", "name": "north-east", "column": 1, "row": 0, "file": "sprites/ev-north-east.png" },
+    { "id": "e", "name": "east", "column": 2, "row": 0, "file": "sprites/ev-east.png" },
+    { "id": "se", "name": "south-east", "column": 3, "row": 0, "file": "sprites/ev-south-east.png" },
+    { "id": "s", "name": "south", "column": 0, "row": 1, "file": "sprites/ev-south.png" },
+    { "id": "sw", "name": "south-west", "column": 1, "row": 1, "file": "sprites/ev-south-west.png" },
+    { "id": "w", "name": "west", "column": 2, "row": 1, "file": "sprites/ev-west.png" },
+    { "id": "nw", "name": "north-west", "column": 3, "row": 1, "file": "sprites/ev-north-west.png" }
+  ]
+}

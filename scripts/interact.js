@@ -1,0 +1,273 @@
+/**
+ * Interaction QA. Drives the built site in a real browser and asserts the things
+ * only a running page can prove: that the filters filter, that the Lab recomputes,
+ * that a saved call survives a reload, that keyboard focus reaches the controls,
+ * and that a legacy hash still lands on its route.
+ *
+ *   node scripts/interact.js
+ */
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import puppeteer from 'puppeteer-core';
+
+const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const DIST = path.join(ROOT, 'dist');
+const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+
+const MIME = {
+  '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json',
+  '.xml': 'application/xml', '.txt': 'text/plain'
+};
+
+function serve() {
+  return new Promise(resolve => {
+    const server = http.createServer((req, res) => {
+      const p = decodeURIComponent(req.url.split('?')[0]);
+      if (p.startsWith('/api/')) {
+        res.writeHead(503, { 'content-type': 'application/json' });
+        return res.end('{"error":"offline in QA"}');
+      }
+      let file = path.join(DIST, p);
+      if (!path.extname(file)) file = path.join(file, 'index.html');
+      if (!fs.existsSync(file)) { res.writeHead(404); return res.end('not found'); }
+      res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream' });
+      res.end(fs.readFileSync(file));
+    });
+    server.listen(0, '127.0.0.1', () => resolve(server));
+  });
+}
+
+const results = [];
+const check = (name, ok, detail = '') => {
+  results.push({ name, ok, detail });
+  console.log(`  ${ok ? '✓' : '✗'} ${name}${ok || !detail ? '' : ' — ' + detail}`);
+};
+
+const run = async () => {
+  const server = await serve();
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const browser = await puppeteer.launch({
+    executablePath: fs.existsSync(CHROME) ? CHROME : undefined,
+    headless: 'new', args: ['--no-sandbox']
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1440, height: 900 });
+
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  /* ---- legacy hashes still resolve ---- */
+  await page.goto(base + '/#odds', { waitUntil: 'networkidle0' });
+  check('legacy #odds lands on the Lab in odds mode',
+    page.url().includes('/lab/') && page.url().includes('#odds'), page.url());
+
+  await page.goto(base + '/#capacity', { waitUntil: 'networkidle0' });
+  check('legacy #capacity lands on Research', page.url().includes('/research/'), page.url());
+
+  /* ---- companies filter and sort ---- */
+  await page.goto(base + '/companies/', { waitUntil: 'networkidle0' });
+  const before = await page.$$eval('#companyGrid .snap', els => els.filter(e => !e.hidden).length);
+  await page.select('#coModel', 'poweredShell');
+  await new Promise(r => setTimeout(r, 120));
+  const after = await page.$$eval('#companyGrid .snap', els => els.filter(e => !e.hidden).length);
+  check('the operating-model filter narrows the grid', after > 0 && after < before, `${before} → ${after}`);
+
+  const count = await page.$eval('#coCount', el => el.textContent);
+  check('the result count matches what is visible', count.startsWith(String(after)), count);
+
+  await page.select('#coModel', '');
+  await page.select('#coSort', 'name');
+  await new Promise(r => setTimeout(r, 120));
+  const names = await page.$$eval('#companyGrid .snap', els =>
+    els.map(e => e.getAttribute('data-name')));
+  check('sorting by name orders the grid',
+    names.join('|') === [...names].sort((a, b) => a.localeCompare(b)).join('|'), names.join(', '));
+
+  const q = await page.$('#coSearch');
+  await q.type('tera');
+  await new Promise(r => setTimeout(r, 150));
+  const searched = await page.$$eval('#companyGrid .snap', els => els.filter(e => !e.hidden).length);
+  check('search narrows to a single match', searched === 1, `${searched} shown`);
+
+  /* ---- the Lab recomputes ---- */
+  await page.goto(base + '/lab/?company=terawulf', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 400));
+  const selected = await page.$eval('#labCompany', el => el.value);
+  check('a Lab deep link selects the requested company', selected === 'terawulf', selected);
+
+  const firstAnswer = await page.$eval('#labResults', el => el.textContent.slice(0, 400));
+  await page.$eval('#labShift', el => { el.value = '6'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await new Promise(r => setTimeout(r, 500));
+  const shifted = await page.$eval('#labResults', el => el.textContent.slice(0, 400));
+  check('moving the delivery slider recomputes the model', firstAnswer !== shifted);
+
+  const shiftLabel = await page.$eval('#labShiftOut', el => el.textContent);
+  check('the slider states its own value in words', /later|earlier|schedule/.test(shiftLabel), shiftLabel);
+
+  const whatRows = await page.$$eval('#labWhat tbody tr', els => els.length);
+  check('the model shows every tranche it is standing on', whatRows > 0, `${whatRows} rows`);
+
+  const noZeroClaim = await page.$eval('#labWhat', el => el.textContent);
+  check('undated capacity is named rather than silently dropped',
+    !/\bMW with no date\b/.test(noZeroClaim) || /no delivery date on record/.test(noZeroClaim));
+
+  /* ---- mode switching ---- */
+  await page.click('.mode[data-lab="odds"]');
+  await new Promise(r => setTimeout(r, 200));
+  const oddsVisible = await page.$eval('#odds', el => !el.hidden);
+  const resultsHidden = await page.$eval('#labResults', el => el.hidden);
+  check('switching to Market odds swaps the panel', oddsVisible && resultsHidden);
+
+  /* ---- a call survives a reload ---- */
+  await page.goto(base + '/companies/iren/', { waitUntil: 'networkidle0' });
+  await page.type('#callWhy-IREN', 'Horizon 2 needs the transformer delivery to hold.');
+  await page.click('.callform button[type="submit"]');
+  await new Promise(r => setTimeout(r, 200));
+  const saved = await page.$eval('#callList-IREN', el => el.textContent);
+  check('a call appears immediately after saving', /transformer delivery/.test(saved));
+
+  await page.reload({ waitUntil: 'networkidle0' });
+  const persisted = await page.$eval('#callList-IREN', el => el.textContent);
+  check('the call survives a reload', /transformer delivery/.test(persisted));
+
+  const posted = [];
+  page.on('request', r => { if (r.method() !== 'GET') posted.push(r.url()); });
+  await page.click('.callform button[type="submit"]');
+  await new Promise(r => setTimeout(r, 300));
+  check('saving a call sends no request anywhere', posted.length === 0, posted.join(', '));
+
+  await page.click('.calldel');
+  await new Promise(r => setTimeout(r, 150));
+
+  /* ---- sites directory filters and restores ---- */
+  await page.goto(base + '/sites/', { waitUntil: 'networkidle0' });
+  const sitesBefore = await page.$$eval('#siteGrid .sitecard', els => els.filter(e => !e.hidden).length);
+  await page.select('#siteCountry', 'FI');
+  await new Promise(r => setTimeout(r, 150));
+  const sitesAfter = await page.$$eval('#siteGrid .sitecard', els => els.filter(e => !e.hidden).length);
+  check('the country filter narrows the site grid',
+    sitesAfter > 0 && sitesAfter < sitesBefore, `${sitesBefore} → ${sitesAfter}`);
+  check('the site filter writes itself into the URL', page.url().includes('country=FI'), page.url());
+
+  // Open a site, come back, and the filter must still be applied.
+  await page.goto(page.url(), { waitUntil: 'networkidle0' });
+  const restored = await page.$eval('#siteCountry', el => el.value);
+  const restoredCount = await page.$$eval('#siteGrid .sitecard', els => els.filter(e => !e.hidden).length);
+  check('returning to a filtered directory restores the filter',
+    restored === 'FI' && restoredCount === sitesAfter, `${restored} / ${restoredCount} shown`);
+
+  /* ---- a site page opens from its card ---- */
+  await page.goto(base + '/sites/', { waitUntil: 'networkidle0' });
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle0' }),
+    page.click('#siteGrid .sitecard')
+  ]);
+  check('a site card opens a real site page', /\/sites\/[a-z0-9-]+\/$/.test(page.url()), page.url());
+  const ladder = await page.$$eval('.ladder .lstep', els => els.length);
+  check('the site page renders its status ladder', ladder === 7, `${ladder} steps`);
+
+  /* ---- path steps reveal evidence rather than doing nothing ---- */
+  await page.goto(base + '/sites/iren-horizon-1/', { waitUntil: 'networkidle0' });
+  const pressable = await page.$$('.pstep-btn');
+  const firstPanelHidden = await page.$eval('.pstepev', el => el.hidden);
+  await pressable[0].click();
+  await new Promise(r => setTimeout(r, 120));
+  const afterPanel = await page.$eval('.pstepev', el => el.hidden);
+  check('an evidenced path stage opens its sources',
+    firstPanelHidden === true && afterPanel === false);
+
+  const inertAffordance = await page.evaluate(() =>
+    // A stage with no sources must not look pressable.
+    [...document.querySelectorAll('.pstep')].every(li =>
+      li.querySelector('.pstep-btn') || !li.querySelector('button')));
+  check('a stage with no evidence offers no pressable control', inertAffordance);
+
+  /* ---- intelligence: filter, review, persist ---- */
+  await page.goto(base + '/intelligence/', { waitUntil: 'networkidle0' });
+  const allSignals = await page.$$eval('#signalAll .sig', els => els.filter(e => !e.hidden).length);
+  await page.click('.sigfilter[data-cat="outlook"]');
+  await new Promise(r => setTimeout(r, 150));
+  const outlookOnly = await page.$$eval('#signalAll .sig', els => els.filter(e => !e.hidden).length);
+  check('a signal filter narrows the ledger',
+    outlookOnly > 0 && outlookOnly < allSignals, `${allSignals} → ${outlookOnly}`);
+  check('the signal filter is reflected in the URL', page.url().includes('change=outlook'), page.url());
+
+  await page.goto(base + '/intelligence/', { waitUntil: 'networkidle0' });
+  await page.click('#todayset [data-review]');
+  await new Promise(r => setTimeout(r, 150));
+  const caughtUp = await page.$eval('#caughtUp', el => !el.hidden);
+  check('reviewing the whole daily set shows the caught-up state', caughtUp);
+
+  await page.reload({ waitUntil: 'networkidle0' });
+  const stillReviewed = await page.$eval('#todayset .sig', el => el.classList.contains('is-reviewed'));
+  check('reviewed state survives a reload', stillReviewed);
+
+  // The daily set is now hidden behind the caught-up state, so use a ledger row
+  // that is NOT part of that set — the newest ledger row is today's signal.
+  const todayIds = await page.$$eval('#todayset .sig', els => els.map(e => e.getAttribute('data-id')));
+  const otherId = await page.$$eval('#signalAll .sig', (els, ids) =>
+    els.map(e => e.getAttribute('data-id')).find(id => !ids.includes(id)), todayIds);
+
+  const reviewPosts = [];
+  page.on('request', r => { if (r.method() !== 'GET') reviewPosts.push(r.url()); });
+  await page.click(`#signalAll [data-review="${otherId}"]`);
+  await new Promise(r => setTimeout(r, 200));
+  check('reviewing a signal sends no request anywhere', reviewPosts.length === 0, reviewPosts.join(', '));
+
+  // Un-reviewing must bring the daily set back rather than stranding the reader
+  // in a caught-up state they cannot leave.
+  await page.click(`#signalAll [data-review="${todayIds[0]}"]`);
+  await new Promise(r => setTimeout(r, 200));
+  const backAgain = await page.$eval('#caughtUp', el => el.hidden);
+  const listBack = await page.$eval('#todayset .siglist', el => !el.hidden);
+  check('un-reviewing a signal leaves the caught-up state', backAgain && listBack);
+
+  /* ---- keyboard reaches the controls ---- */
+  await page.goto(base + '/companies/', { waitUntil: 'networkidle0' });
+  await page.keyboard.press('Tab');
+  const skip = await page.evaluate(() => document.activeElement.className);
+  check('the first tab stop is the skip link', /skiplink/.test(skip), skip);
+
+  // Walk the real tab order and confirm focus never falls off the document.
+  const walk = await page.evaluate(() => ({ start: document.activeElement.tagName }));
+  const focusTrail = [];
+  for (let i = 0; i < 15; i++) {
+    await page.keyboard.press('Tab');
+    focusTrail.push(await page.evaluate(() => {
+      const el = document.activeElement;
+      return el === document.body ? 'BODY' : el.tagName;
+    }));
+  }
+  check('tabbing walks real controls and never lands on the body',
+    focusTrail.length === 15 && !focusTrail.includes('BODY'),
+    `${walk.start} → ${focusTrail.join(',')}`);
+
+  /* ---- reduced motion is honoured ---- */
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 400));
+  const framesA = await page.evaluate(() => {
+    const cv = document.getElementById('flow');
+    return cv ? cv.toDataURL().length : 0;
+  });
+  await new Promise(r => setTimeout(r, 600));
+  const framesB = await page.evaluate(() => {
+    const cv = document.getElementById('flow');
+    return cv ? cv.toDataURL().length : 0;
+  });
+  check('the hero animation stops under reduced motion', framesA === framesB, `${framesA} vs ${framesB}`);
+
+  check('no uncaught errors during the whole run', errors.length === 0, errors.join(' | '));
+
+  await browser.close();
+  server.close();
+
+  const failed = results.filter(r => !r.ok);
+  console.log(`\n${results.length - failed.length}/${results.length} interaction checks passed`);
+  if (failed.length) process.exitCode = 1;
+};
+
+run().catch(e => { console.error(e); process.exit(1); });

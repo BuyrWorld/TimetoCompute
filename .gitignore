@@ -4,3 +4,6 @@ dist/
 .env
 .env.local
 *.log
+
+# Visual QA output — regenerate with `npm run shots`, never review as source.
+shots/

@@ -1,0 +1,489 @@
+/* ============================================================
+   Mission Control layer.
+
+   Loaded last, after shell.css. This layer adds the Mission
+   Control surfaces, the click-glow interaction primitive and the
+   site/signal components. It reuses the existing token names
+   (--brand, --ink, --surface-*) rather than introducing a second
+   theme architecture; only the values that are genuinely new —
+   panel radii, glow shadows, the raised panel surface — are
+   declared here.
+
+   Lime is reserved for progress, selection and action. It is not
+   a border colour.
+   ============================================================ */
+
+:root {
+  --m-panel: #0E0E10;
+  --m-panel-2: #131316;
+  --m-panel-raised: #17171B;
+  --m-radius: 14px;
+  --m-radius-sm: 10px;
+  --m-shadow: 0 18px 55px rgba(0, 0, 0, .34);
+  --m-glow-hover: 0 0 0 1px rgba(214, 255, 0, .28), 0 0 18px rgba(214, 255, 0, .10);
+  --m-glow-press: 0 0 0 1px rgba(214, 255, 0, .95), 0 0 14px rgba(214, 255, 0, .60), 0 0 38px rgba(214, 255, 0, .24);
+  --m-lime-soft: rgba(214, 255, 0, .14);
+  --m-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-theme="light"] {
+  --m-panel: #FFFFFF;
+  --m-panel-2: #FAFAF7;
+  --m-panel-raised: #F2F2EE;
+  --m-shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 10px 30px rgba(0, 0, 0, .06);
+  --m-glow-hover: 0 0 0 1px rgba(120, 140, 0, .30), 0 0 14px rgba(120, 140, 0, .08);
+  --m-glow-press: 0 0 0 2px rgba(90, 110, 0, .85), 0 0 12px rgba(120, 140, 0, .35);
+  --m-lime-soft: rgba(150, 175, 0, .16);
+}
+
+/* ============================================================
+   1. Click-glow — one primitive, applied everywhere
+   ============================================================
+
+   .press is the whole interaction system. It works on links,
+   buttons, rows, cards, tabs, hotspots and progress nodes alike.
+
+   Layout shift is impossible by construction: the glow is drawn
+   entirely by box-shadow (which does not participate in layout)
+   and the press uses a transform. Neither reflows a neighbour.
+
+   Navigation is never delayed for the animation — .is-pressed is
+   applied and removed on a timer that the browser is free to
+   abandon the moment the page changes. */
+
+.press {
+  position: relative;
+  border-radius: var(--m-radius-sm);
+  transition: box-shadow .18s ease, border-color .18s ease, background-color .18s ease, transform .34s cubic-bezier(.2, .8, .3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.press:hover {
+  box-shadow: var(--m-glow-hover);
+}
+
+/* Keyboard focus is always obvious, and always distinguishable
+   from hover — a focus ring, not a bloom. */
+.press:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  box-shadow: var(--m-glow-hover);
+}
+
+/* The pressed state. Applied by the runtime for pointer, Enter and
+   Space alike so all three feel identical. */
+.press.is-pressed {
+  transform: scale(.985);
+  box-shadow: var(--m-glow-press);
+}
+
+/* A selected control keeps a restrained inner border, never a
+   permanent bloom. */
+.press.is-selected,
+.press[aria-selected="true"],
+.press[aria-current="page"] {
+  box-shadow: inset 0 0 0 1px rgba(214, 255, 0, .55);
+}
+
+/* A control that cannot act says so and does not look pressable. */
+.press[disabled],
+.press[aria-disabled="true"] {
+  opacity: .5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press { transition: box-shadow .01ms, border-color .01ms; }
+  /* No scale and no travelling highlight, but the pressed state
+     stays high-contrast and static so the feedback is not lost. */
+  .press.is-pressed {
+    transform: none;
+    box-shadow: 0 0 0 2px var(--brand);
+  }
+}
+
+/* ============================================================
+   2. Panels
+   ============================================================ */
+
+.mpanel {
+  background: var(--m-panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--m-radius);
+  box-shadow: var(--m-shadow);
+  padding: var(--s3);
+}
+.mpanel + .mpanel { margin-top: var(--s3); }
+.mpanel.flush { padding: 0; overflow: hidden; }
+
+.mhead {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--s2); margin-bottom: var(--s2);
+}
+.mkicker {
+  font-family: var(--m-mono);
+  font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--brand);
+}
+.mkicker.dim { color: var(--dim); }
+.mhead h2, .mhead h3 {
+  font-size: 15px; font-weight: 800; margin: 0; letter-spacing: -.01em;
+}
+.mnote { color: var(--dim); font-size: 13px; margin: var(--s1) 0 0; }
+
+/* ============================================================
+   3. Segmented meter — the ▮▮▮▮▯ bar
+   ============================================================
+   Always paired with a text label. Never colour alone. */
+
+.meter { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; }
+.meter i {
+  display: block; width: 6px; height: 14px; border-radius: 1px;
+  background: var(--surface-3);
+}
+.meter i.on { background: var(--brand); }
+.meter.warn i.on { background: var(--warn); }
+.meter.bad i.on { background: var(--bad); }
+.meterlab {
+  font-family: var(--m-mono); font-size: 12px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--soft);
+}
+
+/* ============================================================
+   4. Delivery path — the horizontal ladder
+   ============================================================ */
+
+.pathwrap { overflow-x: auto; padding-bottom: var(--s1); }
+.path {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(104px, 1fr);
+  list-style: none; margin: 0; padding: 0; min-width: 640px;
+}
+.pstep { position: relative; text-align: center; padding: 0 4px; }
+
+/* the connecting rail, drawn behind the node */
+.pstep::before {
+  content: ''; position: absolute; top: 17px; left: -50%; width: 100%;
+  height: 2px; background: var(--surface-3);
+}
+.pstep:first-child::before { display: none; }
+.pstep.done::before { background: var(--brand); }
+
+.pnode {
+  position: relative; z-index: 1; display: grid; place-items: center;
+  width: 36px; height: 36px; margin: 0 auto var(--s1);
+  border-radius: 50%; border: 2px solid var(--surface-3);
+  background: var(--bg); color: var(--dim); font-size: 15px;
+}
+.pstep.done .pnode { border-color: var(--brand); color: var(--brand); }
+.pstep.now .pnode {
+  border-color: var(--brand); color: var(--brand);
+  box-shadow: 0 0 0 4px var(--m-lime-soft), 0 0 16px rgba(214, 255, 0, .35);
+}
+.pstep.nd .pnode { border-style: dashed; }
+
+.plabel {
+  display: block; font-family: var(--m-mono);
+  font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--soft); line-height: 1.3;
+}
+.pstep.done .plabel { color: var(--ink); }
+.pdate, .pstatus {
+  display: block; font-size: 11px; color: var(--dim); margin-top: 3px;
+}
+.pstep.nd .pstatus { font-style: italic; }
+
+/* the step is a real button when it has evidence to show */
+button.pstep {
+  border: 0; background: none; font: inherit; cursor: pointer;
+  padding-top: var(--s1); padding-bottom: var(--s1);
+}
+button.pstep:disabled { cursor: default; opacity: 1; }
+
+/* ============================================================
+   5. Site directory and site page
+   ============================================================ */
+
+.sitegrid {
+  display: grid; gap: var(--s2);
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.sitecard {
+  display: flex; flex-direction: column; gap: var(--s1);
+  background: var(--m-panel); border: 1px solid var(--line-2);
+  border-radius: var(--m-radius); padding: var(--s2);
+  text-decoration: none; color: inherit;
+}
+.sitecard[hidden] { display: none; }
+.sitecardtop { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s1); }
+.sitecardco {
+  font-family: var(--m-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; color: var(--dim);
+}
+.sitecardname { font-size: 16px; font-weight: 800; line-height: 1.25; margin: 2px 0 0; }
+.sitecardloc { font-size: 12.5px; color: var(--dim); }
+.sitecardcap {
+  font-family: var(--m-mono); font-size: 20px; font-weight: 700; letter-spacing: -.02em;
+  color: var(--ink);
+}
+.sitecardcap .nd { font-size: 13px; font-weight: 500; color: var(--dim); letter-spacing: 0; }
+.sitecardfoot {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s1);
+  margin-top: auto; padding-top: var(--s1); border-top: 1px solid var(--line-2);
+}
+.sitecardstage {
+  font-family: var(--m-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--brand);
+}
+.sitecardstage.none { color: var(--dim); }
+
+/* site page */
+.siteid {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3);
+  padding: var(--s3); background: var(--m-panel);
+  border: 1px solid var(--line-2); border-radius: var(--m-radius);
+}
+.siteticker {
+  display: grid; place-items: center; width: 84px; height: 84px; flex: none;
+  border: 1px solid var(--line); border-radius: var(--m-radius-sm);
+  background: var(--m-panel-2);
+  font-family: var(--m-mono); font-size: 17px; font-weight: 700; color: var(--brand);
+}
+.siteidmain { flex: 1 1 260px; min-width: 0; }
+.siteidmain h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.02; margin: 0; letter-spacing: -.02em; }
+.siteidsub {
+  font-family: var(--m-mono); font-size: 13px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim); margin: 6px 0 0;
+}
+.sitefacts { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: flex-start; }
+.sitefact { min-width: 92px; }
+.sitefact.wide { min-width: 200px; }
+.conflevel {
+  font-family: var(--m-mono); font-size: 20px; font-weight: 700; color: var(--brand);
+  letter-spacing: .02em; margin-right: 8px;
+}
+.conflevel.medium { color: var(--warn); }
+.conflevel.low { color: var(--bad); }
+.sitefactl { display: block; max-width: 30ch; line-height: 1.4; }
+.sitefactv {
+  font-family: var(--m-mono); font-size: 22px; font-weight: 700; color: var(--ink);
+  letter-spacing: -.02em; display: block;
+}
+.sitefactv .nd { font-size: 13px; font-weight: 500; color: var(--dim); }
+.sitefactl {
+  font-family: var(--m-mono); font-size: 10.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--dim);
+}
+
+.sitecols { display: grid; gap: var(--s3); grid-template-columns: 1fr; }
+@media (min-width: 1000px) { .sitecols { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); } }
+
+/* the campus visual */
+.campus {
+  position: relative; border-radius: var(--m-radius); overflow: hidden;
+  background: #07070A; border: 1px solid var(--line-2);
+}
+.campusimg { display: block; width: 100%; height: auto; }
+.campusnote {
+  position: absolute; left: var(--s2); bottom: var(--s2); right: var(--s2);
+  font-size: 11.5px; color: var(--soft); background: rgba(0, 0, 0, .62);
+  border-radius: 6px; padding: 6px 9px; backdrop-filter: blur(4px);
+}
+
+/* status ladder */
+.ladder { list-style: none; margin: 0; padding: 0; }
+.lstep { display: flex; gap: var(--s2); align-items: flex-start; padding: var(--s1) 0; position: relative; }
+.lstep::before {
+  content: ''; position: absolute; left: 15px; top: 34px; bottom: -6px; width: 2px;
+  background: var(--surface-3);
+}
+.lstep:last-child::before { display: none; }
+.lstep.done::before { background: var(--brand); }
+.lnode {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px;
+  border-radius: 50%; border: 2px solid var(--surface-3); background: var(--bg);
+  color: var(--dim); font-size: 14px; z-index: 1;
+}
+.lstep.done .lnode { border-color: var(--brand); color: var(--brand); }
+.lstep.now .lnode { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px var(--m-lime-soft); }
+.lbody { min-width: 0; flex: 1; }
+.llabel {
+  font-family: var(--m-mono); font-size: 12px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink);
+}
+.lstep.nd .llabel { color: var(--dim); }
+.lmeta { font-size: 12.5px; color: var(--dim); margin-top: 2px; }
+
+/* dependencies */
+.deps { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.dep { display: flex; gap: 9px; align-items: flex-start; }
+.depglyph { font-size: 15px; line-height: 1.2; flex: none; }
+.deplabel { font-size: 13px; font-weight: 700; display: block; }
+.depstatus { font-size: 12px; color: var(--dim); }
+.dep.ok .depglyph, .dep.ok .depstatus { color: var(--ok); }
+.dep.warn .depglyph, .dep.warn .depstatus { color: var(--warn); }
+.dep.unknown .depglyph { color: var(--unknown); }
+
+/* replay */
+.replay { display: flex; gap: 0; align-items: flex-start; overflow-x: auto; padding-bottom: var(--s1); }
+.rstep { flex: 1 0 96px; text-align: center; position: relative; }
+.rstep::before {
+  content: ''; position: absolute; top: 13px; left: -50%; width: 100%; height: 2px;
+  background: var(--brand);
+}
+.rstep:first-child::before { display: none; }
+.rdot {
+  position: relative; z-index: 1; width: 26px; height: 26px; margin: 0 auto 6px;
+  border-radius: 50%; border: 2px solid var(--brand); background: var(--bg);
+  display: grid; place-items: center; font-size: 12px; color: var(--brand);
+}
+.rlabel {
+  display: block; font-family: var(--m-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--soft);
+}
+.rdate { display: block; font-size: 11px; color: var(--dim); margin-top: 2px; }
+
+/* ============================================================
+   6. Signals — the Intelligence feed
+   ============================================================ */
+
+.sigfilters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--s2); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
+  padding: 0 13px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--soft);
+  font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer;
+}
+.chip .n { font-family: var(--m-mono); font-size: 11.5px; color: var(--dim); }
+.chip[aria-pressed="true"], .chip.is-selected {
+  background: var(--brand); border-color: var(--brand); color: var(--brand-ink);
+}
+.chip[aria-pressed="true"] .n, .chip.is-selected .n { color: var(--brand-ink); }
+
+.siglist { list-style: none; margin: 0; padding: 0; }
+.sig {
+  display: grid; gap: var(--s2); align-items: start; padding: var(--s2) 0;
+  border-top: 1px solid var(--line-2);
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+}
+.sig:first-child { border-top: 0; }
+.sig[hidden] { display: none; }
+.sigglyph {
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--line); font-size: 14px; color: var(--dim);
+}
+.sig.ok .sigglyph { border-color: rgba(214, 255, 0, .5); color: var(--brand); }
+.sig.bad .sigglyph { border-color: rgba(209, 69, 69, .5); color: var(--bad); }
+.sig.warn .sigglyph { border-color: rgba(196, 132, 0, .5); color: var(--warn); }
+.sigmain { min-width: 0; }
+.sigtop { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 3px; }
+.sigco {
+  font-family: var(--m-mono); font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  color: var(--dim); text-decoration: none;
+}
+.sigco:hover { color: var(--brand); }
+.sigcat {
+  font-family: var(--m-mono); font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 3px;
+  background: var(--surface-3); color: var(--soft);
+}
+.sigsum { font-size: 14.5px; font-weight: 600; line-height: 1.4; margin: 0; }
+.sigimp { font-size: 13px; color: var(--dim); line-height: 1.5; margin: 5px 0 0; }
+.sigside { text-align: right; white-space: nowrap; }
+.sigdate { font-family: var(--m-mono); font-size: 11.5px; color: var(--dim); display: block; }
+.sigdelta {
+  font-family: var(--m-mono); font-size: 14px; font-weight: 700; display: block; margin-top: 3px;
+}
+.sigdelta.up { color: var(--brand); }
+.sigdelta.down { color: var(--bad); }
+
+/* reviewed state */
+.sig.is-reviewed { opacity: .58; }
+.sigread {
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--dim);
+  border-radius: 6px; min-height: 32px; padding: 0 10px; font-size: 12px; font-weight: 700;
+  cursor: pointer; margin-top: 6px;
+}
+.sig.is-reviewed .sigread { border-color: rgba(214, 255, 0, .45); color: var(--brand); }
+
+.caughtup {
+  text-align: center; padding: var(--s5) var(--s3); color: var(--dim);
+}
+.caughtup .cuglyph { font-size: 30px; color: var(--brand); display: block; margin-bottom: var(--s1); }
+.caughtup h3 { font-size: 17px; margin: 0 0 6px; color: var(--ink); }
+
+@media (max-width: 640px) {
+  .sig { grid-template-columns: 28px minmax(0, 1fr); }
+  .sigside { grid-column: 2; text-align: left; }
+}
+
+/* ============================================================
+   7. Live / Focus
+   ============================================================ */
+
+.modetoggle {
+  display: inline-flex; padding: 3px; gap: 3px; flex: none;
+  background: var(--surface-2); border-radius: 8px; border: 1px solid var(--line-2);
+}
+.modebtn {
+  min-height: 32px; padding: 0 13px; border: 0; border-radius: 6px; cursor: pointer;
+  background: none; color: var(--dim);
+  font-family: var(--m-mono); font-size: 11.5px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+.modebtn[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); }
+
+/* Focus mode hides secondary metrics without touching the
+   investigation the reader is in the middle of. */
+html[data-mode="focus"] .secondary { display: none; }
+
+/* ============================================================
+   8. Command palette
+   ============================================================ */
+
+.pal {
+  border: 0; padding: 0; background: none;
+  width: min(620px, calc(100vw - 32px));
+  border-radius: var(--m-radius);
+}
+.pal::backdrop { background: rgba(0, 0, 0, .62); backdrop-filter: blur(3px); }
+.palin {
+  background: var(--m-panel); border: 1px solid var(--line);
+  border-radius: var(--m-radius); box-shadow: 0 30px 80px rgba(0, 0, 0, .6);
+  overflow: hidden;
+}
+.palfield { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); border-bottom: 1px solid var(--line-2); }
+.palfield input {
+  flex: 1; background: none; border: 0; color: var(--ink); font-size: 16px; outline: none;
+  min-width: 0;
+}
+.palfield input::placeholder { color: var(--faint); }
+.palresults { list-style: none; margin: 0; padding: var(--s1); max-height: min(52vh, 420px); overflow-y: auto; }
+.palitem {
+  display: flex; align-items: center; gap: var(--s2); width: 100%;
+  padding: 10px 12px; border: 0; border-radius: 8px; background: none;
+  color: var(--ink); font: inherit; text-align: left; cursor: pointer; text-decoration: none;
+}
+.palitem:hover, .palitem.is-active { background: var(--surface-2); }
+.palkind {
+  font-family: var(--m-mono); font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim); flex: none; width: 62px;
+}
+.palname { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; }
+.palhint { font-size: 12px; color: var(--dim); flex: none; }
+.palempty { padding: var(--s3); text-align: center; color: var(--dim); font-size: 14px; }
+
+.paltrigger {
+  display: inline-flex; align-items: center; gap: var(--s1); min-height: 36px;
+  padding: 0 10px 0 12px; border-radius: 8px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--line-2); color: var(--dim);
+  font-size: 13px; white-space: nowrap;
+}
+.paltrigger:hover { color: var(--soft); }
+.palkbd {
+  font-family: var(--m-mono); font-size: 10.5px; font-weight: 700;
+  border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; color: var(--dim);
+}
+@media (max-width: 900px) { .paltrigger .paltxt { display: none; } }

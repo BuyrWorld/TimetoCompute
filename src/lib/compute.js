@@ -7,7 +7,7 @@
  * Every aggregate reports its contributors and its exclusions so the coverage of a
  * number is visible at the same moment as the number.
  */
-import { CONFIDENCE, METRICS, VALUE_STATUS, GATES, GATE_BY_ID } from '../../data/schema.js';
+import { CONFIDENCE, METRICS, VALUE_STATUS, POWER_BASIS, GATES, GATE_BY_ID } from '../../data/schema.js';
 import { COMPANIES } from '../../data/companies.js';
 import { PROJECTS, PROJECTS_BY_COMPANY } from '../../data/projects.js';
 import { EVENTS } from '../../data/events.js';
@@ -449,14 +449,45 @@ export function briefing({ now = new Date() } = {}) {
     });
   } else cards.push({ id: 'catalyst', kicker: 'Next tracked catalyst', available: false });
 
-  // 3. Analyst upside — genuinely unavailable on the current data plan.
-  cards.push({
-    id: 'analyst', kicker: 'Highest median analyst upside', available: false,
-    unavailableReason:
-      'Analyst price targets are not available on the connected data plan, so no upside ranking is shown. ' +
-      'T2C does not publish an unattributed target.',
-    actionLabel: 'How analyst data works', actionHref: '/methodology/#analysts'
-  });
+  /*
+   * 3. The widest gap between capacity signed for and capacity switched on.
+   *
+   * This slot used to hold analyst upside, which the connected data plan does not
+   * carry — so it rendered as an explanation of an absence in one of the four most
+   * valuable positions on the site. The conversion gap is the thing T2C actually
+   * measures, it uses one power basis throughout, and it is the question the whole
+   * product exists to answer.
+   */
+  const gaps = COMPANIES.map(c => {
+    const signed = getMeasure(c, 'customerContractedMw');
+    const live = getMeasure(c, 'energisedCriticalItMw');
+    if (!isKnown(signed) || !isKnown(live)) return null;
+    if (signed.powerBasis !== live.powerBasis) return null;   // never mix bases
+    return { company: c, signed, live, gapMw: signed.valueMw - live.valueMw };
+  }).filter(Boolean).filter(x => x.gapMw > 0).sort((a, b) => b.gapMw - a.gapMw);
+
+  if (gaps.length) {
+    const g = gaps[0];
+    cards.push({
+      id: 'gap', kicker: 'Widest delivery gap', available: true,
+      company: g.company.name, ticker: g.company.ticker, slug: g.company.slug,
+      figure: `${Math.round(g.gapMw)} MW`,
+      sentence: `Customers have signed for ${Math.round(g.signed.valueMw)} MW but ` +
+        `${Math.round(g.live.valueMw)} MW is switched on. Both figures are measured as ` +
+        `${POWER_BASIS[g.live.powerBasis].label}, so the gap is a like-for-like comparison.`,
+      dateLabel: g.live.asOf || g.signed.asOf,
+      sourceIds: [...new Set([...(g.signed.sourceIds || []), ...(g.live.sourceIds || [])])],
+      actionLabel: 'Model what closes it', actionHref: '/lab/'
+    });
+  } else {
+    cards.push({
+      id: 'gap', kicker: 'Widest delivery gap', available: false,
+      unavailableReason:
+        'No company currently discloses contracted and energised capacity on the same power basis, ' +
+        'so no like-for-like gap can be shown.',
+      actionLabel: 'How the bases work', actionHref: '/methodology/'
+    });
+  }
 
   // 4. Largest confirmed operational footprint, on a single comparable basis.
   const energised = aggregate('energisedCriticalItMw', { basis: 'critical-it' });

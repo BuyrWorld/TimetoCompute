@@ -68,6 +68,23 @@ export const statusLabel = s => VALUE_STATUS[s]?.label ?? s;
 export const basisLabel = b => POWER_BASIS[b]?.short ?? b;
 export const confidenceLabel = c => CONFIDENCE[c]?.label ?? c;
 
+/**
+ * First sentence of a note, for a card summary.
+ *
+ * Splitting on "." alone cuts "approximately $7.5bn" in half and prints
+ * "approximately $7." as if that were the figure. A sentence therefore ends at a
+ * full stop followed by whitespace and a capital — never mid-number.
+ */
+export function firstSentence(text, max = 150) {
+  if (!text) return '';
+  const s = String(text).trim();
+  const m = s.match(/^[\s\S]*?[.!?](?=\s+[A-Z"'(]|\s*$)/);
+  const sentence = (m ? m[0] : s).trim();
+  if (sentence.length <= max) return sentence;
+  const cut = sentence.slice(0, max);
+  return cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:]$/, '') + '…';
+}
+
 export function hostOf(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return 'source'; }
 }
