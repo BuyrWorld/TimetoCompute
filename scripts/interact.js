@@ -913,6 +913,109 @@ const run = async () => {
   check('an affected stage links into the explainer system',
     !!anStageHref && /^\/explainers\//.test(anStageHref), String(anStageHref));
 
+  /* ---- Chain Mapping ---- */
+  await page.goto(base + '/chain-mapping/', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 400));
+
+  const cmCols = await page.$$eval('.cm-mode:not([hidden]) .cm-column', els => els.length);
+  check('the map shows all five columns', cmCols === 5, String(cmCols));
+
+  const cmEmpty = await page.$$eval('.cm-mode:not([hidden]) .cm-emptycol p',
+    els => els.map(e => e.textContent.trim()));
+  check('an empty column explains itself rather than being hidden',
+    cmEmpty.length === 1 && /no accelerator, switch or server/.test(cmEmpty[0]),
+    cmEmpty.length + ' explanation(s)');
+
+  // Architecture toggle swaps exactly the interconnect node.
+  const cmBefore = await page.$$eval('.cm-mode:not([hidden]) .cm-node', e => e.map(n => n.dataset.node));
+  await page.click('.cm-segbtn[data-arch="next"]');
+  await new Promise(r => setTimeout(r, 400));
+  const cmAfter = await page.$$eval('.cm-mode:not([hidden]) .cm-node', e => e.map(n => n.dataset.node));
+  const gone = cmBefore.filter(x => cmAfter.indexOf(x) === -1);
+  const added = cmAfter.filter(x => cmBefore.indexOf(x) === -1);
+  check('the architecture toggle swaps only the interconnect node',
+    gone.length === 1 && added.length === 1 &&
+    gone[0] === 'interconnect-deployed' && added[0] === 'interconnect-next',
+    gone.join(',') + ' → ' + added.join(','));
+  check('copper survives the toggle', cmAfter.indexOf('interconnect-copper') !== -1);
+  check('the architecture is addressable in the URL', /architecture=next/.test(page.url()), page.url());
+
+  const archSummary = await page.$eval('#cmArchSummary', e => e.textContent.trim());
+  check('the toggle updates the explanation',
+    /closer to the chip/i.test(archSummary), archSummary);
+
+  await page.click('.cm-segbtn[data-arch="deployed"]');
+  await new Promise(r => setTimeout(r, 350));
+
+  // Drawer: opens, separates the three axes, and returns focus on close.
+  await page.click('.cm-mode:not([hidden]) .cm-node[data-node="interconnect-deployed"]');
+  await new Promise(r => setTimeout(r, 350));
+  const cmDrawerOpen = await page.$eval('#cmDrawer', e => !e.hidden);
+  const cmDrawerTitle = await page.$eval('#cm-drawer-h', e => e.textContent.trim());
+  check('a node opens its evidence drawer',
+    cmDrawerOpen && /pluggable optics/i.test(cmDrawerTitle), cmDrawerTitle);
+
+  const axes = await page.$$eval('.cm-daxes dt', e => e.map(x => x.textContent.trim()));
+  check('relationship, evidence, maturity and stage are four separate fields',
+    axes.length === 4 && axes.join(',') === 'Relationship,Evidence,Maturity,Commercial stage',
+    axes.join(','));
+
+  const drawerFocus = await page.evaluate(() => document.activeElement.id);
+  check('focus moves into the drawer', drawerFocus === 'cm-drawer-h', drawerFocus);
+
+  const cmSources = await page.$$eval('.cm-dsrc a', a => a.map(x => ({ t: x.target, r: x.rel })));
+  check('every drawer source opens safely',
+    cmSources.length > 0 && cmSources.every(l => l.t === '_blank' && /noopener/.test(l.r)));
+
+  await page.keyboard.press('Escape');
+  await new Promise(r => setTimeout(r, 300));
+  const returned = await page.evaluate(() => (document.activeElement.dataset || {}).node);
+  check('closing the drawer returns focus to the node that opened it',
+    returned === 'interconnect-deployed', String(returned));
+
+  // Filters emphasise without hiding.
+  await page.click('.cm-trace[data-trace="bottleneck"]');
+  await new Promise(r => setTimeout(r, 300));
+  const ctx = await page.$$eval('.cm-mode:not([hidden]) .cm-node.is-context',
+    els => els.map(e => +getComputedStyle(e).opacity));
+  check('filtered-out nodes stay readable rather than vanishing',
+    ctx.length > 0 && ctx.every(o => o >= 0.5), ctx.slice(0, 3).join(','));
+
+  const cmLive = await page.$eval('.cm-mode:not([hidden]) .cm-live', e => e.textContent.trim());
+  check('the filter result is announced in a live region', /node/.test(cmLive), cmLive.slice(0, 60));
+
+  // An untracked pillar is offered honestly, not as a working filter.
+  const disabled = await page.$$eval('.cm-pillar[disabled]', els => els.length);
+  check('untracked pillars are disabled rather than hidden', disabled === 2, String(disabled));
+
+  // List alternative.
+  await page.click('.cm-mode:not([hidden]) [data-ctl="list"]');
+  await new Promise(r => setTimeout(r, 300));
+  const listShown = await page.$eval('.cm-mode:not([hidden]) .cm-listview', e => !e.hidden);
+  const listRows = await page.$$eval('.cm-mode:not([hidden]) .cm-listview tbody tr', e => e.length);
+  check('the list alternative opens and carries every node',
+    listShown && listRows > 0, listRows + ' rows');
+  await page.click('.cm-mode:not([hidden]) [data-ctl="list"]');
+  await new Promise(r => setTimeout(r, 250));
+
+  // Keyboard navigation between nodes.
+  await page.focus('.cm-mode:not([hidden]) .cm-node');
+  await page.keyboard.press('ArrowRight');
+  await new Promise(r => setTimeout(r, 200));
+  const moved = await page.evaluate(() => (document.activeElement.dataset || {}).node);
+  check('arrow keys move between nodes', !!moved && moved !== 'input-axt', String(moved));
+
+  // Timeline plays once and stops.
+  await page.click('#cmPlay');
+  await new Promise(r => setTimeout(r, 700));
+  const playing = await page.$$eval('.cm-stage.is-playing', e => e.length);
+  check('playback highlights one stage at a time', playing === 1, String(playing));
+  await new Promise(r => setTimeout(r, 4200));
+  const stillPlaying = await page.$$eval('.cm-stage.is-playing', e => e.length);
+  const pressed = await page.$eval('#cmPlay', e => e.getAttribute('aria-pressed'));
+  check('playback stops at the end rather than looping',
+    stillPlaying === 0 && pressed === 'false', stillPlaying + '/' + pressed);
+
   /* ---- reduced motion is honoured ---- */
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await page.goto(base + '/', { waitUntil: 'networkidle0' });

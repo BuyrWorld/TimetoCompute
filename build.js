@@ -39,6 +39,7 @@ import { explainerRoutes, explainerHref } from './src/lib/explain.js';
 import { explainerPageBody } from './src/explainer-page.js';
 import { aiCatalystsBody, aiNewsConfig } from './src/ainews-page.js';
 import { timeMachineBody } from './src/timemachine-page.js';
+import { chainMappingBody, chainMappingConfig } from './src/chainmap-page.js';
 import { checkTimeMachine, CAMPAIGNS, chapterCount } from './src/lib/timemachine.js';
 import { aiFactoryGraph } from './src/lib/corridor.js';
 import { passport } from './src/lib/passport.js';
@@ -100,7 +101,10 @@ console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
  */
 const NAV = [
   { id: 'today', label: 'Today', href: '/' },
-  { id: 'chain', label: 'Supply chain', href: '/chain/' },
+  /* The pack renames the visible label. The route moves to /chain-mapping/ and
+     /chain/ survives as a published alias — it is linked from the homepage, the
+     explainers, the sitemap and the palette. */
+  { id: 'chain', label: 'Chain mapping', href: '/chain-mapping/' },
   { id: 'companies', label: 'Companies', href: '/companies/' },
   /* The pack asks for AI News and Financials in the primary nav. News is
      promoted here because the route exists and carries real sourced stories.
@@ -124,7 +128,7 @@ const NAV = [
  */
 const MOBILE_NAV = [
   { id: 'today', label: 'Today', href: '/' },
-  { id: 'chain', label: 'Chain', href: '/chain/' },
+  { id: 'chain', label: 'Chain', href: '/chain-mapping/' },
   { id: 'watchlist', label: 'Watchlist', href: '/companies/?filter=watching' },
   { id: 'search', label: 'Search', action: 'palOpenMobile' }
 ];
@@ -393,7 +397,8 @@ ${footer()}
     signalIndex: active === 'today' ? signalIndex() : null,
     // Which signals exist and which belong to the latest set, so the filter and
     // progress code does not have to re-derive either from the DOM.
-    aiNews: active === 'catalysts' ? aiNewsConfig() : null
+    aiNews: active === 'catalysts' ? aiNewsConfig() : null,
+    chainMapping: active === 'chain' ? chainMappingConfig() : null
   })}</script>
 ${inlineData ? `<script>Object.assign(window, ${JSON.stringify(inlineData)});</script>` : ''}
 <script src="/app.js" defer></script>
@@ -903,6 +908,27 @@ function notFoundPage() {
  * will link to. It keeps the site shell — header, footer, palette — so it reads
  * as part of TimeToCompute, and mounts its immersive game header inside.
  */
+/**
+ * Chain Mapping — the research workspace.
+ *
+ * /chain/ keeps working and renders the stage-level supply-chain explorer it
+ * always did; this is a new, deeper route rather than a replacement, and both
+ * are cross-linked.
+ */
+function chainMappingPage() {
+  return page({
+    title: 'Chain mapping — trace every dependency | T2C',
+    description:
+      'Trace an AI deployment from raw inputs through components, systems and infrastructure to ' +
+      'accepted, revenue-producing capacity — with the evidence, relationship classification and ' +
+      'commercial stage of every link shown separately.',
+    canonical: SITE + '/chain-mapping/',
+    body: chainMappingBody(),
+    active: 'chain',
+    extraScripts: ['/chain-mapping.js']
+  });
+}
+
 function timeMachinePage() {
   return page({
     title: 'The AI Time Machine — play the AI infrastructure buildout | T2C',
@@ -1829,6 +1855,7 @@ bytes += write('ai-news/index.html', aiNewsPage());
 bytes += write('time-machine/index.html', timeMachinePage());
 bytes += write('news/index.html', newsPage());
 bytes += write('chain/index.html', chainPage());
+bytes += write('chain-mapping/index.html', chainMappingPage());
 bytes += write('explainers/index.html', explainersPage());
 for (const { explainer, href } of explainerRoutes()) {
   bytes += write(`${href.slice(1)}index.html`, explainerDetailPage(explainer));
@@ -1906,6 +1933,7 @@ const urls = [
   /* The thirteen explainers, generated from the same table as the routes so the
      sitemap cannot fall behind the build. Stage hubs rank above component pages
      because a stage is the destination a reader is more likely to want. */
+  { loc: SITE + '/chain-mapping/', priority: '0.9', freq: 'weekly' },
   { loc: SITE + '/ai-news/', priority: '0.9', freq: 'daily' },
   { loc: SITE + '/time-machine/', priority: '0.8', freq: 'monthly' },
   ...explainerRoutes().map(({ explainer, href }) => ({
@@ -1934,12 +1962,15 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css', 'ainews.css', 'timemachine.css']
+  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css', 'ainews.css', 'timemachine.css', 'chainmap.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
 fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
 fs.cpSync(path.join(ROOT, 'src', 'lab-ui.js'), path.join(OUT, 'lab-ui.js'));
 fs.cpSync(path.join(ROOT, 'src', 'timemachine-app.js'), path.join(OUT, 'time-machine.js'));
+fs.cpSync(path.join(ROOT, 'src', 'chainmap-app.js'), path.join(OUT, 'chain-mapping.js'));
+fs.cpSync(path.join(ROOT, 'assets', 't2c', 'chain-mapping'),
+  path.join(OUT, 'assets', 't2c', 'chain-mapping'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'assets', 'time-machine'),
   path.join(OUT, 'assets', 'time-machine'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'Logo'), path.join(OUT, 'Logo'), { recursive: true });

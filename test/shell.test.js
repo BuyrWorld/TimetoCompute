@@ -24,7 +24,7 @@ const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites
   'catalysts/index.html', 'lab/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/chain/', '/companies/', '/ai-news/', '/catalysts/', '/explainers/', '/time-machine/'];
+const NAV_HREFS = ['/', '/chain-mapping/', '/companies/', '/ai-news/', '/catalysts/', '/explainers/', '/time-machine/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
 const SECONDARY = ['/sites/', '/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/'];
@@ -88,6 +88,12 @@ test('every previously published route still resolves', () => {
   assert.ok(!/class="navlink[^"]*"[^>]*>Megaprojects</.test(html),
     'the Megaprojects tab is still in the primary navigation');
   assert.ok(html.includes('href="/sites/"'), '/sites/ was orphaned when its tab was removed');
+  // The nav label moved to Chain mapping and the route with it. /chain/ is a
+  // published URL linked from the explainers and the sitemap, so it survives.
+  assert.ok(exists('chain/index.html'), '/chain/ was deleted when the label changed');
+  assert.ok(exists('chain-mapping/index.html'), '/chain-mapping/ was not built');
+  assert.ok(!/class="navlink[^"]*"[^>]*>Supply chain</.test(html),
+    'the old "Supply chain" label is still in the primary navigation');
   assert.ok(exists('sites/iren-horizon-1/index.html'),
     'a published site page was deleted along with the tab');
 });
@@ -691,7 +697,7 @@ test('the mobile bar carries four reachable destinations', () => {
     const html = read(r);
     assert.ok(html.includes('class="bottomnav"'), `${r} has no mobile navigation`);
     const hrefs = [...html.matchAll(/class="bnav[^"]*" href="([^"]+)"/g)].map(m => m[1]);
-    assert.deepEqual(hrefs, ['/', '/chain/', '/companies/?filter=watching'],
+    assert.deepEqual(hrefs, ['/', '/chain-mapping/', '/companies/?filter=watching'],
       `${r} mobile navigation is wrong`);
     assert.ok(/id="palOpenMobile"/.test(html), `${r} mobile bar has no search`);
   }

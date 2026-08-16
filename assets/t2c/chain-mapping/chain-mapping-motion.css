@@ -1,0 +1,39 @@
+:root {
+  --cm-ease: cubic-bezier(.2,.8,.2,1);
+  --cm-fast: 160ms;
+  --cm-normal: 260ms;
+  --cm-path: 560ms;
+}
+
+@keyframes cm-path-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes cm-node-arrive {
+  from { opacity: 0; transform: translate(-50%,-50%) scale(.96); }
+  to { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+}
+
+@keyframes cm-signal-pass {
+  from { offset-distance: 0%; opacity: 0; }
+  12%, 82% { opacity: 1; }
+  to { offset-distance: 100%; opacity: 0; }
+}
+
+.cm-edge--entering {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: cm-path-draw var(--cm-path) var(--cm-ease) forwards;
+}
+
+.cm-node--entering { animation: cm-node-arrive var(--cm-normal) var(--cm-ease) both; }
+
+.cm-node,
+.cm-control,
+.cm-drawer { transition: color var(--cm-fast) var(--cm-ease), border-color var(--cm-fast) var(--cm-ease), background-color var(--cm-fast) var(--cm-ease), opacity var(--cm-fast) var(--cm-ease), transform var(--cm-fast) var(--cm-ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --cm-fast: 0ms; --cm-normal: 0ms; --cm-path: 0ms; }
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}

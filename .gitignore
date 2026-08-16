@@ -7,3 +7,10 @@ dist/
 
 # Visual QA output — regenerate with `npm run shots`, never review as source.
 shots/
+
+# Drop-in design/handoff packs. These are inputs, not source: the production
+# assets are copied into assets/ during integration and the docs are read once.
+# Tracking them added ~60 MB per pack and GitHub started warning about size.
+# The folders stay on disk; they are simply not part of the repository.
+SCMAP/
+"1 - Not yet implementated/"

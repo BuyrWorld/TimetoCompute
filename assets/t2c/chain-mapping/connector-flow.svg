@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 80" role="img" aria-labelledby="title desc">
+  <title id="title">Animated chain connector</title>
+  <desc id="desc">A restrained cyan signal travels once along a connector path.</desc>
+  <defs><filter id="g"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <path d="M20 40H780" stroke="#24373c" stroke-width="3"/>
+  <path d="M20 40H780" stroke="#39e7ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="110 650" filter="url(#g)">
+    <animate attributeName="stroke-dashoffset" from="110" to="-650" dur="1.6s" repeatCount="1" fill="freeze"/>
+  </path>
+</svg>

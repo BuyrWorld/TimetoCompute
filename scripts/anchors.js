@@ -65,6 +65,11 @@ for (const [route, html] of pages) {
     if (/^https?:/.test(href)) continue;
     const [target, frag] = href.split('#');
     if (!frag) continue;
+    /* An SVG sprite reference is `file.svg#symbol-id`, not a page anchor. The id
+       lives inside the sprite, so resolving it against a built route would
+       always fail. Its existence is checked by test/chainmap.test.js against the
+       sprite file itself, which is where the symbol actually is. */
+    if (/\.svg$/i.test(target)) continue;
 
     const routeKey = target === '' ? route
       : target.endsWith('/') ? target
