@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-label="Completed five of five">
+  <circle cx="110" cy="110" r="90" fill="none" stroke="#253035" stroke-width="12"/>
+  <circle class="ring" cx="110" cy="110" r="90" fill="none" stroke="#B7FF35" stroke-width="12" stroke-linecap="round" stroke-dasharray="565.5" transform="rotate(-90 110 110)"/>
+  <text x="110" y="105" text-anchor="middle" fill="#B7FF35" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-size="58" font-weight="800">5 / 5</text>
+  <path d="m82 139 17 17 39-44" fill="none" stroke="#B7FF35" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <style>.ring{animation:ring 900ms cubic-bezier(.2,.8,.2,1) both}@keyframes ring{from{stroke-dashoffset:565.5}to{stroke-dashoffset:0}}@media (prefers-reduced-motion:reduce){.ring{animation:none}}</style>
+</svg>

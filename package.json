@@ -17,9 +17,11 @@
     "live": "node scripts/live.js",
     "//imagecheck": "enforces the asset pack's image rules at all eight verification sizes; separates pipeline faults from source-art ceilings",
     "imagecheck": "node scripts/imagecheck.js",
+    "//centring": "automates the asset pack's manual centring lab: measures each cutout's alpha bounding box and fails if its optical centre drifts",
+    "centring": "node scripts/centring.js",
     "//verify": "build first: the shell tests read dist/, and build.js already gates itself on data validation",
     "verify": "npm run build && npm run test && node scripts/audit.js && node scripts/anchors.js",
-    "verify:visual": "npm run verify && npm run shots && npm run overflow && npm run imagecheck && npm run interact"
+    "verify:visual": "npm run verify && npm run shots && npm run overflow && npm run imagecheck && npm run centring && npm run interact"
   },
   "engines": {
     "node": ">=20"

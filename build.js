@@ -34,6 +34,7 @@ import {
 import { allSites, companyPath } from './src/lib/sites.js';
 import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
 import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
+import { ART } from './data/artpack.js';
 import { aiFactoryGraph } from './src/lib/corridor.js';
 import { passport } from './src/lib/passport.js';
 import {
@@ -1887,6 +1888,30 @@ try {
 fs.mkdirSync(path.join(OUT, 'assets', 't2c', 'images'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'icons'),
   path.join(OUT, 'assets', 't2c', 'icons'), { recursive: true });
+
+/* Every declared asset must exist before anything can reference it.
+   `data/artpack.js` is the manifest; this proves the manifest matches the disk.
+   A missing derivative is invisible in code review and shows up as a hole in a
+   hexagon, so it fails the build rather than the page. */
+{
+  const missing = [];
+  for (const a of ART) {
+    for (const w of a.widths) {
+      const rel = `${a.base}-${w}.webp`.replace(/^\//, '');
+      if (!fs.existsSync(path.join(ROOT, rel))) missing.push(rel);
+    }
+    if (a.fallbackWidth) {
+      const rel = `${a.base}-${a.fallbackWidth}.png`.replace(/^\//, '');
+      if (!fs.existsSync(path.join(ROOT, rel))) missing.push(rel);
+    }
+  }
+  if (missing.length) {
+    console.error(`  FAIL: ${missing.length} declared asset(s) missing from disk:`);
+    for (const m of missing.slice(0, 10)) console.error(`    ${m}`);
+    process.exit(1);
+  }
+  console.log(`  art pack: ${ART.length} assets declared, all present`);
+}
 
 /* Flagship pack: vectors, motion, and the responsive stage cutouts. The 1254px
    raster masters are NOT shipped — nothing displays a stage above 180px, so

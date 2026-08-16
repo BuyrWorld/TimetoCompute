@@ -1,0 +1,58 @@
+@keyframes t2c-path-dash {
+  to { stroke-dashoffset: -48; }
+}
+
+@keyframes t2c-freshness {
+  0%, 100% { opacity: .72; box-shadow: 0 0 0 0 rgba(57, 231, 255, 0); }
+  45% { opacity: 1; box-shadow: 0 0 0 .32rem rgba(57, 231, 255, .09); }
+}
+
+@keyframes t2c-review-check {
+  from { stroke-dashoffset: 26; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes t2c-bar-reveal {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes t2c-value-enter {
+  from { opacity: 0; transform: translateY(.35rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.t2c-motion-path {
+  stroke-dasharray: 10 14;
+  animation: t2c-path-dash 2.6s linear infinite;
+}
+
+.t2c-live-dot[data-state="live"] {
+  animation: t2c-freshness 2.4s ease-in-out infinite;
+}
+
+.t2c-review-check[data-animate="true"] {
+  stroke-dasharray: 26;
+  animation: t2c-review-check .46s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.t2c-financial-bar[data-animate="true"] {
+  transform-origin: left center;
+  animation: t2c-bar-reveal .58s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.t2c-value[data-resolved="true"] {
+  animation: t2c-value-enter .24s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t2c-motion-path,
+  .t2c-live-dot,
+  .t2c-review-check,
+  .t2c-financial-bar,
+  .t2c-value {
+    animation: none !important;
+    transition-duration: .01ms !important;
+  }
+}
+

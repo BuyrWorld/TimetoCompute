@@ -11,25 +11,62 @@
  * not as a picture standing in for a record.
  */
 import { esc } from './lib/format.js';
+import { ART_BY_ID } from '../data/artpack.js';
 
 /**
- * Responsive stage asset.
+ * Responsive cutout asset — the one place a pack raster becomes an `<img>`.
  *
- * WebP at 192/384/768 with a 1280 PNG fallback, per the manifest. `sizes` is
- * passed by the caller because only the caller knows how big the node is.
+ * Everything it needs comes from the manifest (data/artpack.js): the widths that
+ * actually exist on disk, the intrinsic dimensions that stop the layout shifting,
+ * the alt text, and the ceiling above which the raster would upscale. Callers
+ * pass only `sizes`, because only the caller knows how large its own box is.
+ *
+ * Passing an unknown id throws rather than emitting a broken `<img>` — a missing
+ * asset should fail the build, not ship as a hole in the page.
  */
-export function stageAsset(asset, alt, { sizes = '192px', eager = false, className = '' } = {}) {
-  const srcset = [192, 384, 768]
-    .map(w => `/assets/t2c/responsive/${asset}-${w}.webp ${w}w`).join(', ');
+export function cutout(id, { sizes = '192px', eager = false, className = '', alt = null } = {}) {
+  const a = ART_BY_ID[id];
+  if (!a) throw new Error(`Unknown art asset: ${id}`);
+
+  const srcset = a.widths.map(w => `${a.base}-${w}.webp ${w}w`).join(', ');
+  // Cutouts ship a PNG fallback for the alpha; the editorial raster has none, so
+  // its largest WebP is also its src.
+  const fallback = a.fallbackWidth
+    ? `${a.base}-${a.fallbackWidth}.png`
+    : `${a.base}-${a.widths[a.widths.length - 1]}.webp`;
 
   return `<img class="cn-asset ${esc(className)}"
-    src="/assets/t2c/responsive/${esc(asset)}-1280.png"
-    srcset="${srcset}"
+    src="${esc(fallback)}"
+    srcset="${esc(srcset)}"
     sizes="${esc(sizes)}"
-    width="1280" height="1280"
-    alt="${esc(alt)}"
+    width="${a.intrinsic[0]}" height="${a.intrinsic[1]}"
+    alt="${esc(alt === null ? a.alt : alt)}"
     ${eager ? 'fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'}
     decoding="async" />`;
+}
+
+/**
+ * The optical correction, emitted as custom properties.
+ *
+ * Kept as an inline style rather than a class per stage: these are seven
+ * different numbers from a data table, not seven design decisions, and a
+ * stylesheet listing `.cn-node[data-stage="wafers"] { --asset-scale: .92 }`
+ * seven times is the scattered per-asset CSS the pack forbids.
+ */
+export function opticsStyle(id) {
+  const o = (ART_BY_ID[id] || {}).optics || { scale: 1, x: '0%', y: '0%' };
+  return `--asset-scale:${o.scale};--asset-x:${o.x};--asset-y:${o.y}`;
+}
+
+/** Back-compat shim for callers that still pass a bare filename stem. */
+const STEM_TO_ID = {
+  'stage-materials': 'materials', 'stage-wafer': 'wafer', 'stage-chips-hbm': 'chips-hbm',
+  'stage-photonics': 'photonics', 'stage-ai-factory': 'ai-factory',
+  'stage-accepted': 'accepted', 'stage-revenue': 'revenue'
+};
+
+export function stageAsset(asset, alt, opts = {}) {
+  return cutout(STEM_TO_ID[asset] || asset, { ...opts, alt: alt || '' });
 }
 
 /** The stage frame, as a themeable inline SVG so `currentColor` follows the state. */
@@ -63,7 +100,7 @@ export function chainNode(stage) {
     <span class="cn-art" data-frame="${esc(stage.frame)}">
       ${FRAME}
       <span class="cn-cut">
-        ${stageAsset(stage.asset, '', { sizes: '(min-width: 900px) 132px, 108px' })}
+        ${stageAsset(stage.asset, '', { sizes: '(min-width: 900px) 172px, (min-width: 640px) 148px, 132px' })}
       </span>
       ${mark}
     </span>
@@ -76,7 +113,8 @@ export function chainNode(stage) {
       `T2C does not track who supplies it. ${stage.role}`
     : `${stage.label}. ${stage.count.primary}, ${stage.count.secondary}. ${stage.role}`;
 
-  return `<li class="cn-node ${cls}" data-stage="${esc(stage.id)}">
+  return `<li class="cn-node ${cls}" data-stage="${esc(stage.id)}"
+    style="${esc(opticsStyle(STEM_TO_ID[stage.asset] || stage.asset))}">
     ${stage.tracked
       ? `<a class="cn-hit press" href="${esc(stage.href)}" aria-label="${esc(aria)} Open the records.">${inner}</a>`
       : `<button type="button" class="cn-hit press" aria-expanded="false"

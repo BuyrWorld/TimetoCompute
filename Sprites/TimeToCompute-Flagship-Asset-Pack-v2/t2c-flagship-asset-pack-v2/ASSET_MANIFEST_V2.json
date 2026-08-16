@@ -1,0 +1,182 @@
+{
+  "pack": "t2c-flagship-asset-pack-v2",
+  "version": "2.0.0",
+  "generatedAt": "2026-08-16",
+  "rules": {
+    "mockupsAreProductionAssets": false,
+    "isolatedCutoutFit": "contain",
+    "isolatedCutoutPosition": "50% 50%",
+    "neverUseObjectFit": "fill",
+    "reducedMotionRequired": true,
+    "hardCodedMarketPricesAllowed": false
+  },
+  "pages": {
+    "homepage": {
+      "reference": "reference-mockups/v2/01-homepage-centered-clickable.png",
+      "assetIds": ["materials", "wafer", "chips-hbm", "photonics", "ai-factory", "accepted", "revenue"]
+    },
+    "photonicsExplainer": {
+      "reference": "reference-mockups/v2/02-what-is-photonics.png",
+      "assetIds": ["photonics", "inp-substrate", "cw-laser", "eml", "transceiver-1-6t", "cpo", "optical-fibre"]
+    },
+    "aiNews": {
+      "reference": "reference-mockups/v2/03-ai-news.png",
+      "assetIds": ["optical-network-signal", "photonics", "chips-hbm", "power-cooling", "ai-factory"]
+    },
+    "financials": {
+      "reference": "reference-mockups/v2/04-financials.png",
+      "assetIds": [],
+      "codeNative": ["assets/svg/ui/t2c-v2-icons.svg", "assets/animated/t2c-v2-motion.css"]
+    }
+  },
+  "assets": [
+    {
+      "id": "materials",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/stage-materials-master-1254.png",
+      "fallback": "assets/responsive/stage-materials-1280.png",
+      "responsiveBase": "assets/responsive/stage-materials",
+      "intrinsic": [1280, 1280],
+      "maxCssWidth": 180,
+      "alt": "Cluster of semiconductor and electronics raw materials",
+      "optics": { "scale": 0.88, "x": "0%", "y": "2%" }
+    },
+    {
+      "id": "wafer",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/stage-wafer-master-1536x1024.png",
+      "fallback": "assets/responsive/stage-wafer-1280.png",
+      "responsiveBase": "assets/responsive/stage-wafer",
+      "intrinsic": [1280, 1280],
+      "maxCssWidth": 180,
+      "alt": "Patterned semiconductor wafer",
+      "optics": { "scale": 0.92, "x": "0%", "y": "0%" }
+    },
+    {
+      "id": "chips-hbm",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/stage-chips-hbm-master-1254.png",
+      "fallback": "assets/responsive/stage-chips-hbm-1280.png",
+      "responsiveBase": "assets/responsive/stage-chips-hbm",
+      "intrinsic": [1280, 1280],
+      "maxCssWidth": 180,
+      "alt": "AI processor and high-bandwidth-memory package",
+      "optics": { "scale": 0.86, "x": "0%", "y": "1%" }
+    },
+    {
+      "id": "photonics",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/stage-photonics-master-1254.png",
+      "fallback": "assets/responsive/stage-photonics-1280.png",
+      "responsiveBase": "assets/responsive/stage-photonics",
+      "intrinsic": [1280, 1280],
+      "maxCssWidth": 480,
+      "alt": "Optical networking engine",
+      "optics": { "scale": 0.88, "x": "0%", "y": "0%" }
+    },
+    {
+      "id": "ai-factory",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/stage-ai-factory-master-1254.png",
+      "fallback": "assets/responsive/stage-ai-factory-1280.png",
+      "responsiveBase": "assets/responsive/stage-ai-factory",
+      "intrinsic": [1280, 1280],
+      "maxCssWidth": 560,
+      "alt": "AI data-centre campus",
+      "optics": { "scale": 0.82, "x": "0%", "y": "3%" }
+    },
+    {
+      "id": "accepted",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/stage-accepted-master-1254.png",
+      "fallback": "assets/responsive/stage-accepted-1280.png",
+      "responsiveBase": "assets/responsive/stage-accepted",
+      "intrinsic": [1280, 1280],
+      "maxCssWidth": 180,
+      "alt": "Customer acceptance symbol",
+      "optics": { "scale": 0.84, "x": "0%", "y": "0%" }
+    },
+    {
+      "id": "revenue",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/stage-revenue-master-1254.png",
+      "fallback": "assets/responsive/stage-revenue-1280.png",
+      "responsiveBase": "assets/responsive/stage-revenue",
+      "intrinsic": [1280, 1280],
+      "maxCssWidth": 180,
+      "alt": "Revenue recognition growth symbol",
+      "optics": { "scale": 0.84, "x": "0%", "y": "0%" }
+    },
+    {
+      "id": "inp-substrate",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/photonics/inp-substrate-master-1254.png",
+      "responsiveBase": "assets/responsive/photonics/inp-substrate",
+      "responsiveWidths": [192, 384, 768, 1024],
+      "intrinsic": [1254, 1254],
+      "maxCssWidth": 480,
+      "alt": "Indium phosphide semiconductor wafer"
+    },
+    {
+      "id": "cw-laser",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/photonics/cw-laser-master-1254.png",
+      "responsiveBase": "assets/responsive/photonics/cw-laser",
+      "responsiveWidths": [192, 384, 768, 1024],
+      "intrinsic": [1254, 1254],
+      "maxCssWidth": 480,
+      "alt": "Continuous-wave semiconductor laser package"
+    },
+    {
+      "id": "eml",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/photonics/eml-master-1254.png",
+      "responsiveBase": "assets/responsive/photonics/eml",
+      "responsiveWidths": [192, 384, 768, 1024],
+      "intrinsic": [1254, 1254],
+      "maxCssWidth": 480,
+      "alt": "Electro-absorption modulated laser module"
+    },
+    {
+      "id": "transceiver-1-6t",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/photonics/transceiver-1-6t-master-1254.png",
+      "responsiveBase": "assets/responsive/photonics/transceiver-1-6t",
+      "responsiveWidths": [192, 384, 768, 1024],
+      "intrinsic": [1254, 1254],
+      "maxCssWidth": 480,
+      "alt": "1.6-terabit optical transceiver module"
+    },
+    {
+      "id": "cpo",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/photonics/cpo-master-1254.png",
+      "responsiveBase": "assets/responsive/photonics/cpo",
+      "responsiveWidths": [192, 384, 768, 1024],
+      "intrinsic": [1254, 1254],
+      "maxCssWidth": 480,
+      "alt": "Co-packaged optics assembly with central switch chip and surrounding optical engines"
+    },
+    {
+      "id": "optical-fibre",
+      "kind": "transparent-cutout",
+      "master": "assets/raster/photonics/optical-fibre-master-1254.png",
+      "responsiveBase": "assets/responsive/photonics/optical-fibre",
+      "responsiveWidths": [192, 384, 768, 1024],
+      "intrinsic": [1254, 1254],
+      "maxCssWidth": 480,
+      "alt": "Spool of data-centre optical fibre with connectors"
+    },
+    {
+      "id": "optical-network-signal",
+      "kind": "editorial-raster",
+      "master": "assets/raster/news/optical-network-signal-master-1672x941.png",
+      "responsiveBase": "assets/responsive/news/optical-network-signal",
+      "responsiveWidths": [400, 640, 1000, 1400],
+      "intrinsic": [1672, 941],
+      "maxCssWidth": 1600,
+      "alt": "Optical fibre connections carrying illuminated data into network transceiver ports"
+    }
+  ]
+}
+

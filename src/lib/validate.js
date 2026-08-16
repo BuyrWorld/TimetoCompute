@@ -10,6 +10,7 @@ import { EVENTS, CORRECTIONS } from '../../data/events.js';
 import { CATALYSTS, CATALYST_STATUS, CATALYST_CATEGORIES } from '../../data/catalysts.js';
 import { PROFILES } from '../../data/profiles.js';
 import { CUSTOMERS, CUSTOMER_KINDS, CUSTOMER_BY_NAME, isUndisclosedCustomer } from '../../data/customers.js';
+import { ART } from '../../data/artpack.js';
 import { allRecords, getMeasure, isKnown, aggregate, headlineKpis } from './compute.js';
 import { MAX_TICKERS, normaliseSelection } from './compare.js';
 
@@ -333,6 +334,42 @@ export function runChecks() {
   for (const name of new Set(CONTRACTS.map(k => k.customer))) {
     if (!CUSTOMER_BY_NAME[name] && !isUndisclosedCustomer(name)) {
       fail(`Contract counterparty "${name}" is neither mapped nor recorded as withheld`);
+    }
+  }
+
+  /* ---------- art pack ----------
+     Two failure modes worth failing the build over. A declared asset whose file
+     is missing ships as a hole in the page, and the reader sees an alt string
+     where an object should be. And an asset displayed above its manifest ceiling
+     is an upscaled raster — the exact softness defect the pack was assembled to
+     remove — which is invisible in code review and obvious on screen. */
+  const artIds = new Set();
+  for (const a of ART) {
+    if (artIds.has(a.id)) fail(`Duplicate art asset id ${a.id}`);
+    artIds.add(a.id);
+    if (!a.widths?.length) fail(`Art asset ${a.id} declares no responsive widths`);
+    if (!a.alt || a.alt.length < 8) fail(`Art asset ${a.id} has no usable alt text`);
+    if (!Array.isArray(a.intrinsic) || a.intrinsic.length !== 2) {
+      fail(`Art asset ${a.id} declares no intrinsic dimensions, so it will shift the layout`);
+    }
+    if (!(a.maxCssWidth > 0)) fail(`Art asset ${a.id} declares no maxCssWidth ceiling`);
+    // The largest derivative must reach the ceiling, or displaying at the
+    // ceiling upscales it.
+    const largest = Math.max(...a.widths);
+    if (largest < a.maxCssWidth && !a.fallbackWidth) {
+      fail(`Art asset ${a.id}: largest derivative ${largest}px is below its ${a.maxCssWidth}px ceiling`);
+    }
+    const o = a.optics || {};
+    if (!(o.scale > 0 && o.scale <= 1.2)) fail(`Art asset ${a.id}: implausible optics scale ${o.scale}`);
+    for (const k of ['x', 'y']) {
+      if (!/^-?\d+(\.\d+)?%$/.test(String(o[k]))) {
+        fail(`Art asset ${a.id}: optics ${k} must be a percentage, got ${o[k]}`);
+      }
+    }
+    /* Reference mockups are design context, never page artwork. A path that
+       points at one has escaped the pack folder and must not reach a build. */
+    if (/reference-mockups/i.test(a.base)) {
+      fail(`Art asset ${a.id} points at a reference mockup, which may never ship as artwork`);
     }
   }
 

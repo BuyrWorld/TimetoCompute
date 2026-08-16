@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>T2C Flagship Asset Pack v2 — Interactive Preview</title>
+  <link rel="stylesheet" href="styles/t2c-v2.css" />
+  <link rel="stylesheet" href="assets/animated/t2c-v2-motion.css" />
+  <link rel="stylesheet" href="styles/preview-v2.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to preview</a>
+  <header class="preview-header">
+    <img src="assets/svg/brand/t2c-logo-horizontal.svg" width="174" height="44" alt="TimeToCompute" />
+    <div>
+      <strong>FLAGSHIP ASSET PACK V2</strong>
+      <span>Production cutouts · centring lab · motion · references</span>
+    </div>
+    <span class="pack-state"><i></i> ALPHA CHECKED</span>
+  </header>
+
+  <nav class="preview-tabs" aria-label="Preview sections">
+    <button type="button" data-tab="assets" aria-selected="true">ASSET LIBRARY</button>
+    <button type="button" data-tab="centring" aria-selected="false">CENTRING LAB</button>
+    <button type="button" data-tab="motion" aria-selected="false">MOTION</button>
+    <button type="button" data-tab="references" aria-selected="false">VISUAL REFERENCES</button>
+  </nav>
+
+  <main id="main">
+    <section class="tab-panel is-active" data-panel="assets">
+      <div class="intro">
+        <div><p class="eyebrow">PRODUCTION ASSETS</p><h1>Every object is independent, responsive and crisp.</h1><p>These images may ship. The page mockups may not.</p></div>
+        <div class="toolbar" aria-label="Asset preview controls">
+          <label>Canvas<select id="canvasMode"><option value="black">Black</option><option value="graphite">Graphite</option><option value="checker">Transparency</option></select></label>
+          <label>Preview size<input id="assetSize" type="range" min="120" max="280" value="190" /></label>
+          <label class="switch"><input id="assetGlow" type="checkbox" checked /> Glow</label>
+          <label class="switch"><input id="assetFrame" type="checkbox" checked /> Hex frame</label>
+        </div>
+      </div>
+
+      <div class="section-head"><div><span>PAGE 01</span><h2>Homepage chain</h2></div><p>Seven equal visual stages. Every node links to an explainer.</p></div>
+      <div class="asset-grid asset-grid--chain" id="stageAssets"></div>
+
+      <div class="section-head"><div><span>PAGE 02</span><h2>Photonics explainer</h2></div><p>Six transparent component masters with four responsive WebP sizes.</p></div>
+      <div class="asset-grid" id="photonicsAssets"></div>
+
+      <div class="section-head"><div><span>PAGE 03</span><h2>AI News editorial image</h2></div><p>Use for relevant Photonics signals; do not reuse as a generic image for unrelated stories.</p></div>
+      <figure class="news-asset"><picture><source type="image/webp" srcset="assets/responsive/news/optical-network-signal-640.webp 640w, assets/responsive/news/optical-network-signal-1000.webp 1000w, assets/responsive/news/optical-network-signal-1400.webp 1400w" sizes="(max-width: 900px) 94vw, 66vw"><img src="assets/raster/news/optical-network-signal-master-1672x941.png" width="1672" height="941" alt="Optical fibre connections carrying illuminated data into network transceiver ports" /></picture><figcaption><strong>optical-network-signal</strong><button type="button" data-copy="assets/responsive/news/optical-network-signal">COPY PATH</button></figcaption></figure>
+
+      <div class="section-head"><div><span>PAGE 04</span><h2>Financials is code-native</h2></div><p>Icons, bars, waterfalls and state changes remain sharp and update from sourced data.</p></div>
+      <div class="finance-demo" id="financeIcons"></div>
+    </section>
+
+    <section class="tab-panel" data-panel="centring" hidden>
+      <div class="intro"><div><p class="eyebrow">IMPLEMENTATION QA</p><h1>Optical centring, not guessed margins.</h1><p>Select an asset and test scale and position inside the exact shared square art stage.</p></div></div>
+      <div class="lab-layout">
+        <aside class="lab-controls">
+          <label>Asset<select id="labAsset"></select></label>
+          <label>Scale <output id="scaleOut">0.88</output><input id="labScale" type="range" min="65" max="110" value="88" /></label>
+          <label>X offset <output id="xOut">0%</output><input id="labX" type="range" min="-12" max="12" value="0" /></label>
+          <label>Y offset <output id="yOut">0%</output><input id="labY" type="range" min="-12" max="12" value="0" /></label>
+          <label class="switch"><input id="labGuides" type="checkbox" checked /> Show centre guides</label>
+          <button id="resetLab" type="button">RESET TO MANIFEST</button>
+        </aside>
+        <div class="lab-stage-wrap">
+          <div class="lab-stage has-guides" id="labStage"><div class="lab-hex"><div class="t2c-cutout-stage" id="labCutout"><img id="labImage" src="" alt="" /></div></div></div>
+          <pre id="labCode" aria-live="polite"></pre>
+        </div>
+        <aside class="lab-rules"><h2>Pass criteria</h2><ul><li>Visual mass intersects both centre guides.</li><li>Object does not touch the hexagon edge.</li><li>Transparent bounds contain no white/checkerboard pixels.</li><li>Card remains recognisable at 96px.</li><li>No fix uses one-off margins.</li></ul></aside>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="motion" hidden>
+      <div class="intro"><div><p class="eyebrow">MEANINGFUL MOTION</p><h1>Animate state—not the whole screen.</h1><p>Disable your operating-system animation setting to inspect the reduced-motion fallback.</p></div></div>
+      <div class="motion-grid">
+        <article><span>CHAIN FLOW</span><img src="assets/animated/chain-flow.svg" alt="Animated supply-chain connection pulse" /><p>One principal path at a time.</p></article>
+        <article><span>OPTICAL PULSE</span><img src="assets/animated/optical-pulse.svg" alt="Animated optical light pulse" /><p>Play on selection or explicit reaction playback.</p></article>
+        <article><span>COMPLETION</span><img src="assets/animated/completion-ring.svg" alt="Animated review completion ring" /><p>Runs only when review progress changes.</p></article>
+        <article class="freshness-card"><span>QUOTE FRESHNESS</span><div><i class="t2c-live-dot" data-state="live"></i><strong>LIVE</strong><small>As of 14:32:05 · market open</small></div><p>Only genuinely live data pulses.</p></article>
+        <article class="bar-card"><span>FINANCIAL BAR</span><div><i class="t2c-financial-bar" data-animate="true" style="--w:78%"></i><i class="t2c-financial-bar amber" data-animate="true" style="--w:41%"></i></div><button type="button" id="replayBars">REPLAY</button></article>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="references" hidden>
+      <div class="intro"><div><p class="eyebrow">REFERENCE HISTORY</p><h1>All the website pictures discussed so far.</h1><p>Use the approved v2 set first. These establish intent; none are production backgrounds.</p></div></div>
+      <div class="reference-group"><div class="section-head"><div><span>PRIORITY 1</span><h2>Approved v2 targets</h2></div></div><div class="reference-grid" id="v2References"></div></div>
+      <div class="reference-group"><div class="section-head"><div><span>PRIORITY 2</span><h2>Current website baseline</h2></div></div><div class="reference-grid reference-grid--single" id="currentReferences"></div></div>
+      <div class="reference-group"><div class="section-head"><div><span>PRIORITY 3</span><h2>Earlier concepts</h2></div></div><div class="reference-grid" id="earlierReferences"></div></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="scripts/preview-v2.js"></script>
+</body>
+</html>
+

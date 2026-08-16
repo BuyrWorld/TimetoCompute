@@ -17,8 +17,26 @@
   --t2c-cyan: #42d9ff;
   --t2c-cyan-soft: rgb(66 217 255 / 14%);
   --t2c-amber-soft: rgb(255 181 71 / 14%);
-  --cn-node: 132px;
+  --cn-node: 172px;
   --cn-gap: clamp(8px, 1.4vw, 22px);
+
+  /* Motion durations from MOTION_AND_INTERACTION.md, named rather than retyped.
+     They were previously referenced only as fallbacks inside var() calls, which
+     meant the spec's numbers existed nowhere and every new transition invented
+     its own. Each maps to one of the pack's stated bands. */
+  --t2c-press: 110ms;   /* press: 90–120ms   */
+  --t2c-fast: 160ms;    /* hover/focus: 140–180ms */
+  --t2c-med: 250ms;     /* drawer/card expansion: 220–280ms */
+  --t2c-reveal: 520ms;  /* selected-path reveal: 400–650ms  */
+  --t2c-ease: cubic-bezier(.2, .7, .3, 1);
+}
+
+/* The no-motion state must remain fully understandable, so durations collapse
+   rather than transitions being removed piecemeal in each component. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t2c-press: 1ms; --t2c-fast: 1ms; --t2c-med: 1ms; --t2c-reveal: 1ms;
+  }
 }
 
 /* ============================================================
@@ -92,27 +110,64 @@
 
 .cn-frame { position: absolute; inset: 0; width: 100%; height: 100%; }
 
-/* The cutout sits inside the frame and is NEVER stretched: contained, centred,
-   in its own aspect-ratio box. This is the pack's non-negotiable image rule. */
+/* THE SQUARE ART STAGE.
+   One identical square box inside every hexagon, geometrically centred. The
+   cutout is contained inside it, never stretched — the pack's non-negotiable
+   image rule.
+
+   The stage used to be 58% wide and pushed to `top: 46%`. Both were global
+   fudges standing in for per-asset correction: the blanket nudge moved all seven
+   objects to suit the two worst, and 58% left every object rendering at roughly
+   half the size the frame was drawn for. The stage is now the pack's `72%`,
+   truly centred, and each object's own drift is corrected by its manifest
+   optics below — one reviewable table instead of scattered magic numbers. */
 .cn-cut {
-  position: absolute; left: 50%; top: 46%;
+  position: absolute; left: 50%; top: 50%;
   transform: translate(-50%, -50%);
-  width: 58%; aspect-ratio: 1;
+  width: 72%; aspect-ratio: 1;
+  display: grid; place-items: center;
+  pointer-events: none;
 }
 .cn-asset {
-  width: 100%; height: 100%;
-  object-fit: contain; object-position: center;
+  display: block; width: 100%; height: 100%;
+  object-fit: contain; object-position: 50% 50%;
+  /* Manifest-driven optical correction. Defaults keep an un-manifested asset
+     rendering unchanged rather than silently shifting. */
+  transform: translate(var(--asset-x, 0%), var(--asset-y, 0%)) scale(var(--asset-scale, 1));
+  transform-origin: center;
+  /* The pack's brightness rule: every object stays legible. */
+  filter: brightness(1.08) contrast(1.06)
+          drop-shadow(0 0 12px var(--asset-glow, rgba(199, 255, 0, .30)));
+  transition: filter var(--t2c-med, 180ms) var(--t2c-ease, ease);
 }
+.cn-art[data-frame="cyan"] { --asset-glow: rgba(66, 217, 255, .30); }
+.cn-art[data-frame="amber"] { --asset-glow: rgba(255, 181, 71, .26); }
+.cn-art[data-frame="neutral"] { --asset-glow: rgba(168, 179, 183, .22); }
+
+/* Hover/focus may lift brightness by at most 12%, per the pack. */
+.cn-hit:hover .cn-asset,
+.cn-hit:focus-visible .cn-asset {
+  filter: brightness(1.20) contrast(1.08)
+          drop-shadow(0 0 18px var(--asset-glow, rgba(199, 255, 0, .44)));
+}
+@media (prefers-reduced-motion: reduce) { .cn-asset { transition: none; } }
 
 /* Implied stages are lit but muted: they happened, and nobody is tracked behind
-   them. Only a genuinely unknown stage is drained of colour. */
-.cn-node.is-implied .cn-asset { opacity: .82; }
+   them. The pack's floor is .72 — state is carried by frame, glow and words, not
+   by making artwork unreadable. Only a genuinely unknown stage loses colour. */
+.cn-node.is-implied .cn-asset { opacity: .86; }
 .cn-node.is-implied .cn-art { color: var(--brand); opacity: .7; }
 /* Dashed frame, dashed connector, dashed tick — one visual grammar for "this
    happened, and nothing is tracked behind it". The words say it too; the dashes
    only keep the eye and the text telling the same story. */
 .cn-node.is-implied .cn-frame path:first-of-type { stroke-dasharray: 7 5; }
-.cn-node.is-gap .cn-asset { opacity: .28; filter: grayscale(1); }
+/* A genuinely unknown stage is the one case where the artwork is deliberately
+   drained — it is not claiming to depict anything that happened. It also always
+   carries the word "Unknown", so the state never rests on the treatment alone. */
+.cn-node.is-gap .cn-asset {
+  opacity: .34;
+  filter: grayscale(1) brightness(.9);
+}
 
 .cn-gapmark, .cn-impliedmark {
   position: absolute; right: 14%; top: 24%;
