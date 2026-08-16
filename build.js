@@ -80,23 +80,26 @@ console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
  * top of the screen instead of below a repeated marketing hero.
  */
 /**
- * Five destinations. Today, Companies, Sites and Intelligence are the four the
- * brief asks for; Edge Lab keeps its place because it is the most substantial
- * tool on the site and burying it in a menu would be a downgrade dressed as
- * tidiness. Compare, Catalysts and Research stay real routes, reachable from the
- * pages they belong to and from the utility menu — never orphaned.
- */
 /**
- * Five destinations, named for what a reader wants rather than for the data
- * model behind them. "Megaprojects" points at the existing /sites/ route:
- * renaming the route would break every link already published to it, and the
- * label is what the reader reads.
+ * The primary destinations, named for what a reader wants rather than for the
+ * data model behind them.
+ *
+ * MEGAPROJECTS IS GONE FROM HERE. A reader interested in a company's data
+ * centres is already thinking about the company, so the detail belongs on the
+ * company page — which is where it now lives, one section per site with its
+ * gates, its timeline and its documents.
+ *
+ * The ROUTES ARE NOT DELETED. /sites/ and all 23 /sites/<slug>/ pages stay
+ * exactly where they were: they are published URLs, they are in the sitemap and
+ * the command palette, and the explainers and signals link into them. Deleting
+ * a tab is an editorial decision; deleting a URL breaks every link anyone has
+ * ever shared. /sites/ moves to the utility menu, where it is one tap away on
+ * every page.
  */
 const NAV = [
   { id: 'today', label: 'Today', href: '/' },
   { id: 'chain', label: 'Supply chain', href: '/chain/' },
   { id: 'companies', label: 'Companies', href: '/companies/' },
-  { id: 'sites', label: 'Megaprojects', href: '/sites/' },
   /* The pack asks for AI News and Financials in the primary nav. News is
      promoted here because the route exists and carries real sourced stories.
      FINANCIALS IS DELIBERATELY ABSENT: its route is phase 6, and a primary nav
@@ -125,6 +128,7 @@ const MOBILE_NAV = [
  * route must not become a page with no current marker anywhere.
  */
 const UTILITY_ROUTES = [
+  { id: 'sites', label: 'All data centres', href: '/sites/' },
   { id: 'intelligence', label: 'Intelligence ledger', href: '/intelligence/' },
   { id: 'news', label: 'News wire', href: '/news/' },
   { id: 'lab', label: 'Edge Lab', href: '/lab/' },
@@ -1094,9 +1098,14 @@ function companyPage(c) {
     <td>${esc(METRICS[m.metric].label)}<span class="sub">Historical disclosure — superseded</span></td>
     <td>${evidencedValue(m)}${evidenceDrawer(m)}</td></tr>`).join('');
 
+  /* The company's data centres, in full.
+     This is where site detail lives now that Megaprojects has left the primary
+     navigation. Each card carries the site's capacity with its measurement
+     basis, its gates, its dated milestones and its documents — and links to the
+     site's own page for anyone who wants only that one. */
   const projects = v.projects.length ? v.projects.map(p => `<article class="projcard">
       <div class="projhead">
-        <h3>${esc(p.name)}</h3>
+        <h3><a class="projlink press" href="/sites/${esc(p.id)}/">${esc(p.name)}</a></h3>
         <span class="projmeta">${esc(COUNTRY_NAMES[p.country] || p.country)}</span>
       </div>
       <div class="projval">
@@ -1106,9 +1115,13 @@ function companyPage(c) {
       <p class="projnote">${esc(p.note || '')}</p>
       ${gateTrack(p)}
       ${timelinePanel(p)}
-      <div class="projsrc">${sourceChips(p.sourceIds)}</div>
+      <div class="projfoot">
+        <div class="projsrc">${sourceChips(p.sourceIds)}</div>
+        <a class="projmore press" href="/sites/${esc(p.id)}/">This site in full
+          <span aria-hidden="true">&rarr;</span></a>
+      </div>
     </article>`).join('')
-    : `<div class="empty"><h3>No site-level projects recorded</h3><p>This company reports fleet-wide rather than by site.</p></div>`;
+    : `<div class="empty"><h3>No site-level data centres recorded</h3><p>This company reports fleet-wide rather than by site, so there is nothing to break out here.</p></div>`;
 
   const events = v.events.length
     ? `<div class="led">${v.events.map(e => {
@@ -1135,7 +1148,7 @@ function companyPage(c) {
     ['story', 'The story'],
     ['record', 'Capacity record'],
     ...(targetRows ? [['targets', 'Targets']] : []),
-    ['projects', 'Projects'],
+    ['projects', 'Data centres'],
     ...(contracts.length ? [['contracts', 'Contracts']] : []),
     ['changes', 'Changes'],
     ...(cats.length ? [['catalysts', 'Catalysts']] : []),
@@ -1316,8 +1329,9 @@ function companyPage(c) {
   </section>` : ''}
 
   <section class="panel" id="projects">
-    <div class="ph"><h2>Projects and gates</h2><span class="meta">${v.projects.length} recorded</span></div>
-    <div class="keynote">Gates advance independently. Zoning can be granted while environmental approval,
+    <div class="ph"><h2>Data centres and their gates</h2><span class="meta">${v.projects.length} recorded</span></div>
+    <div class="keynote">Every site this company has disclosed, with what each one has actually
+      cleared. Gates advance independently: zoning can be granted while environmental approval,
       financing and interconnection all remain outstanding — a single stage label would hide that.</div>
     <div class="projgrid">${projects}</div>
   </section>

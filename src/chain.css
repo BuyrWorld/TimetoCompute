@@ -581,3 +581,93 @@ button.bnav {
     .cn-art { width: 100%; }
   }
 }
+
+/* ============================================================
+   The chain pulse.
+
+   One pulse travels the chain left to right and lights each node fully as it
+   arrives — one at a time, in delivery order, which is the direction the chain
+   actually runs. It is the pack's "one selected chain pulse": a single principal
+   animation, never seven objects bobbing independently.
+
+   Timing, from MOTION_AND_INTERACTION.md:
+     - the sweep crosses all seven nodes in ~2.3s (its band is 1.8–3.2s);
+     - the whole cycle is 6.4s, so the chain is at rest most of the time
+       (the ambient band is 5–8s).
+
+   It is built as ONE animation staggered by `--i` rather than seven hand-timed
+   ones, so adding or reordering a stage cannot desync it.
+
+   The pulse only ever brightens. It never changes a node's semantic state: an
+   implied stage keeps its dashed frame while lit, because the dashes carry
+   meaning and an animation may not overwrite it.
+   ============================================================ */
+
+.cn-track {
+  --cn-step: .38s;                                   /* gap between nodes      */
+  --cn-cycle: 6.4s;                                  /* sweep, then rest       */
+}
+/* `--cn-delay` MUST be declared on the node, not the track. A custom property
+   inherits its computed value, so resolving `var(--i)` on the track — where no
+   `--i` exists — would compute one delay of 0s and inherit that constant to all
+   seven, lighting the whole chain at once. */
+.cn-node { --cn-delay: calc(var(--i, 0) * var(--cn-step)); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .cn-node .cn-art {
+    animation: cn-lit var(--cn-cycle) var(--t2c-ease) infinite;
+    animation-delay: var(--cn-delay);
+  }
+  .cn-node .cn-asset {
+    animation: cn-litasset var(--cn-cycle) var(--t2c-ease) infinite;
+    animation-delay: var(--cn-delay);
+  }
+  /* The connector lights just BEFORE the node it feeds, so the pulse reads as
+     travelling into the node rather than appearing on top of it. */
+  .cn-node + .cn-node::before {
+    animation: cn-flow var(--cn-cycle) linear infinite;
+    animation-delay: calc(var(--cn-delay) - (var(--cn-step) * .55));
+  }
+}
+
+/* Peak at 4% of 6.4s ≈ 260ms in, back to rest by 11% ≈ 700ms. Short enough that
+   only one node is ever at full brightness. */
+@keyframes cn-lit {
+  0%, 11%, 100% { filter: none; }
+  4% { filter: drop-shadow(0 0 14px currentColor) brightness(1.25); }
+}
+
+@keyframes cn-litasset {
+  0%, 11%, 100% {
+    filter: brightness(1.08) contrast(1.06)
+            drop-shadow(0 0 12px var(--asset-glow, rgba(199, 255, 0, .30)));
+  }
+  4% {
+    filter: brightness(1.28) contrast(1.1)
+            drop-shadow(0 0 26px var(--asset-glow, rgba(199, 255, 0, .55)));
+  }
+}
+
+@keyframes cn-flow {
+  0%, 12%, 100% { opacity: .55; }
+  3% { opacity: 1; }
+}
+/* An evidenced connector sits at full opacity normally, so its pulse is a
+   brightness lift rather than a fade up from dim. */
+.cn-node.is-evidenced + .cn-node::before { --cn-restop: 1; }
+
+/* Reviewing the page should not fight the reader. The sweep stops while a node
+   is hovered or focused, so a pointer resting on a node gets a still target and
+   keyboard focus is never chased by a moving highlight. */
+.cn-track:hover .cn-art,
+.cn-track:hover .cn-asset,
+.cn-track:focus-within .cn-art,
+.cn-track:focus-within .cn-asset,
+.cn-track:hover .cn-node::before,
+.cn-track:focus-within .cn-node::before { animation-play-state: paused; }
+
+/* Focus mode is the reader asking for less. Decorative motion stops entirely —
+   the same contract the homepage canvas already honours. */
+html[data-mode="focus"] .cn-art,
+html[data-mode="focus"] .cn-asset,
+html[data-mode="focus"] .cn-node::before { animation: none; }

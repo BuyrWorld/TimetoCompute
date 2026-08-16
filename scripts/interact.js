@@ -807,7 +807,7 @@ const run = async () => {
     palClosed && focusRestored === 'palOpen', `closed=${palClosed} focus=${focusRestored}`);
 
   /* ---- nav marks exactly one destination current ---- */
-  for (const [route, expect] of [['/sites/', '/sites/'], ['/catalysts/', '/catalysts/'],
+  for (const [route, expect] of [['/catalysts/', '/catalysts/'],
     ['/explainers/', '/explainers/']]) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const current = await page.$$eval('[aria-current="page"]', els =>
@@ -817,7 +817,7 @@ const run = async () => {
   }
 
   // A route demoted to the utility menu still says where you are.
-  for (const route of ['/intelligence/', '/news/', '/lab/']) {
+  for (const route of ['/sites/', '/intelligence/', '/news/']) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const marked = await page.$$eval('.umenubtn[aria-current="page"]', els =>
       els.map(e => e.getAttribute('href')));
@@ -924,6 +924,56 @@ const run = async () => {
     return cv ? cv.toDataURL().length : 0;
   });
   check('the hero animation stops under reduced motion', framesA === framesB, `${framesA} vs ${framesB}`);
+
+  const rmChain = await page.$$eval('.cn-node .cn-art',
+    els => els.map(e => getComputedStyle(e).animationName));
+  check('the chain pulse stops under reduced motion',
+    rmChain.every(n => n === 'none'), rmChain.join(','));
+  // The chain must still be fully readable with no motion at all.
+  const rmLit = await page.$$eval('.cn-node .cn-asset',
+    els => els.map(e => +getComputedStyle(e).opacity));
+  check('every stage stays legible with motion disabled',
+    rmLit.length === 7 && rmLit.every(o => o > 0.7), rmLit.join(','));
+
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 300));
+
+  /* ---- the chain pulse sweeps one node at a time ---- */
+  const sweep = await page.evaluate(async () => {
+    const arts = [...document.querySelectorAll('.cn-node .cn-art')];
+    const bright = () => arts.map(a => {
+      const m = getComputedStyle(a).filter.match(/brightness\(([\d.]+)\)/);
+      return m ? parseFloat(m[1]) : 1;
+    });
+    const first = {}, order = [];
+    let maxLit = 0, last = null;
+    const t0 = performance.now();
+    while (performance.now() - t0 < 7400) {
+      const b = bright();
+      const lit = b.filter(x => x > 1.06).length;
+      if (lit > maxLit) maxLit = lit;
+      b.forEach((v, i) => { if (v > 1.06 && first[i] === undefined) first[i] = Math.round(performance.now() - t0); });
+      if (lit) {
+        const peak = b.indexOf(Math.max(...b));
+        if (peak !== last) { order.push(peak); last = peak; }
+      }
+      await new Promise(r => requestAnimationFrame(r));
+    }
+    return { first, order, maxLit, count: arts.length };
+  });
+
+  check('only one chain node is highlighted at a time',
+    sweep.maxLit === 1, `${sweep.maxLit} lit simultaneously`);
+  check('every chain node is reached by the pulse',
+    Object.keys(sweep.first).length === sweep.count,
+    `${Object.keys(sweep.first).length} of ${sweep.count}`);
+
+  // The order the pulse visits nodes must be left to right, wrapping once.
+  const wrapped = sweep.order.join(',');
+  const forward = sweep.order.every((n, i) =>
+    i === 0 || n === (sweep.order[i - 1] + 1) % sweep.count);
+  check('the pulse travels left to right, in delivery order', forward, wrapped);
 
   check('no uncaught errors during the whole run', errors.length === 0, errors.join(' | '));
 

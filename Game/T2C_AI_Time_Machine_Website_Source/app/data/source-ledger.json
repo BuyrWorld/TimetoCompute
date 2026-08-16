@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": "2026-08-16.seed.1",
+  "policy": {
+    "briefingRule": "Only source records with publishedAt less than or equal to the chapter cutoff may be exposed before commitment.",
+    "sourcePreference": "Primary issuer, regulator, government or intergovernmental sources.",
+    "quotationRule": "Store an original short summary and link; do not copy long source passages into the client."
+  },
+  "sources": [
+    {
+      "id": "msft-openai-2023",
+      "publisher": "Microsoft",
+      "title": "Microsoft and OpenAI extend partnership",
+      "url": "https://blogs.microsoft.com/blog/2023/01/23/microsoftandopenaiextendpartnership/",
+      "publishedAt": "2023-01-23T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Microsoft described a multiyear, multibillion-dollar OpenAI investment and Azure as the exclusive cloud provider."
+    },
+    {
+      "id": "nvda-fy23-q4",
+      "publisher": "NVIDIA",
+      "title": "NVIDIA Announces Financial Results for Fourth Quarter and Fiscal 2023",
+      "url": "https://investor.nvidia.com/news/press-release-details/2023/NVIDIA-Announces-Financial-Results-for-Fourth-Quarter-and-Fiscal-2023/default.aspx",
+      "publishedAt": "2023-02-22T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "NVIDIA reported quarterly results, described an AI inflection point and disclosed year-over-year revenue decline."
+    },
+    {
+      "id": "nvda-fy24-q1",
+      "publisher": "NVIDIA",
+      "title": "NVIDIA Announces Financial Results for First Quarter Fiscal 2024",
+      "url": "https://investor.nvidia.com/news/press-release-details/2023/NVIDIA-Announces-Financial-Results-for-First-Quarter-Fiscal-2024/default.aspx",
+      "publishedAt": "2023-05-24T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "NVIDIA guided approximately $11 billion in second-quarter fiscal 2024 revenue."
+    },
+    {
+      "id": "nvda-fy24-q2",
+      "publisher": "NVIDIA",
+      "title": "NVIDIA Announces Financial Results for Second Quarter Fiscal 2024",
+      "url": "https://investor.nvidia.com/news/press-release-details/2023/NVIDIA-Announces-Financial-Results-for-Second-Quarter-Fiscal-2024/default.aspx",
+      "publishedAt": "2023-08-23T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "NVIDIA reported data-center growth and guided approximately $16 billion in third-quarter fiscal 2024 revenue."
+    },
+    {
+      "id": "nvda-blackwell-2024",
+      "publisher": "NVIDIA",
+      "title": "NVIDIA Blackwell Platform Arrives to Power a New Era of Computing",
+      "url": "https://nvidianews.nvidia.com/news/nvidia-blackwell-platform-arrives-to-power-a-new-era-of-computing",
+      "publishedAt": "2024-03-18T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "NVIDIA introduced Blackwell as a platform and named cloud, server and software ecosystem participants."
+    },
+    {
+      "id": "micron-hbm3e-2024",
+      "publisher": "Micron",
+      "title": "Micron Commences Volume Production of Industry-Leading HBM3E Solution",
+      "url": "https://investors.micron.com/news/press-release/2024/Micron-Commences-Volume-Production-of-Industry-Leading-HBM3E-Solution-to-Accelerate-the-Growth-of-AI-02-26-2024/default.aspx",
+      "publishedAt": "2024-02-26T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Micron said it began HBM3E volume production and that the product would be used in NVIDIA H200 GPUs."
+    },
+    {
+      "id": "skhynix-m15x-2024",
+      "publisher": "SK hynix",
+      "title": "SK hynix to Produce DRAM From M15X in Cheongju",
+      "url": "https://news.skhynix.com/en/sk-hynix-to-produce-dram-from-m15x-in-cheongju/",
+      "publishedAt": "2024-04-24T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "SK hynix announced a major M15X investment intended to expand HBM and next-generation DRAM production."
+    },
+    {
+      "id": "micron-hbm-soldout-2024",
+      "publisher": "Micron",
+      "title": "Micron investor presentation — HBM supply allocation",
+      "url": "https://investors.micron.com/static-files/a531c7f0-fca2-48f3-8f24-79c945aaa2d2",
+      "publishedAt": "2024-07-23T23:59:59Z",
+      "sourceType": "primary_company_document",
+      "supportedClaim": "Micron stated that its calendar 2024 and 2025 HBM output was sold out."
+    },
+    {
+      "id": "skhynix-hbm3e-12-2024",
+      "publisher": "SK hynix",
+      "title": "SK hynix Begins Volume Production of the World's First 12-Layer HBM3E",
+      "url": "https://news.skhynix.com/en/sk-hynix-begins-volume-production-of-the-world-first-12-layer-hbm3e/",
+      "publishedAt": "2024-09-26T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "SK hynix announced volume production of a 12-layer HBM3E product."
+    },
+    {
+      "id": "skhynix-hbm4-samples-2025",
+      "publisher": "SK hynix",
+      "title": "SK hynix Ships World's First 12-Layer HBM4 Samples to Customers",
+      "url": "https://news.skhynix.com/en/sk-hynix-ships-world-first-12-layer-hbm4-samples-to-customers/",
+      "publishedAt": "2025-03-19T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "SK hynix said it shipped 12-layer HBM4 samples to major customers and planned mass-production preparation."
+    },
+    {
+      "id": "skhynix-hbm4-ready-2025",
+      "publisher": "SK hynix",
+      "title": "SK hynix Completes World's First HBM4 Development and Readies Mass Production",
+      "url": "https://news.skhynix.com/en/sk-hynix-completes-worlds-first-hbm4-development-and-readies-mass-production/",
+      "publishedAt": "2025-09-12T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "SK hynix said it completed HBM4 development and established a mass-production system."
+    },
+    {
+      "id": "iea-electricity-2024",
+      "publisher": "International Energy Agency",
+      "title": "Electricity 2024",
+      "url": "https://www.iea.org/reports/electricity-2024",
+      "publishedAt": "2024-01-24T23:59:59Z",
+      "sourceType": "primary_intergovernmental",
+      "supportedClaim": "The IEA projected that combined electricity consumption from data centres, AI and crypto could more than double by 2026."
+    },
+    {
+      "id": "vertiv-q1-2024",
+      "publisher": "Vertiv",
+      "title": "Vertiv Reports First Quarter 2024 Results",
+      "url": "https://investors.vertiv.com/news/news-details/2024/Vertiv-Reports-60-Organic-Orders-Growth-8-Net-Sales-Growth-in-First-Quarter-Updates-Full-Year-2024-Outlook/default.aspx",
+      "publishedAt": "2024-04-24T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Vertiv reported 60% organic orders growth and disclosed backlog and updated outlook."
+    },
+    {
+      "id": "vertiv-q3-2024",
+      "publisher": "Vertiv",
+      "title": "Vertiv Reports Strong Third Quarter 2024 Results",
+      "url": "https://investors.vertiv.com/news/news-details/2024/Vertiv-Reports-Strong-Third-Quarter-2024-Results-and-Raises-Full-Year-Guidance/default.aspx",
+      "publishedAt": "2024-10-23T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Vertiv reported results, hyperscale demand commentary and raised full-year guidance."
+    },
+    {
+      "id": "iea-energy-ai-2025",
+      "publisher": "International Energy Agency",
+      "title": "Energy and AI",
+      "url": "https://www.iea.org/reports/energy-and-ai",
+      "publishedAt": "2025-04-10T23:59:59Z",
+      "sourceType": "primary_intergovernmental",
+      "supportedClaim": "The IEA projected global data-centre electricity consumption to around 945 TWh by 2030 in its base case."
+    },
+    {
+      "id": "nvidia-800v-2025",
+      "publisher": "NVIDIA Developer Blog",
+      "title": "NVIDIA 800 V HVDC Architecture Will Power the Next Generation of AI Factories",
+      "url": "https://developer.nvidia.com/blog/nvidia-800-v-hvdc-architecture-will-power-the-next-generation-of-ai-factories/",
+      "publishedAt": "2025-05-20T23:59:59Z",
+      "sourceType": "primary_company_technical",
+      "supportedClaim": "NVIDIA described an 800 VDC power architecture for future high-density AI factories."
+    },
+    {
+      "id": "nvidia-800v-ecosystem-2025",
+      "publisher": "NVIDIA Developer Blog",
+      "title": "Building the 800 VDC Ecosystem for Efficient, Scalable AI Factories",
+      "url": "https://developer.nvidia.com/blog/building-the-800-vdc-ecosystem-for-efficient-scalable-ai-factories/",
+      "publishedAt": "2025-10-13T23:59:59Z",
+      "sourceType": "primary_company_technical",
+      "supportedClaim": "NVIDIA described the 800 VDC ecosystem and a transition path from prevailing AC distribution."
+    },
+    {
+      "id": "iea-data-centre-2026",
+      "publisher": "International Energy Agency",
+      "title": "Data centre electricity use surged in 2025",
+      "url": "https://www.iea.org/news/data-centre-electricity-use-surged-in-2025-even-with-tightening-bottlenecks-driving-a-scramble-for-solutions",
+      "publishedAt": "2026-04-16T23:59:59Z",
+      "sourceType": "primary_intergovernmental",
+      "supportedClaim": "The IEA reported that data-centre electricity consumption increased in 2025 and discussed connection bottlenecks."
+    },
+    {
+      "id": "broadcom-cpo-51t-2024",
+      "publisher": "Broadcom",
+      "title": "Broadcom Delivers Industry's First 51.2 Tbps Co-Packaged Optics Ethernet Switch",
+      "url": "https://investors.broadcom.com/news-releases/news-release-details/broadcom-delivers-industrys-first-512-tbps-co-packaged-optics",
+      "publishedAt": "2024-03-14T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Broadcom announced a 51.2 Tbps co-packaged optics Ethernet switch platform."
+    },
+    {
+      "id": "nvidia-cpo-2025",
+      "publisher": "NVIDIA",
+      "title": "NVIDIA Announces Spectrum-X and Quantum-X Photonics Networking Switches",
+      "url": "https://investor.nvidia.com/news/press-release-details/2025/NVIDIA-Announces-Spectrum-X-Photonics-Co-Packaged-Optics-Networking-Switches-to-Scale-AI-Factories-to-Millions-of-GPUs/default.aspx",
+      "publishedAt": "2025-03-18T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "NVIDIA announced photonics switches, planned availability and named manufacturing and optical ecosystem participants."
+    },
+    {
+      "id": "broadcom-optics-2025",
+      "publisher": "Broadcom",
+      "title": "Broadcom Advances Optical Connectivity for AI Infrastructure",
+      "url": "https://investors.broadcom.com/news-releases/news-release-details/broadcom-advances-optical-connectivity-ai-infrastructure",
+      "publishedAt": "2025-03-31T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Broadcom described advances across co-packaged optics, DSP and optical connectivity."
+    },
+    {
+      "id": "broadcom-cpo-gen3-2025",
+      "publisher": "Broadcom",
+      "title": "Broadcom Announces Third-Generation Co-Packaged Optics",
+      "url": "https://investors.broadcom.com/news-releases/news-release-details/broadcom-announces-third-generation-co-packaged-optics-cpo",
+      "publishedAt": "2025-05-15T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Broadcom introduced third-generation 200G-per-lane CPO and described production milestones."
+    },
+    {
+      "id": "broadcom-tomahawk6-2025",
+      "publisher": "Broadcom",
+      "title": "Broadcom Ships Tomahawk 6, the World's First 102.4 Tbps Switch",
+      "url": "https://investors.broadcom.com/news-releases/news-release-details/broadcom-ships-tomahawk-6-worlds-first-1024-tbps-switch",
+      "publishedAt": "2025-06-03T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Broadcom said Tomahawk 6 was shipping and described support for co-packaged optics."
+    },
+    {
+      "id": "nvidia-spectrumx-photonics-2026",
+      "publisher": "NVIDIA Developer Blog",
+      "title": "Scaling Power-Efficient AI Factories with NVIDIA Spectrum-X Ethernet Photonics",
+      "url": "https://developer.nvidia.com/blog/scaling-power-efficient-ai-factories-with-nvidia-spectrum-x-ethernet-photonics/",
+      "publishedAt": "2026-01-06T23:59:59Z",
+      "sourceType": "primary_company_technical",
+      "supportedClaim": "NVIDIA described Spectrum-X Ethernet Photonics design and efficiency goals for AI factories."
+    },
+    {
+      "id": "coherent-texas-2026",
+      "publisher": "NVIDIA Blog",
+      "title": "Coherent Expands Texas Manufacturing for AI Optical Technologies",
+      "url": "https://blogs.nvidia.com/blog/coherent-texas-ai-optical/",
+      "publishedAt": "2026-06-16T23:59:59Z",
+      "sourceType": "primary_named_partner",
+      "supportedClaim": "NVIDIA described Coherent breaking ground on expanded Texas manufacturing for AI optical technology."
+    },
+    {
+      "id": "nebius-finland-2024",
+      "publisher": "Nebius",
+      "title": "Nebius to Triple Capacity at Finland Data Center to 75 MW",
+      "url": "https://nebius.com/newsroom/nebius-to-triple-capacity-at-finland-data-center-to-75-mw",
+      "publishedAt": "2024-10-08T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Nebius announced a plan to triple capacity at its Finland data centre to 75 MW within a wider investment programme."
+    },
+    {
+      "id": "nebius-trading-resume-2024",
+      "publisher": "Nebius",
+      "title": "Nebius Group Confirms Resumption of Trading on Nasdaq",
+      "url": "https://nebius.com/newsroom/nebius-group-confirms-schedule-for-resumption-of-trading-on-nasdaq",
+      "publishedAt": "2024-10-21T13:00:00Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Nebius said NBIS trading was scheduled to resume at 9:00 a.m. Eastern Time on 21 October 2024."
+    },
+    {
+      "id": "apld-coreweave-250-2025",
+      "publisher": "Applied Digital",
+      "title": "Applied Digital Announces 250MW AI Data Center Lease With CoreWeave",
+      "url": "https://ir.applieddigital.com/news-events/press-releases/detail/123/applied-digital-announces-250mw-ai-data-center-lease-with",
+      "publishedAt": "2025-06-02T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Applied Digital announced a 250 MW, approximately 15-year lease with CoreWeave."
+    },
+    {
+      "id": "apld-coreweave-400-2025",
+      "publisher": "Applied Digital",
+      "title": "Applied Digital Finalizes Additional 150MW Lease With CoreWeave",
+      "url": "https://ir.applieddigital.com/news-events/press-releases/detail/128/applied-digital-finalizes-additional-150mw-lease-with",
+      "publishedAt": "2025-08-29T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Applied Digital said an additional 150 MW brought CoreWeave-leased capacity to 400 MW."
+    },
+    {
+      "id": "nebius-microsoft-2025",
+      "publisher": "Nebius",
+      "title": "Nebius Announces Multi-Billion-Dollar Agreement With Microsoft for AI Infrastructure",
+      "url": "https://nebius.com/newsroom/nebius-announces-multi-billion-dollar-agreement-with-microsoft-for-ai-infrastructure",
+      "publishedAt": "2025-09-08T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Nebius announced a multibillion-dollar AI infrastructure agreement with Microsoft."
+    },
+    {
+      "id": "apld-rfs-2025",
+      "publisher": "Applied Digital",
+      "title": "Applied Digital Achieves Ready for Service for Phase 1 at Polaris Forge 1",
+      "url": "https://ir.applieddigital.com/news-events/press-releases/detail/133/applied-digital-achieves-ready-for-service-for-phase-1-at",
+      "publishedAt": "2025-10-27T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Applied Digital said the first 50 MW phase at Polaris Forge 1 reached ready-for-service."
+    },
+    {
+      "id": "iren-microsoft-2025",
+      "publisher": "IREN",
+      "title": "IREN Signs $9.7 Billion Agreement With Microsoft",
+      "url": "https://iren.com/resources/blog/iren-signs97-billion-agreement-with-microsoft-to-deploy-ai-cloud-infrastructure",
+      "publishedAt": "2025-11-03T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "IREN announced a five-year Microsoft agreement with stated contract value and planned 200 MW deployment."
+    },
+    {
+      "id": "nebius-meta-2026",
+      "publisher": "Nebius",
+      "title": "Nebius Signs New AI Infrastructure Agreement With Meta",
+      "url": "https://nebius.com/newsroom/nebius-signs-new-ai-infrastructure-agreement-with-meta",
+      "publishedAt": "2026-03-16T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "Nebius announced a Meta agreement with dedicated capacity and additional conditional capacity components."
+    },
+    {
+      "id": "terawulf-anthropic-2026",
+      "publisher": "TeraWulf",
+      "title": "TeraWulf Announces Anthropic Lease at Justified Data Campus",
+      "url": "https://investors.terawulf.com/news-events/press-releases/detail/142/terawulf-announces-anthropic-lease-at-justified-data-campus-and-sale-of-majority-interest-in-abernathy-joint-venture-to-fluidstack",
+      "publishedAt": "2026-07-06T23:59:59Z",
+      "sourceType": "primary_company",
+      "supportedClaim": "TeraWulf announced a long-term Anthropic lease with 401 MW of planned capacity and phased future delivery."
+    },
+    {
+      "id": "iren-horizon1-2026",
+      "publisher": "IREN",
+      "title": "IREN Delivers Horizon 1 to Microsoft",
+      "url": "https://www.globenewswire.com/news-release/2026/08/13/3344413/0/en/iren-delivers-horizon-1-to-microsoft-and-achieves-nvidia-exemplar-cloud-status-on-gb300-nvl72.html",
+      "publishedAt": "2026-08-13T23:59:59Z",
+      "sourceType": "primary_company_distribution",
+      "supportedClaim": "IREN said Horizon 1, 50 MW, was delivered to and accepted by Microsoft; the release does not establish billing commencement."
+    }
+  ]
+}

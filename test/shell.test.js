@@ -24,10 +24,10 @@ const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites
   'catalysts/index.html', 'lab/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/chain/', '/companies/', '/sites/', '/ai-news/', '/catalysts/', '/explainers/'];
+const NAV_HREFS = ['/', '/chain/', '/companies/', '/ai-news/', '/catalysts/', '/explainers/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
-const SECONDARY = ['/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/'];
+const SECONDARY = ['/sites/', '/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/'];
 
 /* ================= routes ================= */
 
@@ -68,10 +68,29 @@ test('every previously published route still resolves', () => {
     const file = route === '/' ? 'index.html' : route.replace(/^\//, '') + 'index.html';
     assert.ok(exists(file), `${route} no longer resolves`);
   }
-  // "Megaprojects" is a label over the existing /sites/ route, not a new one.
+  // The Megaprojects TAB was removed. Its route and every site page beneath it
+  // must survive: those are published URLs, and deleting a tab is an editorial
+  // decision while deleting a URL breaks every link anyone has ever shared.
   const html = read('index.html');
-  assert.ok(/class="navlink[^"]*"\s+href="\/sites\/"[^>]*>Megaprojects</.test(html),
-    'Megaprojects does not point at the existing /sites/ route');
+  assert.ok(!/class="navlink[^"]*"[^>]*>Megaprojects</.test(html),
+    'the Megaprojects tab is still in the primary navigation');
+  assert.ok(html.includes('href="/sites/"'), '/sites/ was orphaned when its tab was removed');
+  assert.ok(exists('sites/iren-horizon-1/index.html'),
+    'a published site page was deleted along with the tab');
+});
+
+test('site detail lives on the company page now that the tab is gone', () => {
+  const html = read('companies/iren/index.html');
+  assert.match(html, /Data centres and their gates/,
+    'the company page does not present its data centres');
+  // Every card reaches the site's own page, so the detail is a way in, not a
+  // dead end.
+  const links = [...html.matchAll(/class="projmore press" href="([^"]+)"/g)].map(m => m[1]);
+  assert.ok(links.length > 0, 'no data-centre card links to its site page');
+  for (const h of links) {
+    assert.ok(exists(h.replace(/^\//, '') + 'index.html'), `${h} is a dead link`);
+  }
+  assert.ok(html.includes('>Data centres<'), 'the section nav still calls them Projects');
 });
 
 test('a branded 404 exists and offers real recovery routes', () => {
@@ -564,7 +583,7 @@ test('every page offers a skip link as its first focusable element', () => {
 });
 
 test('the current route is marked for assistive technology, not colour alone', () => {
-  const cases = [['companies/index.html', '/companies/'], ['sites/index.html', '/sites/'],
+  const cases = [['companies/index.html', '/companies/'],
     ['catalysts/index.html', '/catalysts/'], ['explainers/index.html', '/explainers/'],
     ['companies/iren/index.html', '/companies/']];
   for (const [file, href] of cases) {

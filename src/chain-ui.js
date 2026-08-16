@@ -90,7 +90,7 @@ const FRAME = `<svg class="cn-frame" viewBox="0 0 220 240" aria-hidden="true" fo
  * node as a second, explicit action on the stages that have them. Keyboard order
  * still matches visual order, and no node leads to a page that does not exist.
  */
-export function chainNode(stage) {
+export function chainNode(stage, index = 0) {
   /* Three states, not two. A stage is evidenced (T2C holds records), implied
      (it certainly happened, because a later stage is evidenced, but T2C does
      not track who did it), or unknown. Implied stages are illuminated — they
@@ -123,8 +123,11 @@ export function chainNode(stage) {
     : `${stage.label}. ${stage.simple}. ${stage.count.primary}, ${stage.count.secondary}. ` +
       `Read the explainer.`;
 
-  return `<li class="cn-node ${cls}" data-stage="${esc(stage.id)}"
-    style="${esc(opticsStyle(STEM_TO_ID[stage.asset] || stage.asset))}">
+  /* `--i` is the node's place in the sweep. The pulse that travels the chain is
+     one animation staggered by index rather than seven hand-timed ones, so
+     adding or reordering a stage cannot desync it. */
+  return `<li class="cn-node ${cls}" data-stage="${esc(stage.id)}" style="--i:${index};${
+    esc(opticsStyle(STEM_TO_ID[stage.asset] || stage.asset))}">
     <a class="cn-hit press" href="${esc(stage.explainerHref)}"
        aria-label="${esc(aria)}">${inner}</a>
     ${stage.tracked ? `<a class="cn-records press" href="${esc(stage.href)}">
@@ -141,8 +144,9 @@ export function chainNode(stage) {
  */
 export function chainTrack(stages) {
   return `<div class="cn-wrap">
-    <ol class="cn-track" aria-label="The AI supply chain, from materials to recognised revenue">
-      ${stages.map(chainNode).join('')}
+    <ol class="cn-track" aria-label="The AI supply chain, from materials to recognised revenue"
+      style="--cn-count:${stages.length}">
+      ${stages.map((s, i) => chainNode(s, i)).join('')}
     </ol>
   </div>`;
 }
