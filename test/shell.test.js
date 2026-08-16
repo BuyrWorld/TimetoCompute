@@ -24,10 +24,10 @@ const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites
   'catalysts/index.html', 'lab/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/chain/', '/companies/', '/sites/', '/news/', '/catalysts/', '/explainers/'];
+const NAV_HREFS = ['/', '/chain/', '/companies/', '/sites/', '/ai-news/', '/catalysts/', '/explainers/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
-const SECONDARY = ['/intelligence/', '/lab/', '/compare/', '/research/', '/methodology/'];
+const SECONDARY = ['/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/'];
 
 /* ================= routes ================= */
 
@@ -93,7 +93,7 @@ test('a demoted route still tells the reader where they are', () => {
   // current somewhere, or the reader lands on a page the shell does not admit to.
   for (const [file, href] of [['research/index.html', '/research/'],
     ['compare/index.html', '/compare/'], ['lab/index.html', '/lab/'],
-    ['intelligence/index.html', '/intelligence/'],
+    ['intelligence/index.html', '/intelligence/'], ['news/index.html', '/news/'],
     ['methodology/index.html', '/methodology/']]) {
     const html = read(file);
     const link = html.match(new RegExp(`<a class="umenubtn[^"]*"[^>]*href="${href}"[^>]*>`));

@@ -817,13 +817,98 @@ const run = async () => {
   }
 
   // A route demoted to the utility menu still says where you are.
-  for (const route of ['/intelligence/', '/lab/', '/compare/']) {
+  for (const route of ['/intelligence/', '/news/', '/lab/']) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const marked = await page.$$eval('.umenubtn[aria-current="page"]', els =>
       els.map(e => e.getAttribute('href')));
     check(`${route} marks itself current in the menu`,
       marked.length === 1 && marked[0] === route, marked.join(', '));
   }
+
+  /* ---- AI News: finite, filterable, reviewable ---- */
+  await page.goto(base + '/ai-news/', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 300));
+
+  const anTotal = await page.$$eval('#anFeed .an-row', els => els.length);
+  check('AI News lists a finite set of signals', anTotal > 0, `${anTotal} rows`);
+
+  // Filtering by category narrows the feed and lands in the URL.
+  const anBefore = await page.$$eval('#anFeed .an-row', els => els.filter(e => !e.hidden).length);
+  await page.click('.an-filter[data-filter="cat"]:not([data-value=""])');
+  await new Promise(r => setTimeout(r, 200));
+  const anAfter = await page.$$eval('#anFeed .an-row', els => els.filter(e => !e.hidden).length);
+  check('a category filter narrows the feed', anAfter > 0 && anAfter < anBefore, `${anBefore} → ${anAfter}`);
+  check('the filter is addressable in the URL', /[?&]cat=/.test(page.url()), page.url());
+
+  const anState = await page.$eval('#anFilterState', el => el.textContent.trim());
+  check('the filter state is stated in words', /Filtered by/.test(anState), anState);
+
+  // A filtered view survives a reload, which is what makes it citable.
+  const anUrl = page.url();
+  await page.goto(anUrl, { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 250));
+  const anReloaded = await page.$$eval('#anFeed .an-row', els => els.filter(e => !e.hidden).length);
+  check('a filtered view survives a reload', anReloaded === anAfter, `${anReloaded} vs ${anAfter}`);
+
+  await page.click('#anReset');
+  await new Promise(r => setTimeout(r, 200));
+  const anReset = await page.$$eval('#anFeed .an-row', els => els.filter(e => !e.hidden).length);
+  check('reset restores the whole set', anReset === anTotal, `${anReset}`);
+  check('reset clears the URL too', !/[?&]cat=/.test(page.url()), page.url());
+
+  // Materiality is a threshold, not an exact match.
+  await page.select('#anMateriality', 'high');
+  await new Promise(r => setTimeout(r, 200));
+  const anHigh = await page.$$eval('#anFeed .an-row:not([hidden])', els =>
+    els.map(e => e.getAttribute('data-mat')));
+  check('materiality filters to that level and above',
+    anHigh.length > 0 && anHigh.every(m => m === 'high'), anHigh.join(','));
+  await page.click('#anReset');
+  await new Promise(r => setTimeout(r, 150));
+
+  // Finite review progress, and a caught-up state that can actually be reached.
+  const anPips = await page.$$eval('.an-pip', els => els.length);
+  /* Every review button on the page, not just the feed's: the lead signal is
+     lifted out of the feed and is still part of the set the pips measure. */
+  await page.evaluate(() => {
+    document.querySelectorAll('[data-review]').forEach(b => b.click());
+  });
+  await new Promise(r => setTimeout(r, 300));
+  const anCaught = await page.$eval('#anCaughtUp', el => !el.hidden);
+  const anDone = await page.$$eval('.an-pip.is-done', els => els.length);
+  check('reviewing the whole latest set reaches the caught-up state',
+    anCaught && anDone === anPips, `caught=${anCaught} pips ${anDone}/${anPips}`);
+
+  const anLabel = await page.$eval('#anReviewCount', el => el.textContent.trim());
+  check('review progress is stated in words as well as pips', /caught up/i.test(anLabel), anLabel);
+
+  await page.reload({ waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 300));
+  const anStillCaught = await page.$eval('#anCaughtUp', el => !el.hidden);
+  check('review state survives a reload', anStillCaught);
+
+  // Bookmarks are a separate store from review progress.
+  const anFirstMark = await page.$('#anFeed .an-row [data-bookmark]');
+  await anFirstMark.click();
+  await new Promise(r => setTimeout(r, 200));
+  const anMarked = await page.$$eval('#anFeed .an-row.is-bookmarked', els => els.length);
+  const anMarkPressed = await page.$eval('#anFeed .an-row [data-bookmark]',
+    el => el.getAttribute('aria-pressed'));
+  check('bookmarking is separate from reviewing',
+    anMarked === 1 && anMarkPressed === 'true', `${anMarked} bookmarked`);
+
+  // Every material claim opens its evidence.
+  const anEv = await page.$('#anFeed .an-evsum');
+  await anEv.click();
+  await new Promise(r => setTimeout(r, 200));
+  const anEvOpen = await page.$eval('#anFeed .an-ev', el => el.open);
+  const anEvLinks = await page.$$eval('#anFeed .an-ev[open] .an-evlink', els => els.length);
+  check('a signal opens its documents', anEvOpen && anEvLinks > 0, `${anEvLinks} documents`);
+
+  // The stage chips reach the explainers built in phase 3.
+  const anStageHref = await page.$eval('.an-stage', el => el.getAttribute('href')).catch(() => null);
+  check('an affected stage links into the explainer system',
+    !!anStageHref && /^\/explainers\//.test(anStageHref), String(anStageHref));
 
   /* ---- reduced motion is honoured ---- */
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);

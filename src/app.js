@@ -106,6 +106,17 @@
     try { localStorage.setItem(REVIEW_KEY, JSON.stringify(list.slice(-400))); } catch (e) {}
   };
 
+  /* Bookmarks: the same shape as reviewed, kept separate because they answer
+     different questions. "Reviewed" is progress through a finite set and is
+     expected to fill up; "bookmarked" is a deliberate keep and is not. */
+  var MARK_KEY = 't2c-bookmarks';
+  var readMarks = function () {
+    try { return JSON.parse(localStorage.getItem(MARK_KEY) || '[]'); } catch (e) { return []; }
+  };
+  var writeMarks = function (list) {
+    try { localStorage.setItem(MARK_KEY, JSON.stringify(list.slice(-400))); return true; } catch (e) { return false; }
+  };
+
   var WATCH_KEY = 't2c-watch';
   var readWatch = function () {
     try { return JSON.parse(localStorage.getItem(WATCH_KEY) || '[]'); } catch (e) { return []; }
@@ -989,6 +1000,184 @@
       });
       if (any) applySite();
     })();
+  }
+
+  /* ============ AI news ============
+     Three behaviours, all of which must survive a reload and none of which sends
+     anything anywhere: filters that live in the URL, finite review progress, and
+     bookmarks. The filter state is in the query string rather than in memory so
+     a filtered view can be linked to and reopened — a research page whose state
+     evaporates on refresh is a page nobody can cite. */
+  if (ROUTE === 'ainews') {
+    var anReviewed = readReviewed();
+    var anMarks = readMarks();
+    var anWatch = readWatch();
+    var anCfg = (CFG.aiNews || { ids: [], latest: [] });
+
+    var anState = (function () {
+      var p = new URLSearchParams(location.search);
+      return {
+        cat: p.get('cat') || '',
+        mat: p.get('mat') || '',
+        co: p.get('co') || '',
+        watch: p.get('watch') === '1'
+      };
+    })();
+
+    var MAT_RANK = { high: 3, medium: 2, low: 1 };
+
+    var anMatches = function (el) {
+      if (anState.cat && el.getAttribute('data-cat') !== anState.cat) return false;
+      if (anState.mat) {
+        var need = MAT_RANK[anState.mat] || 0;
+        if ((MAT_RANK[el.getAttribute('data-mat')] || 0) < need) return false;
+      }
+      var co = el.getAttribute('data-co') || '';
+      if (anState.co && co !== anState.co) return false;
+      if (anState.watch && (!co || anWatch.indexOf(co) === -1)) return false;
+      return true;
+    };
+
+    var anSyncUrl = function () {
+      var p = new URLSearchParams(location.search);
+      ['cat', 'mat', 'co'].forEach(function (k) {
+        if (anState[k]) p.set(k, anState[k]); else p.delete(k);
+      });
+      if (anState.watch) p.set('watch', '1'); else p.delete('watch');
+      var q = p.toString();
+      history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
+    };
+
+    var anApply = function () {
+      var rows = qsa('#anFeed .an-row');
+      var shown = 0;
+      rows.forEach(function (r) {
+        var ok = anMatches(r);
+        r.hidden = !ok;
+        if (ok) shown++;
+      });
+
+      var feat = document.querySelector('.an-featured');
+      if (feat) feat.hidden = !anMatches(feat);
+
+      var count = $('anShown');
+      if (count) count.textContent = shown + (shown === 1 ? ' disclosure' : ' disclosures');
+      var none = $('anNoResults');
+      if (none) none.hidden = shown !== 0;
+
+      // Buttons and selects reflect the state, so a linked-to view looks set.
+      qsa('.an-filter[data-filter="cat"]').forEach(function (b) {
+        var on = (b.getAttribute('data-value') || '') === anState.cat;
+        b.setAttribute('aria-pressed', String(on));
+        b.classList.toggle('is-on', on);
+      });
+      var mSel = $('anMateriality'); if (mSel) mSel.value = anState.mat;
+      var cSel = $('anCompany'); if (cSel) cSel.value = anState.co;
+      var wBtn = $('anWatchOnly');
+      if (wBtn) { wBtn.setAttribute('aria-pressed', String(anState.watch)); wBtn.classList.toggle('is-on', anState.watch); }
+
+      var state = $('anFilterState');
+      if (state) {
+        var bits = [];
+        if (anState.cat) bits.push('category');
+        if (anState.mat) bits.push(anState.mat + ' materiality and above');
+        if (anState.co) bits.push(anState.co);
+        if (anState.watch) bits.push('your watchlist');
+        state.textContent = bits.length
+          ? 'Filtered by ' + bits.join(', ') + ' — showing ' + shown + ' of ' + rows.length + '.'
+          : '';
+      }
+      anSyncUrl();
+    };
+
+    /* Finite progress. The pips fill as the latest set is reviewed, and the
+       caught-up state is reachable because the set has a last item. */
+    var anPaint = function () {
+      qsa('#anFeed .an-row, .an-featured').forEach(function (r) {
+        var id = r.getAttribute('data-id');
+        var isRev = anReviewed.indexOf(id) !== -1;
+        var isMark = anMarks.indexOf(id) !== -1;
+        r.classList.toggle('is-reviewed', isRev);
+        r.classList.toggle('is-bookmarked', isMark);
+        var rb = r.querySelector('[data-review]');
+        if (rb) { rb.setAttribute('aria-pressed', String(isRev)); rb.textContent = isRev ? 'Reviewed' : 'Mark reviewed'; }
+        var mb = r.querySelector('[data-bookmark]');
+        if (mb) { mb.setAttribute('aria-pressed', String(isMark)); mb.textContent = isMark ? 'Bookmarked' : 'Bookmark'; }
+      });
+
+      var latest = anCfg.latest || [];
+      var done = latest.filter(function (id) { return anReviewed.indexOf(id) !== -1; }).length;
+      var pips = qsa('.an-pip');
+      pips.forEach(function (p, i) { p.classList.toggle('is-done', i < done); });
+      var bar = $('anProgress');
+      if (bar) bar.setAttribute('aria-valuenow', String(done));
+      var label = $('anReviewCount');
+      if (label) {
+        label.textContent = done + ' of ' + latest.length + ' reviewed'
+          + (done === latest.length && latest.length ? ' — caught up' : '');
+      }
+      var cu = $('anCaughtUp');
+      if (cu) cu.hidden = !(latest.length && done === latest.length);
+    };
+
+    /* Watchlist impact is filtered here rather than on the server, because the
+       server has no business knowing what this reader follows. */
+    var anPaintWatch = function () {
+      var any = false;
+      qsa('#anWatchImpact .an-watchrow').forEach(function (r) {
+        var on = anWatch.indexOf(r.getAttribute('data-co')) !== -1;
+        r.hidden = !on;
+        if (on) any = true;
+      });
+      var empty = $('anWatchEmpty');
+      if (empty) empty.hidden = any;
+    };
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest) return;
+
+      var f = e.target.closest('.an-filter[data-filter="cat"]');
+      if (f) { anState.cat = f.getAttribute('data-value') || ''; anApply(); track('ainews_filter', { cat: anState.cat }); return; }
+
+      if (e.target.closest('#anWatchOnly')) {
+        anState.watch = !anState.watch; anApply(); track('ainews_filter', { watch: anState.watch }); return;
+      }
+      if (e.target.closest('#anReset') || e.target.closest('#anResetInline')) {
+        anState.cat = ''; anState.mat = ''; anState.co = ''; anState.watch = false;
+        anApply(); return;
+      }
+
+      var rev = e.target.closest('[data-review]');
+      if (rev) {
+        var rid = rev.getAttribute('data-review');
+        var at = anReviewed.indexOf(rid);
+        if (at === -1) anReviewed.push(rid); else anReviewed.splice(at, 1);
+        writeReviewed(anReviewed); anPaint();
+        track('signal_reviewed', { reviewed: at === -1 });
+        return;
+      }
+
+      var mk = e.target.closest('[data-bookmark]');
+      if (mk) {
+        var mid = mk.getAttribute('data-bookmark');
+        var mAt = anMarks.indexOf(mid);
+        if (mAt === -1) anMarks.push(mid); else anMarks.splice(mAt, 1);
+        writeMarks(anMarks); anPaint();
+        track('signal_bookmarked', { bookmarked: mAt === -1 });
+      }
+    });
+
+    ['anMateriality', 'anCompany'].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener('change', function () {
+        if (id === 'anMateriality') anState.mat = el.value; else anState.co = el.value;
+        anApply();
+        track('ainews_filter', { mat: anState.mat, co: anState.co });
+      });
+    });
+
+    anApply(); anPaint(); anPaintWatch();
   }
 
   /* ============ intelligence ============ */

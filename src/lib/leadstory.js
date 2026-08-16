@@ -305,8 +305,22 @@ export function leadStory() {
   if (!eligible.length) {
     return { available: false, reason: 'No confirmed record is on file yet.' };
   }
+  return storyFor(eligible[0]);
+}
 
-  const s = eligible[0];
+/**
+ * The full story for any one signal.
+ *
+ * This was the body of `leadStory()`, which built the what-happened /
+ * why-it-matters / what-next triad for the single record it had chosen. AI News
+ * needs the same triad for every signal it shows, and the only wrong way to get
+ * it is a second implementation that drifts from this one — the site has already
+ * shipped a bug caused by exactly that. So the logic moved out here and
+ * `leadStory()` became a selection rule with a call.
+ *
+ * Nothing about the output changed.
+ */
+export function storyFor(s) {
   const co = COMPANY_BY_ID[s.companyId];
   const project = s.projectId ? PROJECT_BY_ID[s.projectId] : null;
   const { whatNext, blockers } = nextAndBlockers(s);

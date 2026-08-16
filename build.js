@@ -37,6 +37,7 @@ import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
 import { ART } from './data/artpack.js';
 import { explainerRoutes, explainerHref } from './src/lib/explain.js';
 import { explainerPageBody } from './src/explainer-page.js';
+import { aiNewsBody, aiNewsConfig } from './src/ainews-page.js';
 import { aiFactoryGraph } from './src/lib/corridor.js';
 import { passport } from './src/lib/passport.js';
 import {
@@ -101,7 +102,7 @@ const NAV = [
      FINANCIALS IS DELIBERATELY ABSENT: its route is phase 6, and a primary nav
      item leading to a 404 — or to a page of em-dashes — is worse than one the
      reader has not been promised yet. It joins when it has something to show. */
-  { id: 'news', label: 'AI news', href: '/news/' },
+  { id: 'ainews', label: 'AI news', href: '/ai-news/' },
   { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
   { id: 'explainers', label: 'Explainers', href: '/explainers/' }
 ];
@@ -125,6 +126,7 @@ const MOBILE_NAV = [
  */
 const UTILITY_ROUTES = [
   { id: 'intelligence', label: 'Intelligence ledger', href: '/intelligence/' },
+  { id: 'news', label: 'News wire', href: '/news/' },
   { id: 'lab', label: 'Edge Lab', href: '/lab/' },
   { id: 'compare', label: 'Compare companies', href: '/compare/' },
   { id: 'research', label: 'Research', href: '/research/' },
@@ -374,7 +376,10 @@ ${footer()}
     palette: paletteIndex(),
     // The whole ledger, compactly. The browser owns the "since last visit"
     // comparison because only it knows when the last visit was.
-    signalIndex: active === 'today' ? signalIndex() : null
+    signalIndex: active === 'today' ? signalIndex() : null,
+    // Which signals exist and which belong to the latest set, so the filter and
+    // progress code does not have to re-derive either from the DOM.
+    aiNews: active === 'ainews' ? aiNewsConfig() : null
   })}</script>
 ${inlineData ? `<script>Object.assign(window, ${JSON.stringify(inlineData)});</script>` : ''}
 <script src="/app.js" defer></script>
@@ -868,6 +873,23 @@ function notFoundPage() {
     canonical: SITE + '/404',
     body: notFoundBody(),
     active: 'today'
+  });
+}
+
+/**
+ * AI News: the finite signal product, distinct from the third-party wire below.
+ * The two are deliberately different routes because they are different claims —
+ * one is what T2C has evidenced, the other is what other people have published.
+ */
+function aiNewsPage() {
+  return page({
+    title: 'AI news — only what changes the chain | T2C',
+    description:
+      'Every sourced change to the AI infrastructure record, written as what happened, why it ' +
+      'matters and what may happen next. A finite set with the documents behind each claim.',
+    canonical: SITE + '/ai-news/',
+    body: aiNewsBody(),
+    active: 'ainews'
   });
 }
 
@@ -1750,6 +1772,7 @@ bytes += write('lab/index.html', labPage());
 bytes += write('research/index.html', researchPage());
 bytes += write('sites/index.html', sitesPage());
 bytes += write('intelligence/index.html', intelligencePage());
+bytes += write('ai-news/index.html', aiNewsPage());
 bytes += write('news/index.html', newsPage());
 bytes += write('chain/index.html', chainPage());
 bytes += write('explainers/index.html', explainersPage());
@@ -1829,6 +1852,7 @@ const urls = [
   /* The thirteen explainers, generated from the same table as the routes so the
      sitemap cannot fall behind the build. Stage hubs rank above component pages
      because a stage is the destination a reader is more likely to want. */
+  { loc: SITE + '/ai-news/', priority: '0.9', freq: 'daily' },
   ...explainerRoutes().map(({ explainer, href }) => ({
     loc: SITE + href,
     priority: explainer.kind === 'stage' ? '0.8' : '0.6',
@@ -1855,7 +1879,7 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css']
+  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css', 'ainews.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
 fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
