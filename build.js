@@ -1559,14 +1559,39 @@ function methodologyPage() {
     <p>It holds <b>nothing</b> for the first four — materials, wafers, chips and HBM, and photonics.
       Not thin data: none. There are no supplier records, no qualification records, no order or
       shipment records, and no relationship edges of any kind upstream of the data centre.</p>
-    <p>Those stages are therefore drawn as <b>declared gaps</b>. They appear in the chain because the
-      chain is the argument, and they are visibly empty because the alternative — an illustrated node
-      that looks as authoritative as an evidenced one — would be the single most misleading thing this
-      site could do. Each states what it would take to track it.</p>
+    <p>Those four stages are nonetheless drawn as <b>having happened</b>, because they did. A site that
+      is billing a customer proves that materials were mined, wafers were fabbed, chips were packaged
+      and optics were installed — you cannot bill for compute that was never built. Drawing those
+      stages as empty would have said the opposite, and that was wrong.</p>
+    <p>So each stage carries two facts that are never merged. <b>Did it happen?</b> — implied with
+      certainty by the furthest stage T2C can evidence. <b>Does T2C track it?</b> — separately, no. An
+      implied stage is lit and marked, and simultaneously says <b>Not tracked by T2C</b>, links nowhere,
+      and states what it would take to track it. It never counts towards coverage, never carries a
+      date or a source, and never makes anything else look better evidenced than it is.</p>
+    <p>The implication runs one way only, upstream. Billing implies the chips existed; nothing implies
+      the reverse. A confirmed contract never implies acceptance, and acceptance never implies billing —
+      that is the one distinction this site exists to keep.</p>
     <p>Every relationship T2C currently holds is <b>confirmed</b>: the company disclosed it in a primary
       document and that document is linked. The interface also defines <b>ecosystem</b> and
       <b>inferred</b> relationships, drawn with different line styles, so that the day one appears it
       cannot be mistaken for a supply agreement. None is on file today.</p>
+
+    <h2 id="customers">Customers, and what they build</h2>
+    <p>The chain ends with a customer paying for megawatts, so the supply-chain explorer maps every
+      named counterparty in the contract records to the model families that customer publishes.</p>
+    <p>These are <b>two separately sourced facts placed side by side, and deliberately not joined</b>.
+      Who bought the capacity comes from the operator's filings. What the customer builds comes from
+      the customer's own published model index, linked. No operator or customer in this dataset has
+      disclosed which model runs on which site, so T2C never attributes a model to a megawatt, a
+      contract or a campus — "Microsoft contracted 200 MW from IREN" and "Microsoft publishes Phi" are
+      both true, and the sentence joining them would be an invention.</p>
+    <p>Model <b>families</b> are named rather than versions. Frontier releases change monthly; a family
+      name is durable, and each links to the developer's own index so the current list comes from the
+      source rather than from us.</p>
+    <p>Where an operator disclosed a contract but withheld the counterparty — describing only its credit
+      quality, as in "high investment-grade hyperscaler" — the contract is shown as withheld and the
+      description is quoted verbatim. T2C does not guess which hyperscaler is meant. It would be the
+      easiest invention on the page and the hardest for a reader to detect.</p>
 
     <h2 id="estimates">Estimates, and what makes one allowable</h2>
     <p>T2C's default is to print <b>${NOT_DISCLOSED}</b> and stop. That is correct, and it is also —

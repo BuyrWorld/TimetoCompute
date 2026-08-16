@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { chainState } from '../src/lib/chain.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(ROOT, 'dist');
@@ -197,29 +198,70 @@ test('the chain shows all seven stages and marks which are evidenced', () => {
     const html = read(r);
     const nodes = [...html.matchAll(/class="cn-node([^"]*)"/g)].map(m => m[1]);
     assert.equal(nodes.length, 7, `${r} has ${nodes.length} chain stages, expected 7`);
-    const gaps = nodes.filter(n => n.includes('is-gap')).length;
-    assert.equal(gaps, 4, `${r} marks ${gaps} stages as untracked, expected 4`);
+    assert.equal(nodes.filter(n => n.includes('is-evidenced')).length, 3,
+      `${r} does not mark exactly 3 evidenced stages`);
+    // The four upstream stages are lit, not blanked: billing capacity proves the
+    // chips it runs on were made.
+    assert.equal(nodes.filter(n => n.includes('is-implied')).length, 4,
+      `${r} does not mark the 4 upstream stages as implied`);
+    assert.equal(nodes.filter(n => n.includes('is-gap')).length, 0,
+      `${r} draws a stage as unknown when a later stage proves it happened`);
   }
 });
 
-test('an untracked stage says so in words, never by styling alone', () => {
+test('an implied stage holds both facts at once, in words', () => {
   const html = read('index.html');
-  // Each gap states "Not tracked" as text and explains what it would need.
-  const notTracked = (html.match(/Not tracked/g) || []).length;
-  assert.ok(notTracked >= 4, `expected at least 4 "Not tracked" labels, found ${notTracked}`);
-  assert.ok(/No sourced records yet/.test(html), 'a gap does not explain itself');
-  assert.ok(/declared and empty rather than illustrated/.test(html),
-    'the coverage note does not explain the gaps');
+  // It happened...
+  assert.ok((html.match(/>Happened</g) || []).length >= 4,
+    'implied stages do not say they happened');
+  // ...and T2C does not track it. Neither claim may rest on styling.
+  assert.ok((html.match(/Not tracked by T2C/g) || []).length >= 4,
+    'implied stages do not say T2C fails to track them');
+  assert.ok(/certainly made/.test(html), 'the coverage note drops the implication');
+  assert.ok(/completed but untracked/.test(html),
+    'the coverage note does not separate happening from tracking');
+});
+
+test('no stage is drawn as unknown while a later stage is evidenced', () => {
+  const state = chainState();
+  const lastEvidenced = state.reduce((a, s, i) => (s.happened === 'evidenced' ? i : a), -1);
+  state.forEach((s, i) => {
+    if (i < lastEvidenced) {
+      assert.notEqual(s.happened, 'unknown',
+        `${s.label} reads as unknown although ${state[lastEvidenced].label} is evidenced`);
+    }
+  });
+});
+
+test('an implied stage never borrows the evidence of the stage that implies it', () => {
+  for (const s of chainState().filter(x => x.happened === 'implied')) {
+    assert.equal(s.tracked, false, `${s.label} is implied but claims to be tracked`);
+    assert.equal(s.href, null, `${s.label} is implied but links to records that do not exist`);
+    assert.ok(s.needs, `${s.label} does not say what tracking it would require`);
+    assert.ok(s.impliedBy, `${s.label} does not name what implies it`);
+  }
 });
 
 test('an untracked stage links nowhere, because there is nowhere honest to go', () => {
   const html = read('index.html');
-  const gapBlocks = html.split('class="cn-node is-gap"').slice(1);
-  assert.equal(gapBlocks.length, 4);
-  for (const b of gapBlocks) {
+  const blocks = html.split(/class="cn-node is-(?:implied|gap)"/).slice(1);
+  assert.equal(blocks.length, 4);
+  for (const b of blocks) {
     const upToClose = b.slice(0, b.indexOf('</li>'));
     assert.ok(!/<a\s/.test(upToClose), 'an untracked stage offers a link');
     assert.ok(/<button/.test(upToClose), 'an untracked stage offers no way to learn why');
+  }
+});
+
+test('the front page explains what happens at every stage, not only the gaps', () => {
+  const html = read('index.html');
+  assert.ok(/What happens at each stage/.test(html), 'the stage guide is missing');
+  const items = (html.match(/class="cn-guideitem /g) || []).length;
+  assert.equal(items, 7, `the guide explains ${items} stages, expected 7`);
+  // Each entry says who sells to whom — the sentence that makes it a chain.
+  for (const s of chainState()) {
+    assert.ok(html.includes(s.role.replace(/&/g, '&amp;')),
+      `the guide omits who sells to whom at ${s.label}`);
   }
 });
 

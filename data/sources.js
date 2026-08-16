@@ -347,6 +347,61 @@ export const SOURCES = [
     supportingExcerpt:
       '210 MW lease with a high investment-grade hyperscaler, approximately $5.2bn over a 15-year ' +
       'initial term, under construction with expected delivery in H1 2028.'
+  }),
+
+  /* ---------------- Customer model families ----------------
+     Each of these is the customer's OWN published model index. They are primary
+     evidence for one narrow thing: which model families that company publishes.
+     They say nothing about capacity, contracts or where a model runs, and are
+     never cited for any of those. */
+  S('anthropic-model-index', {
+    accessedAt: '2026-08-16',
+    title: 'Claude models overview',
+    url: 'https://platform.claude.com/docs/en/about-claude/models/overview',
+    publisher: 'Anthropic PBC', sourceType: 'company-profile',
+    publishedAt: '2026-08-16', isPrimary: true,
+    supportingExcerpt:
+      'Anthropic\'s own model index, describing Claude as its family of large language models and ' +
+      'listing the currently available members of that family.'
+  }),
+  S('meta-llama-index', {
+    accessedAt: '2026-08-16',
+    title: 'Llama model cards and prompt formats',
+    url: 'https://developer.meta.com/ai/docs/model-cards-and-prompt-formats/',
+    publisher: 'Meta Platforms, Inc.', sourceType: 'company-profile',
+    publishedAt: '2026-08-16', isPrimary: true,
+    supportingExcerpt:
+      'Meta\'s own model-card index for the Llama family of open-weight models.'
+  }),
+  S('msft-azure-openai-models', {
+    accessedAt: '2026-08-16',
+    title: 'Azure OpenAI in Foundry Models',
+    url: 'https://azure.microsoft.com/en-us/products/ai-foundry/models/openai',
+    publisher: 'Microsoft Corporation', sourceType: 'company-profile',
+    publishedAt: '2026-08-16', isPrimary: true,
+    supportingExcerpt:
+      'Microsoft\'s own product page for OpenAI models hosted and operated by Azure and billed through ' +
+      'an Azure subscription.'
+  }),
+  S('msft-phi-models', {
+    accessedAt: '2026-08-16',
+    title: 'Phi open models',
+    url: 'https://azure.microsoft.com/en-us/products/phi',
+    publisher: 'Microsoft Corporation', sourceType: 'company-profile',
+    publishedAt: '2026-08-16', isPrimary: true,
+    supportingExcerpt:
+      'Microsoft\'s own product page describing Phi as its family of small language models, released ' +
+      'openly under the MIT licence.'
+  }),
+  S('nvidia-nemotron-models', {
+    accessedAt: '2026-08-16',
+    title: 'NVIDIA Nemotron open models',
+    url: 'https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/',
+    publisher: 'NVIDIA Corporation', sourceType: 'company-profile',
+    publishedAt: '2026-08-16', isPrimary: true,
+    supportingExcerpt:
+      'NVIDIA\'s own product page for Nemotron, described as a family of open models with open weights, ' +
+      'training data and recipes for building AI agents.'
   })
 ];
 

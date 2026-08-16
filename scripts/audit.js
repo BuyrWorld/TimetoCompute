@@ -145,6 +145,14 @@ if (!/class="ed-disclosure"/.test(home)) fail('an illustration is on the homepag
 // Every chain stage must state whether it is tracked, in words.
 const chainNodes = (home.match(/class="cn-node/g) || []).length;
 if (chainNodes !== 7) fail(`homepage chain has ${chainNodes} stages; the model has 7`);
+// A stage upstream of an evidenced one certainly happened. Drawing it as unknown
+// would say the opposite, so the two facts are asserted separately.
+if ((home.match(/>Happened</g) || []).length < 4) fail('implied stages do not say they happened');
+if ((home.match(/Not tracked by T2C/g) || []).length < 4) {
+  fail('implied stages do not say T2C fails to track them');
+}
+const guideItems = (home.match(/class="cn-guideitem /g) || []).length;
+if (guideItems !== 7) fail(`homepage explains ${guideItems} chain stages; the model has 7`);
 // Nothing above the fold may load eagerly except a genuine LCP image.
 const eagerImgs = (home.match(/loading="eager"/g) || []).length;
 if (eagerImgs > 1) fail(`homepage has ${eagerImgs} eagerly-loaded images; at most 1 is allowed`);

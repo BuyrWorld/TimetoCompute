@@ -9,6 +9,7 @@ import { PROJECTS, CONTRACTS } from '../../data/projects.js';
 import { EVENTS, CORRECTIONS } from '../../data/events.js';
 import { CATALYSTS, CATALYST_STATUS, CATALYST_CATEGORIES } from '../../data/catalysts.js';
 import { PROFILES } from '../../data/profiles.js';
+import { CUSTOMERS, CUSTOMER_KINDS, CUSTOMER_BY_NAME, isUndisclosedCustomer } from '../../data/customers.js';
 import { allRecords, getMeasure, isKnown, aggregate, headlineKpis } from './compute.js';
 import { MAX_TICKERS, normaliseSelection } from './compare.js';
 
@@ -305,6 +306,36 @@ export function runChecks() {
   /* ---------- corrections ---------- */
   for (const c of CORRECTIONS) if (!ISO.test(c.date)) fail(`Correction ${c.id}: bad date`);
 
+  /* ---------- customers ----------
+     The customer map is the one place where a fact about the buyer sits next to a
+     fact about the operator's contract. These rules keep the two from merging:
+     a model family must cite the customer's own publication, and every contract
+     counterparty must be either mapped or explicitly recorded as withheld — an
+     unmapped name would render as a silent omission. */
+  const customerIds = new Set();
+  for (const c of CUSTOMERS) {
+    if (customerIds.has(c.id)) fail(`Duplicate customer id ${c.id}`);
+    customerIds.add(c.id);
+    if (!CUSTOMER_KINDS[c.kind]) fail(`Customer ${c.id}: unknown kind ${c.kind}`);
+    if (isUndisclosedCustomer(c.name)) {
+      fail(`Customer ${c.id} is named but matches an undisclosed-counterparty pattern`);
+    }
+    if (!c.models?.length && !c.noModelsReason) {
+      fail(`Customer ${c.id} publishes no models and does not say why`);
+    }
+    for (const m of c.models || []) {
+      if (!known(m.sourceId)) fail(`Customer ${c.id}/${m.family}: cites unknown source ${m.sourceId}`);
+      else if (!SOURCE_BY_ID[m.sourceId].isPrimary) {
+        fail(`Customer ${c.id}/${m.family}: a model family must cite the developer's own publication`);
+      }
+    }
+  }
+  for (const name of new Set(CONTRACTS.map(k => k.customer))) {
+    if (!CUSTOMER_BY_NAME[name] && !isUndisclosedCustomer(name)) {
+      fail(`Contract counterparty "${name}" is neither mapped nor recorded as withheld`);
+    }
+  }
+
   /* ---------- warnings ---------- */
   for (const c of COMPANIES) {
     const n = allRecords(c).filter(m => m.sourceRequired).length;
@@ -321,7 +352,8 @@ export function runChecks() {
         ...(p.sourceIds || []),
         ...(p.leadership || []).flatMap(e => e.sourceIds || []),
         ...(p.socials || []).map(x => x.sourceId)
-      ])
+      ]),
+      ...CUSTOMERS.flatMap(c => (c.models || []).map(m => m.sourceId))
     ];
     return !used.includes(s.id);
   });

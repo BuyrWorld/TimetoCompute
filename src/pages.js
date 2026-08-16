@@ -41,6 +41,7 @@ import {
 } from './editorial-ui.js';
 import { chainState, chainCoverage, STAGES } from './lib/chain.js';
 import { CORRIDORS, RELATIONSHIP_TYPES, aiFactoryGraph, relationshipRows } from './lib/corridor.js';
+import { customerMap, undisclosedCustomers, MODEL_ATTRIBUTION_CAVEAT } from './lib/customers.js';
 import { flagshipHero, chainTrack, chainCoverageNote, stageAsset } from './chain-ui.js';
 import { ASSET } from './lib/assets.js';
 
@@ -754,6 +755,8 @@ export function chainBody() {
     ${chainCoverageNote(cov)}
   </section>
 
+  ${customerMapSection()}
+
   <section class="ed-section" aria-labelledby="corridors-h">
     <h2 class="ed-sectionh" id="corridors-h">Corridors</h2>
     <div class="cor-list" role="group" aria-label="Supply-chain corridors">
@@ -829,6 +832,85 @@ export function chainBody() {
     </div>
   </section>
 </div>`;
+}
+
+/**
+ * Who buys the capacity, and what they build with it.
+ *
+ * The chain's last stage is a customer paying for megawatts, and until now the
+ * customer was only a name in a contract row. This maps each named buyer to the
+ * model families it publishes — two separately sourced facts, deliberately shown
+ * adjacent and deliberately not joined. T2C holds no record of which model runs
+ * on which site, so the caveat is stated at the top of the section, on each card,
+ * and in the aria label rather than tucked into a footnote.
+ */
+function customerMapSection() {
+  const rows = customerMap();
+  const withheld = undisclosedCustomers();
+
+  return `<section class="ed-section" aria-labelledby="customers-h">
+    <div class="ed-sectionhead">
+      <h2 class="ed-sectionh" id="customers-h">Who buys the capacity</h2>
+      <span class="ed-morelink">Customer &rarr; contracted MW &rarr; what they build</span>
+    </div>
+    <p class="cu-caveat">${esc(MODEL_ATTRIBUTION_CAVEAT)}</p>
+
+    <div class="cu-grid" role="list">
+      ${rows.map(r => `<article class="cu-card" role="listitem" data-kind="${esc(r.kind)}">
+        <header class="cu-head">
+          <h3 class="cu-name">${esc(r.display)}</h3>
+          <span class="cu-kind" title="${esc(r.kindDefinition)}">${esc(r.kindLabel)}</span>
+        </header>
+        <p class="cu-what">${esc(r.what)}</p>
+
+        <dl class="cu-facts">
+          <div>
+            <dt>Contracted from T2C-tracked operators</dt>
+            <dd>${r.contractedMw !== null
+              ? `<b>${mw(r.contractedMw)}</b>`
+              : '<span class="cu-nd">Not disclosed in MW</span>'}</dd>
+          </div>
+          <div>
+            <dt>Buying from</dt>
+            <dd>${r.operators.length
+              ? r.operators.map(o => `<a class="press" href="/companies/${esc(o.id)}/">${esc(o.ticker)}</a>`).join(', ')
+              : '<span class="cu-nd">No tracked contract</span>'}</dd>
+          </div>
+        </dl>
+        ${r.unsizedContracts ? `<p class="cu-excl">${r.unsizedContracts} further contract${
+          r.unsizedContracts === 1 ? '' : 's'} on file state${r.unsizedContracts === 1 ? 's' : ''} no
+          megawatt figure and ${r.unsizedContracts === 1 ? 'is' : 'are'} excluded from the total above.</p>` : ''}
+
+        <div class="cu-models">
+          <h4 class="cu-modelsh">What they build</h4>
+          ${r.models.length
+            ? `<ul class="cu-modellist">
+                ${r.models.map(m => `<li class="cu-model">
+                  <span class="cu-family">${esc(m.family)}</span>
+                  <span class="cu-modelnote">${esc(m.note)}</span>
+                  ${m.source ? `<a class="cu-modelsrc press" href="${esc(m.source.url)}"
+                    rel="noopener" target="_blank">${esc(m.source.publisher)}
+                    <span aria-hidden="true">&#8599;</span></a>` : ''}
+                </li>`).join('')}
+              </ul>`
+            : `<p class="cu-nomodels">${esc(r.noModelsReason)}</p>`}
+        </div>
+      </article>`).join('')}
+    </div>
+
+    ${withheld.count ? `<div class="cu-withheld">
+      <h3 class="cu-withheldh">${withheld.count} contracts name no customer</h3>
+      <p>Together they cover <b>${withheld.contractedMw !== null
+        ? mw(withheld.contractedMw) : 'an undisclosed capacity'}</b>. The operator disclosed the
+        deal but withheld the counterparty, describing only its credit quality:</p>
+      <ul class="cu-withheldlist">
+        ${withheld.descriptions.map(d => `<li>${esc(d)}</li>`).join('')}
+      </ul>
+      <p class="ed-note">T2C does not guess which hyperscaler is meant. Naming one would be the
+        easiest invention on this page and the hardest for a reader to detect.
+        <a class="press" href="/methodology/#customers">How this map is built</a></p>
+    </div>` : ''}
+  </section>`;
 }
 
 /* ================= /explainers/ ================= */

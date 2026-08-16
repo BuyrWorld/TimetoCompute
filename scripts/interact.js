@@ -191,29 +191,54 @@ const run = async () => {
 
   /* ---- the supply chain ---- */
   const chain = await page.$$eval('.cn-node', els => els.map(e => ({
+    implied: e.classList.contains('is-implied'),
+    evidenced: e.classList.contains('is-evidenced'),
     gap: e.classList.contains('is-gap'),
     label: (e.querySelector('.cn-label') || {}).textContent,
     count: (e.querySelector('.cn-count') || {}).textContent,
-    link: !!e.querySelector('a.cn-hit')
+    sub: (e.querySelector('.cn-sub') || {}).textContent,
+    link: !!e.querySelector('a.cn-hit'),
+    // An implied stage must READ as lit, not merely be classed as such.
+    dim: parseFloat(getComputedStyle(e.querySelector('.cn-asset')).opacity)
   })));
+  const untracked = chain.filter(c => !c.evidenced);
   check('the chain shows all seven stages', chain.length === 7, `${chain.length}`);
-  check('four stages are marked as untracked',
-    chain.filter(c => c.gap).length === 4, `${chain.filter(c => c.gap).length}`);
+  check('three stages are evidenced',
+    chain.filter(c => c.evidenced).length === 3, `${chain.filter(c => c.evidenced).length}`);
+  check('the four upstream stages are lit as implied, not drawn as unknown',
+    chain.filter(c => c.implied).length === 4 && chain.filter(c => c.gap).length === 0,
+    `implied ${chain.filter(c => c.implied).length}, gap ${chain.filter(c => c.gap).length}`);
+  check('an implied stage is visibly illuminated rather than greyed out',
+    chain.filter(c => c.implied).every(c => c.dim > 0.5),
+    chain.filter(c => c.implied).map(c => c.dim).join(', '));
   check('every stage states its state in words, not colour alone',
     chain.every(c => (c.count || '').trim().length > 2), chain.map(c => c.count).join(' | '));
-  check('an untracked stage offers no link to nowhere',
-    chain.filter(c => c.gap).every(c => !c.link));
+  check('an implied stage says both that it happened and that T2C does not track it',
+    chain.filter(c => c.implied).every(c =>
+      /happened/i.test(c.count || '') && /not tracked/i.test(c.sub || '')),
+    chain.filter(c => c.implied).map(c => `${c.count}/${c.sub}`).join(' | '));
+  check('an untracked stage offers no link to nowhere', untracked.every(c => !c.link));
   check('a tracked stage links to its records',
-    chain.filter(c => !c.gap).every(c => c.link));
+    chain.filter(c => c.evidenced).every(c => c.link));
 
-  // Opening a gap explains it; only one panel opens at a time.
-  const gapBtn = await page.$('.cn-node.is-gap .cn-hit');
-  await gapBtn.click();
+  // Opening an implied stage explains it; only one panel opens at a time.
+  const impliedBtn = await page.$('.cn-node.is-implied .cn-hit');
+  await impliedBtn.click();
   await new Promise(r => setTimeout(r, 200));
   const openPanels = await page.$$eval('.cn-why', els => els.filter(e => !e.hidden).length);
-  const gapText = await page.$eval('.cn-why:not([hidden])', el => el.textContent);
-  check('an untracked stage explains why it is empty',
-    openPanels === 1 && /not yet tracked/i.test(gapText), gapText.slice(0, 70));
+  const impliedText = await page.$eval('.cn-why:not([hidden])', el => el.textContent);
+  check('an implied stage explains what proves it and why it is still empty',
+    openPanels === 1 && /this happened/i.test(impliedText)
+      && /does not track it/i.test(impliedText), impliedText.slice(0, 90).replace(/\s+/g, ' '));
+
+  const guide = await page.$$eval('.cn-guideitem', els => els.map(e => ({
+    name: (e.querySelector('.cn-guidename') || {}).textContent,
+    plain: ((e.querySelector('.cn-guideplain') || {}).textContent || '').trim(),
+    role: ((e.querySelector('.cn-guiderole') || {}).textContent || '').trim()
+  })));
+  check('the front page explains what happens at all seven stages',
+    guide.length === 7 && guide.every(g => g.plain.length > 40 && g.role.length > 20),
+    `${guide.length} explained`);
 
   const cutoutFit = await page.$eval('.cn-asset', el => getComputedStyle(el).objectFit);
   check('stage cutouts are contained, never stretched', cutoutFit === 'contain', cutoutFit);
