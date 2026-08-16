@@ -159,42 +159,33 @@ export function journeyRail(stages) {
   return stages.map((st, i) => {
     const j = JOURNEY_BY_ID[st.id] || { simple: st.label, detailed: st.label };
     const state = st.status === 'complete' ? 'complete'
-      : i === lastComplete + 1 && st.status !== 'notDisclosed' ? 'current'
-        : st.status === 'notDisclosed' ? 'unknown' : 'pending';
+      // Implied is its own state, never folded into complete: it means the
+      // stage must have happened, not that a document says it did.
+      : st.status === 'implied' ? 'implied'
+        : i === lastComplete + 1 && st.status !== 'notDisclosed' ? 'current'
+          : st.status === 'notDisclosed' ? 'unknown' : 'pending';
     return {
       id: st.id, simple: j.simple, detailed: j.detailed, state,
       statusLabel: st.statusLabel, effectiveAt: st.effectiveAt,
-      sourceIds: st.sourceIds, gates: st.gates
+      sourceIds: st.sourceIds, gates: st.gates,
+      impliedBy: st.impliedBy || null
     };
   });
 }
 
-/** The journey rail for whichever subject the story is about. */
+/**
+ * The journey rail for whichever subject the story is about.
+ *
+ * One mapping, shared with the site pages. There used to be two — this one and
+ * journeyRail — and they drifted the moment `implied` was added: the same stage
+ * came back labelled "Implied" but in state "pending", so it drew as a stage
+ * still to come. Anything status-to-state goes through journeyRail now.
+ */
 function railFor(s) {
   const stages = s.projectId && PROJECT_BY_ID[s.projectId]
     ? projectPath(PROJECT_BY_ID[s.projectId])
     : companyPath(s.companyId);
-
-  const lastComplete = stages.reduce((acc, st, i) => (st.status === 'complete' ? i : acc), -1);
-
-  return stages.map((st, i) => {
-    const j = JOURNEY_BY_ID[st.id] || { simple: st.label, detailed: st.label };
-    // `current` is the first stage after the furthest completed one, and only
-    // when something is actually known about it.
-    const state = st.status === 'complete' ? 'complete'
-      : i === lastComplete + 1 && st.status !== 'notDisclosed' ? 'current'
-        : st.status === 'notDisclosed' ? 'unknown' : 'pending';
-    return {
-      id: st.id,
-      simple: j.simple,
-      detailed: j.detailed,
-      state,
-      statusLabel: st.statusLabel,
-      effectiveAt: st.effectiveAt,
-      sourceIds: st.sourceIds,
-      gates: st.gates
-    };
-  });
+  return journeyRail(stages);
 }
 
 /**

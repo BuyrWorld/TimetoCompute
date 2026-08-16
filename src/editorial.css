@@ -237,6 +237,20 @@ html[data-theme="light"] .ed-watch { background: rgba(255, 255, 255, .9); }
 }
 .is-unknown .ed-railnode { border-style: dashed; }
 
+/* Implied: physically necessary because a later stage is confirmed, but not
+   separately evidenced. Drawn as a hollow lime outline so it reads as reached
+   without ever being mistaken for a documented gate — and it always carries the
+   word "Implied" as well, because the distinction cannot rest on a border. */
+.is-implied .ed-railnode {
+  border-color: var(--brand); border-style: dotted; color: var(--brand);
+  opacity: .75;
+}
+.is-implied .ed-railsimple { color: var(--soft); }
+.is-implied .ed-railstate { color: var(--brand); opacity: .8; font-style: italic; }
+.ed-railstep.is-implied::before {
+  background: repeating-linear-gradient(90deg, var(--brand) 0 5px, transparent 5px 10px);
+}
+
 .ed-railsimple {
   display: block; font-size: 13px; font-weight: 800; color: var(--ink); line-height: 1.2;
 }

@@ -203,6 +203,71 @@ test('every site note renders as a whole sentence on its card', () => {
   }
 });
 
+/* ---- implied stages ---- */
+
+test('a stage before a confirmed one is implied, not left blank', () => {
+  // Horizon 1 is accepted by Microsoft. It cannot have been accepted without
+  // having been built, so the earlier undisclosed stages read as implied.
+  const site = bySlug('iren-horizon-1');
+  const announced = site.path.find(s => s.id === 'announced');
+  assert.equal(announced.status, 'implied');
+  assert.equal(announced.statusLabel, 'Implied');
+  assert.ok(announced.impliedBy, 'an implied stage does not say what implies it');
+});
+
+test('an implied stage carries no date and no source', () => {
+  for (const site of allSites()) {
+    for (const s of site.path) {
+      if (s.status !== 'implied') continue;
+      assert.equal(s.effectiveAt, null, `${site.slug}/${s.id} invented a date`);
+      assert.equal(s.sourceIds.length, 0, `${site.slug}/${s.id} invented a source`);
+    }
+  }
+});
+
+test('nothing after the furthest confirmed stage is ever implied', () => {
+  // Billing does not follow from acceptance. Only stages BEFORE a confirmed one
+  // are physically necessary.
+  for (const site of allSites()) {
+    const lastComplete = site.path.reduce((acc, s, i) => (s.status === 'complete' ? i : acc), -1);
+    site.path.forEach((s, i) => {
+      if (s.status === 'implied') {
+        assert.ok(i < lastComplete, `${site.slug}/${s.id} is implied but sits after the last confirmed stage`);
+      }
+    });
+  }
+  const h1 = bySlug('iren-horizon-1');
+  assert.equal(h1.path.find(s => s.id === 'billing').status, 'notDisclosed');
+});
+
+test('an explicitly not-started gate is never overwritten as implied', () => {
+  // A company saying "not started" before a completed stage is a contradiction
+  // in the record. It stays visible rather than being papered over.
+  for (const site of allSites()) {
+    for (const s of site.path) {
+      if (s.status === 'implied') {
+        assert.notEqual(s.statusLabel, 'Not started');
+      }
+    }
+  }
+});
+
+test('implied stages never raise an evidence score', () => {
+  const site = bySlug('iren-horizon-1');
+  const implied = site.path.filter(s => s.status === 'implied').length;
+  assert.ok(implied > 0, 'fixture no longer produces implied stages');
+  // Confidence counts reported gates on the project, which implication does not touch.
+  assert.equal(site.evidence.total, site.evidence.confirmed);
+  assert.equal(site.evidence.total, 4);
+});
+
+test('the furthest evidenced stage ignores implication', () => {
+  const site = bySlug('iren-horizon-1');
+  const f = furthestStage(site);
+  assert.equal(f.status, 'complete', 'furthest stage resolved to an implied one');
+  assert.equal(f.id, 'acceptance');
+});
+
 test('an unknown slug returns null rather than an empty site', () => {
   assert.equal(siteBySlug('not-a-site'), null);
 });

@@ -98,7 +98,7 @@ test('the rail carries all seven stages with both label layers', () => {
   assert.equal(s.rail.length, 7);
   for (const step of s.rail) {
     assert.ok(step.simple && step.detailed, 'a stage is missing a label layer');
-    assert.ok(['complete', 'current', 'pending', 'unknown'].includes(step.state), step.state);
+    assert.ok(['complete', 'implied', 'current', 'pending', 'unknown'].includes(step.state), step.state);
     // Status must never be conveyable by colour alone: there is always a word.
     assert.ok(step.statusLabel && step.statusLabel.length > 2);
   }
@@ -111,12 +111,33 @@ test('the journey vocabulary matches the canonical delivery model', () => {
   ]);
 });
 
-test('an unreported stage reads as unknown, never as pending or failed', () => {
+test('an unreported stage before a confirmed one reads as implied', () => {
+  // Horizon 1 has no site-control gate on record, but Microsoft accepted it —
+  // it cannot have been accepted without having been announced.
   const s = leadStory();
   const announced = s.rail.find(r => r.id === 'announced');
-  // Horizon 1 has no site-control gate on record.
-  assert.equal(announced.state, 'unknown');
-  assert.equal(announced.statusLabel, 'Not disclosed');
+  assert.equal(announced.state, 'implied');
+  assert.equal(announced.statusLabel, 'Implied');
+  assert.ok(announced.impliedBy, 'the rail does not say what implies the stage');
+});
+
+test('an unreported stage after the last confirmed one stays unknown', () => {
+  // Billing does not follow from acceptance, and is not implied by it.
+  const s = leadStory();
+  const billing = s.rail.find(r => r.id === 'billing');
+  assert.equal(billing.state, 'unknown');
+  assert.equal(billing.statusLabel, 'Not disclosed');
+});
+
+test('implied is a state of its own, never folded into complete', () => {
+  const s = leadStory();
+  const implied = s.rail.filter(r => r.state === 'implied');
+  assert.ok(implied.length > 0, 'fixture no longer produces implied stages');
+  for (const r of implied) {
+    assert.notEqual(r.state, 'complete');
+    assert.equal(r.sourceIds.length, 0, 'an implied stage cites a document');
+    assert.equal(r.effectiveAt, null, 'an implied stage carries a date');
+  }
 });
 
 test('no stage after the current one is ever marked complete out of order', () => {

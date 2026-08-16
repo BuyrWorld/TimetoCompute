@@ -313,6 +313,9 @@ button.pstep:disabled { cursor: default; opacity: 1; }
   color: var(--dim); font-size: 14px; z-index: 1;
 }
 .lstep.done .lnode { border-color: var(--brand); color: var(--brand); }
+.lstep.implied .lnode { border-color: var(--brand); border-style: dotted; color: var(--brand); opacity: .75; }
+.lstep.implied::before { background: repeating-linear-gradient(180deg, var(--brand) 0 5px, transparent 5px 10px); }
+.lstep.implied .lmeta { font-style: italic; }
 .lstep.now .lnode { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px var(--m-lime-soft); }
 .lbody { min-width: 0; flex: 1; }
 .llabel {

@@ -71,8 +71,11 @@ export function confidenceFact(evidence) {
 /* ================= delivery path ================= */
 
 const STEP_GLYPH = {
-  complete: '✓', inProgress: '◐', conditional: '◑', notStarted: '○', notDisclosed: '—'
+  complete: '✓', implied: '⌁', inProgress: '◐', conditional: '◑', notStarted: '○', notDisclosed: '—'
 };
+
+/** Prefer the stage's own label — an implied stage has one the schema does not. */
+const stepLabel = s => s.statusLabel || GATE_STATUS[s.status]?.label || s.status;
 
 /**
  * The horizontal path to billing.
@@ -95,14 +98,14 @@ export function pathTrack(stages, { idPrefix = 'path' } = {}) {
 
     const detail = s.effectiveAt
       ? `<span class="pdate">${esc(date(s.effectiveAt))}</span>`
-      : `<span class="pstatus">${esc(GATE_STATUS[s.status].label)}</span>`;
+      : `<span class="pstatus">${esc(stepLabel(s))}</span>`;
 
     const inner = `<span class="pnode" aria-hidden="true">${STEP_GLYPH[s.status]}</span>
       <span class="plabel">${esc(s.short || s.label)}</span>
       ${detail}`;
 
     const evidenced = s.sourceIds.length > 0;
-    const title = `${s.label} — ${GATE_STATUS[s.status].label}. Evidenced by: ${s.gates.join(', ') || 'no gate on record'}.`;
+    const title = `${s.label} — ${stepLabel(s)}. Evidenced by: ${s.gates.join(', ') || 'no gate on record'}.`;
 
     // Only a stage with sources is pressable; the rest state why they are not.
     return `<li class="${cls}">
@@ -162,14 +165,17 @@ export function statusLadder(stages) {
   const lastDone = stages.reduce((acc, s, i) => (s.status === 'complete' ? i : acc), -1);
   return `<ol class="ladder" aria-label="Site status">` + stages.map((s, i) => {
     const isNow = i === lastDone + 1 && s.status !== 'notDisclosed';
-    const cls = ['lstep', s.status === 'complete' ? 'done' : '', isNow ? 'now' : '',
+    const cls = ['lstep', s.status === 'complete' ? 'done' : '',
+      s.status === 'implied' ? 'implied' : '', isNow ? 'now' : '',
       s.status === 'notDisclosed' ? 'nd' : ''].filter(Boolean).join(' ');
     return `<li class="${cls}">
       <span class="lnode" aria-hidden="true">${STEP_GLYPH[s.status]}</span>
       <div class="lbody">
         <span class="llabel">${esc(s.label)}</span>
-        <div class="lmeta">${esc(GATE_STATUS[s.status].label)}${s.effectiveAt ? ` · ${esc(date(s.effectiveAt))}` : ''}
-          ${s.sourceIds.length ? ' · ' + sourceChips(s.sourceIds) : ''}</div>
+        <div class="lmeta">${s.status === 'implied'
+          ? `Implied by ${esc(s.impliedBy)} — necessary, but not separately evidenced`
+          : `${esc(stepLabel(s))}${s.effectiveAt ? ` · ${esc(date(s.effectiveAt))}` : ''}
+             ${s.sourceIds.length ? ' · ' + sourceChips(s.sourceIds) : ''}`}</div>
         ${s.notes ? `<div class="lmeta secondary">${esc(s.notes)}</div>` : ''}
       </div>
     </li>`;
@@ -678,3 +684,4 @@ export function nextMilestonePanel(next) {
     ${s?.sourceIds?.length ? sourceChips(s.sourceIds) : ''}
   </div>`;
 }
+

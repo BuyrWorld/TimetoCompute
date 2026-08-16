@@ -46,7 +46,7 @@ export const disclosure = text =>
 
 /* ================= lead story ================= */
 
-const STATE_GLYPH = { complete: '✓', current: '◉', pending: '○', unknown: '—' };
+const STATE_GLYPH = { complete: '✓', implied: '⌁', current: '◉', pending: '○', unknown: '—' };
 
 /**
  * The delivery rail.
@@ -60,7 +60,10 @@ export function deliveryRail(rail, { idPrefix = 'rail' } = {}) {
     <ol class="ed-rail" aria-label="Delivery journey">
       ${rail.map(step => {
         const evidenced = step.sourceIds && step.sourceIds.length > 0;
-        const label = `${step.simple} — ${step.detailed}. ${step.statusLabel}${step.effectiveAt ? `, ${date(step.effectiveAt)}` : ''}.`;
+        const label = step.state === 'implied'
+          ? `${step.simple} — ${step.detailed}. Implied: this stage must have been passed because ` +
+            `${step.impliedBy} is confirmed. It is not separately evidenced.`
+          : `${step.simple} — ${step.detailed}. ${step.statusLabel}${step.effectiveAt ? `, ${date(step.effectiveAt)}` : ''}.`;
         const inner = `<span class="ed-railnode" aria-hidden="true">${STATE_GLYPH[step.state]}</span>
           <span class="ed-railsimple">${esc(step.simple)}</span>
           <span class="ed-raildetail">${esc(step.detailed)}</span>

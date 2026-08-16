@@ -35,6 +35,11 @@ import { allSites, companyPath } from './src/lib/sites.js';
 import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
 import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
 import { aiFactoryGraph } from './src/lib/corridor.js';
+import { passport } from './src/lib/passport.js';
+import {
+  passportHeader, whereItSits, dependencyRisk, thesisRiskPanel,
+  bottleneckRadar as bottleneckRadarPanel
+} from './src/passport-ui.js';
 import { signals, todaySet } from './src/lib/signals.js';
 import { signalIndex } from './src/lib/today.js';
 import { realityScore, FACTORS, MIN_WEIGHT_COVERAGE, THIN_SAMPLE } from './src/lib/score.js';
@@ -1072,6 +1077,7 @@ function companyPage(c) {
   /* The sections a reader can jump between. Built from what this company actually
      has, so the sticky nav never offers a link to an absent section. */
   const sections = [
+    ['passport', 'Passport'],
     ['score', 'Reality Score'],
     ['path', 'Path to billing'],
     ['revenue', 'Revenue'],
@@ -1121,6 +1127,38 @@ function companyPage(c) {
   <nav class="secnav" aria-label="Sections of this page">
     ${sections.map(([id, label]) => `<a class="press" href="#${id}">${esc(label)}</a>`).join('')}
   </nav>
+
+  ${(() => {
+    const pp = passport(c);
+    return `<section class="mpanel" id="passport">
+      <div class="mhead">
+        <span class="mkicker">Supplier passport</span>
+        <span class="mnote secondary">What ${esc(c.ticker)} supplies, and how far it has actually got</span>
+      </div>
+      ${passportHeader(pp)}
+
+      <div class="pp-grid">
+        <div class="pp-cell">
+          <h3 class="pp-h">Where it sits</h3>
+          ${whereItSits(pp)}
+        </div>
+        <div class="pp-cell">
+          <h3 class="pp-h">Bottleneck radar</h3>
+          ${bottleneckRadarPanel(pp.radar, c.name)}
+        </div>
+      </div>
+
+      <div class="pp-cell">
+        <h3 class="pp-h">Dependency risk</h3>
+        ${dependencyRisk(pp)}
+      </div>
+
+      <div class="pp-cell">
+        <h3 class="pp-h">What could break the thesis</h3>
+        ${thesisRiskPanel(pp.risks)}
+      </div>
+    </section>`;
+  })()}
 
   <section class="mpanel" id="score">
     <div class="mhead">
@@ -1495,6 +1533,22 @@ function methodologyPage() {
       financial outcome described on this site is guaranteed or certain. Figures are compiled from public
       filings, may lag, and may contain errors — the corrections log below exists because they sometimes do.</p>
 
+    <h2 id="implied">Implied stages</h2>
+    <p>A site cannot be accepted by a customer without having been energised, and it cannot be
+      energised without having been built. So where a stage carries <b>no record</b> but a later stage
+      is confirmed, T2C marks the earlier one <b>Implied</b>: physically necessary, not separately
+      evidenced.</p>
+    <p>An implied stage is drawn with a dotted outline, always carries the word "Implied", and states
+      which confirmed stage implies it. It has <b>no date and no source</b>, because none exists. It is
+      never counted as a confirmed gate, never raises an evidence confidence score, never contributes
+      to the Reality Score, and is never treated as the furthest stage a company has reached — those
+      all continue to count documents only.</p>
+    <p>Two things are deliberately never implied. Nothing <i>after</i> the furthest confirmed stage:
+      acceptance does not imply billing, and treating it as though it did would collapse the single
+      distinction this site exists to keep. And nothing a company has explicitly reported as not
+      started — a gate marked not started sitting before a completed one is a contradiction in the
+      record, and it stays visible as one rather than being quietly overwritten.</p>
+
     <h2 id="chain">How much of the supply chain T2C tracks</h2>
     <p>T2C's proposition is to follow AI from atoms to revenue. It does not yet follow the whole
       distance, and the homepage says which part it follows.</p>
@@ -1736,7 +1790,7 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css']
+  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
 fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());

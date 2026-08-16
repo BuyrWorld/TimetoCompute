@@ -163,18 +163,56 @@ export function dependencies(project) {
   });
 }
 
+/**
+ * Mark stages that must have been passed because a later one was.
+ *
+ * A site cannot be accepted by a customer without having been energised, and it
+ * cannot be energised without having been built. So where a stage carries NO
+ * record but a later stage is confirmed complete, the earlier one is `implied`:
+ * physically necessary, not separately evidenced.
+ *
+ * This is a display state and nothing more. An implied stage has no date and no
+ * source, is never counted as confirmed, never raises an evidence score, and is
+ * always drawn and labelled differently from a stage a document supports. The
+ * distinction the whole product rests on — what is evidenced versus what is
+ * merely true — survives intact.
+ *
+ * Only `notDisclosed` stages are ever implied. A gate a company has explicitly
+ * reported as not started, sitting before a completed one, is a contradiction in
+ * the record; it stays visible as such rather than being quietly overwritten.
+ */
+function markImplied(stages) {
+  const lastComplete = stages.reduce((acc, s, i) => (s.status === 'complete' ? i : acc), -1);
+  if (lastComplete < 1) return stages;
+
+  const anchor = stages[lastComplete];
+  return stages.map((s, i) => {
+    if (i >= lastComplete || s.status !== 'notDisclosed') return s;
+    return {
+      ...s,
+      status: 'implied',
+      statusLabel: 'Implied',
+      tone: 'ok',
+      impliedBy: anchor.label,
+      impliedAt: anchor.effectiveAt || null
+    };
+  });
+}
+
 /** The horizontal path to billing, with each stage's own evidence. */
 export function path(project) {
   const byId = gatesById(project);
-  return PATH.map(stage => {
+  const stages = PATH.map(stage => {
     const r = rollup(byId, stage.gates);
     return {
       id: stage.id, label: stage.label, short: stage.short,
       status: r.status, statusLabel: GATE_STATUS[r.status].label, tone: GATE_STATUS[r.status].tone,
       effectiveAt: r.effectiveAt, sourceIds: r.sourceIds, confidence: r.confidence, notes: r.notes,
+      impliedBy: null, impliedAt: null,
       gates: stage.gates.map(id => GATE_BY_ID[id]?.label).filter(Boolean)
     };
   });
+  return markImplied(stages);
 }
 
 /**
@@ -267,7 +305,7 @@ export function companyPath(companyId) {
   const owned = PROJECTS.filter(p => p.companyId === companyId);
   const perProject = owned.map(p => ({ project: p, stages: path(p) }));
 
-  return PATH.map((stage, i) => {
+  const merged = PATH.map((stage, i) => {
     const reached = perProject.filter(x => x.stages[i].status === 'complete');
     const progressing = perProject.filter(x =>
       x.stages[i].status === 'inProgress' || x.stages[i].status === 'conditional');
@@ -291,7 +329,10 @@ export function companyPath(companyId) {
       gates: stage.gates.map(id => GATE_BY_ID[id]?.label).filter(Boolean),
       projects: evidencing.map(x => ({ slug: siteSlug(x.project), name: x.project.name })),
       reachedCount: reached.length,
-      projectCount: owned.length
+      projectCount: owned.length,
+      impliedBy: null, impliedAt: null
     };
   });
+
+  return markImplied(merged);
 }
