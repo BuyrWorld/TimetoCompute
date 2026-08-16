@@ -792,6 +792,27 @@
       return d + (d === 1 ? ' day ago' : ' days ago');
     };
 
+    /* Which picture a story gets.
+       Some publishers return the same house placeholder on every article rather
+       than artwork for the story — Yahoo sends one generic yimg file for all of
+       them, so the feed rendered twenty-odd identical stretched thumbnails
+       fetched from an external host. Those are replaced with the publisher's own
+       mark, served locally and letterboxed to 16:9 at build time.
+       A real, story-specific image is always preferred and never overridden. */
+    var HOUSE_MARKS = [
+      { test: /(^|\/)s\.yimg\.com\/.*yahoo_finance/i, src: '/assets/news-yahoo.png', alt: 'Yahoo News' }
+    ];
+    var BRAND_BY_SOURCE = { yahoo: { src: '/assets/news-yahoo.png', alt: 'Yahoo News' } };
+
+    var artwork = function (n) {
+      var house = n.image && HOUSE_MARKS.filter(function (h) { return h.test.test(n.image); })[0];
+      if (house) return { src: house.src, alt: house.alt, brand: true };
+      if (n.image) return { src: n.image, alt: '', brand: false };
+      // No artwork at all: fall back to the publisher's mark where we hold one.
+      var b = BRAND_BY_SOURCE[String(n.source || '').toLowerCase()];
+      return b ? { src: b.src, alt: b.alt, brand: true } : null;
+    };
+
     var paint = function () {
       var t = ($('newsCompany') || {}).value || '';
       var q = (($('newsSearch') || {}).value || '').toLowerCase().trim();
@@ -811,9 +832,11 @@
         var tags = (n.symbols || []).map(function (s) {
           return '<span class="newstick">' + esc(s) + '</span>';
         }).join('');
+        var art = artwork(n);
         return '<article class="newscard">' +
-          (n.image
-            ? '<img class="newsimg" src="' + esc(n.image) + '" alt="" loading="lazy" ' +
+          (art
+            ? '<img class="newsimg' + (art.brand ? ' is-brand' : '') + '" src="' + esc(art.src) +
+              '" alt="' + esc(art.alt) + '" loading="lazy" decoding="async" ' +
               'referrerpolicy="no-referrer" onerror="this.remove()" />'
             : '') +
           '<div class="newsbody">' +

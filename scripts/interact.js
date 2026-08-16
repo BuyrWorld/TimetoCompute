@@ -26,6 +26,38 @@ function serve() {
   return new Promise(resolve => {
     const server = http.createServer((req, res) => {
       const p = decodeURIComponent(req.url.split('?')[0]);
+      /* The news feed is the one page whose whole content comes from the API, so
+         a blanket 503 would leave it untested. It gets a fixture reproducing the
+         shapes that actually matter: a story with its own artwork, a Yahoo story
+         carrying the generic house placeholder every Yahoo item shares, and a
+         story with no image at all. Everything else still fails, so the rest of
+         the site is exercised against an unavailable provider. */
+      if (p === '/api/news') {
+        // A reachable image, so the card's own onerror handler does not remove it.
+        const realArt = `http://${req.headers.host}/Logo/logo-header.png`;
+        res.writeHead(200, { 'content-type': 'application/json' });
+        return res.end(JSON.stringify({
+          count: 3,
+          items: [
+            {
+              headline: 'A story with its own artwork', url: 'https://example.com/a',
+              source: 'Benzinga', datetime: Math.floor(Date.now() / 1000) - 3600,
+              image: realArt, symbols: ['IREN']
+            },
+            {
+              headline: 'A Yahoo story with the house placeholder', url: 'https://example.com/b',
+              source: 'Yahoo', datetime: Math.floor(Date.now() / 1000) - 7200,
+              image: 'https://s.yimg.com/rz/stage/p/yahoo_finance_en-US_h_p_finance_2.png',
+              symbols: ['CRWV', 'NBIS']
+            },
+            {
+              headline: 'A story with no image at all', url: 'https://example.com/c',
+              source: 'SeekingAlpha', datetime: Math.floor(Date.now() / 1000) - 86400,
+              image: null, symbols: ['WULF']
+            }
+          ]
+        }));
+      }
       if (p.startsWith('/api/')) {
         res.writeHead(503, { 'content-type': 'application/json' });
         return res.end('{"error":"offline in QA"}');
@@ -141,6 +173,46 @@ const run = async () => {
 
   await page.click('.calldel');
   await new Promise(r => setTimeout(r, 150));
+
+  /* ---- news feed ---- */
+  await page.goto(base + '/news/', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 400));
+
+  const cards = await page.$$eval('.newscard', els => els.length);
+  check('the news feed renders a card per story', cards === 3, `${cards}`);
+
+  const imgs = await page.$$eval('.newscard', els => els.map(e => {
+    const i = e.querySelector('.newsimg');
+    return i ? { src: i.getAttribute('src'), brand: i.classList.contains('is-brand'), alt: i.getAttribute('alt') } : null;
+  }));
+
+  check('a story with its own artwork keeps it',
+    imgs[0] && /\/Logo\/logo-header\.png$/.test(imgs[0].src) && !imgs[0].brand,
+    JSON.stringify(imgs[0]));
+
+  check('a publisher house placeholder is replaced by the local mark',
+    imgs[1] && imgs[1].src === '/assets/news-yahoo.png' && imgs[1].brand,
+    JSON.stringify(imgs[1]));
+  check('the replacement mark names its publisher for screen readers',
+    imgs[1] && /yahoo/i.test(imgs[1].alt || ''), imgs[1] && imgs[1].alt);
+
+  check('a story with no image and no known mark shows no picture',
+    imgs[2] === null, JSON.stringify(imgs[2]));
+
+  const brandFit = await page.$eval('.newsimg.is-brand', el => {
+    const cs = getComputedStyle(el);
+    return { fit: cs.objectFit, bg: cs.backgroundColor };
+  });
+  check('the mark is contained rather than cropped', brandFit.fit === 'contain', JSON.stringify(brandFit));
+
+  const external = await page.$$eval('.newscard img', els =>
+    els.map(e => e.getAttribute('src')).filter(s => /^https?:/.test(s)).length);
+  check('only genuine story artwork is fetched from an external host', external === 1, `${external}`);
+
+  await page.select('#newsCompany', 'IREN');
+  await new Promise(r => setTimeout(r, 200));
+  const filtered = await page.$$eval('.newscard', els => els.length);
+  check('the news company filter narrows the feed', filtered === 1, `${filtered}`);
 
   /* ---- sites directory filters and restores ---- */
   await page.goto(base + '/sites/', { waitUntil: 'networkidle0' });

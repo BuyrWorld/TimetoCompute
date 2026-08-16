@@ -560,6 +560,14 @@ html[data-mode="focus"] .focusbar { display: flex; }
   width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block;
   background: var(--surface-2);
 }
+/* A publisher mark, not artwork for the story. It is already letterboxed to 16:9
+   on its own ground at build time, so it fills the slot without cropping; the
+   inset border keeps a white logo from bleeding into the card edge. */
+.newsimg.is-brand {
+  object-fit: contain;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
 .newsbody { padding: var(--s2); display: flex; flex-direction: column; gap: 8px; }
 .newsmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .newstick {

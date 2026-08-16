@@ -224,7 +224,10 @@ test('no shipped image exceeds its budget', () => {
     'assets/campus.png': 700,
     // One sheet carrying all eight vehicle facings.
     'assets/vehicles.webp': 60,
-    'assets/vehicles.png': 80
+    'assets/vehicles.png': 80,
+    // Publisher mark, letterboxed to 16:9 at build time.
+    'assets/news-yahoo.webp': 20,
+    'assets/news-yahoo.png': 40
   };
   for (const [rel, maxKb] of Object.entries(budgets)) {
     assert.ok(exists(rel), `${rel} was not built`);

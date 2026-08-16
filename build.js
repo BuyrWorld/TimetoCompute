@@ -1668,6 +1668,15 @@ const IMAGES = [
     from: path.join(ROOT, 'Sprites', 'teslasprite', 'T2C_EV_Vehicle_Pack_v1',
       't2c-ev-spritesheet-8-direction.png'),
     name: 'vehicles', width: 384, quality: 82
+  },
+  {
+    /* Publisher mark for Yahoo stories. Every Yahoo item in the feed carries the
+       same generic yimg placeholder, so 22 identical stretched thumbnails were
+       loading from an external host. Padded to 16:9 on its own white ground
+       here, so the card can crop-to-fill without ever cutting the logo. */
+    from: path.join(ROOT, 'Images', 'Yahoo', 'yahoo-news7577.jpg'),
+    name: 'news-yahoo', width: 480, height: 270, fit: 'contain',
+    background: '#ffffff', quality: 88
   }
 ];
 
@@ -1690,8 +1699,13 @@ for (const img of IMAGES) {
   }
 
   // `withoutEnlargement` keeps a source smaller than the target untouched rather
-  // than upscaling it into a blurrier, larger file.
-  const resized = sharp(img.from).resize({ width: img.width, withoutEnlargement: true });
+  // than upscaling it into a blurrier, larger file. An image given a height and
+  // `fit: contain` is letterboxed onto its own background instead, so its
+  // proportions survive a crop-to-fill container.
+  const resized = sharp(img.from).resize(
+    img.height
+      ? { width: img.width, height: img.height, fit: img.fit || 'contain', background: img.background || '#000000' }
+      : { width: img.width, withoutEnlargement: true });
   await resized.clone().webp({ quality: img.quality }).toFile(webp);
   await resized.clone().png({ compressionLevel: 9, palette: true }).toFile(png);
   imageBytes += fs.statSync(webp).size + fs.statSync(png).size;
