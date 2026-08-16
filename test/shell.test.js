@@ -19,11 +19,11 @@ const read = rel => fs.readFileSync(path.join(DIST, rel), 'utf8');
 const exists = rel => fs.existsSync(path.join(DIST, rel));
 
 const ROUTES = ['index.html', 'companies/index.html', 'sites/index.html',
-  'intelligence/index.html', 'compare/index.html', 'catalysts/index.html',
+  'intelligence/index.html', 'news/index.html', 'compare/index.html', 'catalysts/index.html',
   'lab/index.html', 'research/index.html', 'methodology/index.html'];
 
-/** The five primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/companies/', '/sites/', '/intelligence/', '/lab/'];
+/** The primary destinations, in the order the shell presents them. */
+const NAV_HREFS = ['/', '/companies/', '/sites/', '/intelligence/', '/news/', '/lab/'];
 
 /* ================= routes ================= */
 
@@ -222,8 +222,9 @@ test('no shipped image exceeds its budget', () => {
   const budgets = {
     'assets/campus.webp': 200,
     'assets/campus.png': 700,
-    'assets/vehicle.webp': 20,
-    'assets/vehicle.png': 30
+    // One sheet carrying all eight vehicle facings.
+    'assets/vehicles.webp': 60,
+    'assets/vehicles.png': 80
   };
   for (const [rel, maxKb] of Object.entries(budgets)) {
     assert.ok(exists(rel), `${rel} was not built`);
@@ -244,7 +245,16 @@ test('every raster image offers a WebP with a PNG fallback', () => {
   }
   const css = fs.readFileSync(path.join(DIST, 'styles.css'), 'utf8');
   assert.ok(/image-set\(/.test(css), 'the vehicle sprite has no image-set');
-  assert.ok(/vehicle\.png/.test(css), 'the vehicle sprite has no PNG fallback');
+  assert.ok(/vehicles\.png/.test(css), 'the vehicle sprite has no PNG fallback');
+});
+
+test('the vehicle sheet exposes all eight facings', () => {
+  // Shipping one facing is what made the car look like it was driving backwards.
+  const css = fs.readFileSync(path.join(DIST, 'styles.css'), 'utf8');
+  for (const dir of ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']) {
+    assert.ok(new RegExp(`\\.vehicle\\[data-dir="${dir}"\\]`).test(css),
+      `the vehicle sheet has no "${dir}" facing`);
+  }
 });
 
 test('images declare their dimensions so the layout cannot shift', () => {

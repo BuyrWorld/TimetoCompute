@@ -29,7 +29,7 @@ import {
 } from './src/ui.js';
 import {
   todayBody, companiesBody, compareBody, catalystsBody, researchBody, labBody,
-  sitesBody, siteBody, intelligenceBody
+  sitesBody, siteBody, intelligenceBody, newsBody
 } from './src/pages.js';
 import { allSites, companyPath } from './src/lib/sites.js';
 import { signals, todaySet } from './src/lib/signals.js';
@@ -73,6 +73,7 @@ const NAV = [
   { id: 'companies', label: 'Companies', href: '/companies/' },
   { id: 'sites', label: 'Sites', href: '/sites/' },
   { id: 'intelligence', label: 'Intelligence', href: '/intelligence/' },
+  { id: 'news', label: 'News', href: '/news/' },
   { id: 'lab', label: 'Edge Lab', href: '/lab/', primary: true }
 ];
 
@@ -191,6 +192,12 @@ function appHeader(active = 'today') {
     </div>
   </div>
 </header>
+<div class="focusbar" role="status">
+  <span>Focus mode</span>
+  <span class="focusnote">Supporting context hidden. Figures, their basis, confidence and sources are
+    unchanged — nothing that qualifies a number is hidden.</span>
+  <button type="button" class="press" data-mode="live">Leave focus</button>
+</div>
 <nav class="bottomnav" aria-label="Primary, mobile">
   ${NAV.map(n =>
     `<a class="bnav press${n.id === active ? ' is-active' : ''}" href="${n.href}"${n.id === active ? ' aria-current="page"' : ''}>
@@ -296,6 +303,7 @@ ${appHeader(active)}
 ${footer()}
 <script type="application/json" id="t2c-config">${JSON.stringify({
     tickers: WATCH_TICKERS, names: TICKER_NAMES, maxCompare: MAX_TICKERS, buildStamp: BUILD_STAMP,
+    companyByTicker: Object.fromEntries(COMPANIES.map(c => [c.ticker, c.id])),
     route: active, hashRoutes: HASH_ROUTES,
     labReady: Object.entries(LAB_COVERAGE).filter(([, v]) => v.ready).map(([k]) => k),
     palette: paletteIndex(),
@@ -741,6 +749,18 @@ function sitePage(site) {
   });
 }
 
+function newsPage() {
+  return page({
+    title: 'AI infrastructure news — live headlines | T2C',
+    description:
+      'Live news for the AI infrastructure operators T2C tracks, plus sector coverage. Third-party ' +
+      'headlines, kept separate from the sourced delivery ledger and clearly marked as unverified.',
+    canonical: SITE + '/news/',
+    body: newsBody(),
+    active: 'news'
+  });
+}
+
 function intelligencePage() {
   return page({
     title: 'Intelligence — every sourced change to the delivery record | T2C',
@@ -880,11 +900,12 @@ function investmentSnapshot(c, v) {
     </div>
     <div class="csnapfig">
       <dt>Next catalyst</dt>
-      <dd>${nextCat
+      <dd data-nextcat="${esc(c.ticker)}"
+          data-nextcat-at="${esc(nextCat?.expectedAt || nextCat?.expectedWindowStart || '')}">${nextCat
         ? `<b>${esc(nextCat.expectedAt ? date(nextCat.expectedAt)
             : windowText(nextCat.expectedWindowStart, nextCat.expectedWindowEnd))}</b>`
         : `<span class="nd">None dated</span>`}</dd>
-      <p>${nextCat ? esc(nextCat.title) : 'Nothing with a date on record.'}</p>
+      <p data-nextcat-title>${nextCat ? esc(nextCat.title) : 'Nothing with a date on record.'}</p>
     </div>
   </div>
 
@@ -1059,7 +1080,7 @@ function companyPage(c) {
     <div class="tw"><table class="rectable"><tbody>${targetRows}</tbody></table></div>
   </section>` : ''}
 
-  ${historyRows ? `<section class="panel">
+  ${historyRows ? `<section class="panel secondary">
     <div class="ph"><h2>Superseded disclosures</h2><span class="meta">Retained and dated, not deleted</span></div>
     <div class="tw"><table class="rectable"><tbody>${historyRows}</tbody></table></div>
   </section>` : ''}
@@ -1081,7 +1102,7 @@ function companyPage(c) {
       company discloses a ceiling — "up to" — the difference depends on events that have not happened.</p>
   </section>
 
-  <section class="panel">
+  <section class="panel secondary">
     <div class="ph"><h2>Contract detail</h2><span class="meta">Every disclosed field</span></div>
     <div class="scrollnote">Scroll sideways for all columns →</div>
     <div class="tw"><table>
@@ -1429,6 +1450,7 @@ bytes += write('lab/index.html', labPage());
 bytes += write('research/index.html', researchPage());
 bytes += write('sites/index.html', sitesPage());
 bytes += write('intelligence/index.html', intelligencePage());
+bytes += write('news/index.html', newsPage());
 const SITES = allSites();
 for (const s of SITES) bytes += write(`sites/${s.slug}/index.html`, sitePage(s));
 bytes += write('methodology/index.html', methodologyPage());
@@ -1487,6 +1509,7 @@ const urls = [
   { loc: SITE + '/companies/', priority: '0.9', freq: 'daily' },
   { loc: SITE + '/sites/', priority: '0.9', freq: 'daily' },
   { loc: SITE + '/intelligence/', priority: '0.9', freq: 'daily' },
+  { loc: SITE + '/news/', priority: '0.8', freq: 'hourly' },
   ...SITES.map(s => ({ loc: `${SITE}/sites/${s.slug}/`, priority: '0.7', freq: 'weekly' })),
   { loc: SITE + '/lab/', priority: '0.9', freq: 'weekly' },
   { loc: SITE + '/catalysts/', priority: '0.8', freq: 'daily' },
@@ -1547,9 +1570,13 @@ const IMAGES = [
     name: 'campus', width: 1200, quality: 78
   },
   {
-    // One delivery-vehicle sprite. It moves only in Live mode, inside the map.
-    from: path.join(ROOT, 'Sprites', 'teslasprite', 'T2C_EV_Vehicle_Pack_v1', 'sprites', 'ev-east.png'),
-    name: 'vehicle', width: 128, quality: 82
+    /* The full 8-direction sheet, not a single sprite. The vehicle follows the
+       perimeter road, so it has to face the way it is travelling; shipping only
+       ev-east.png is what made it look like it was driving backwards.
+       1536x1024, 4 columns x 2 rows. Quartered, each cell is 96x128. */
+    from: path.join(ROOT, 'Sprites', 'teslasprite', 'T2C_EV_Vehicle_Pack_v1',
+      't2c-ev-spritesheet-8-direction.png'),
+    name: 'vehicles', width: 384, quality: 82
   }
 ];
 

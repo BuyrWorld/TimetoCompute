@@ -653,7 +653,7 @@ export function siteBody(site) {
   <div class="sitecols">
     <div>
       ${section('view', 'Site view', 'Illustrative — not a photograph of this site',
-        `<div class="campus">
+        `<div class="campus secondary">
           <picture>
             <source srcset="/assets/campus.webp" type="image/webp" />
             <img class="campusimg" src="/assets/campus.png" alt="" loading="lazy"
@@ -692,6 +692,69 @@ export function siteBody(site) {
       ${site.events.length ? section('changes', 'What changed here', `${site.events.length} record${site.events.length === 1 ? '' : 's'}`,
         signalList(site.events.map(toSignal), { reviewable: false })) : ''}
     </div>
+  </div>
+</div>`;
+}
+
+/* ================= /news/ ================= */
+
+/**
+ * Live third-party headlines.
+ *
+ * This is the one page on T2C whose content is NOT sourced, verified or
+ * evidenced. It is a wire feed. Keeping it on its own route rather than inside
+ * Intelligence is deliberate: the delivery ledger's value is that every line has
+ * a document behind it, and mixing unverified headlines into that view would
+ * quietly spend the credibility the ledger earns.
+ *
+ * The page therefore says what it is, at the top, before anything else.
+ */
+export function newsBody() {
+  const tickers = tickerOptions();
+
+  return `<div class="shell">
+  ${pageHeadHtml({
+    title: 'AI infrastructure news',
+    lede: 'Live headlines for the companies T2C tracks, plus sector coverage matching AI infrastructure ' +
+      'keywords. Updated continuously from the market data provider.',
+    meta: `<span class="pill-lite">Third-party wire</span>
+           <span class="pill-lite">Not verified by T2C</span>`
+  })}
+
+  <p class="newsdisclaimer">
+    <b>These headlines are not T2C records.</b> Nothing here has been checked against a filing, given a
+    confidence level or entered into the delivery ledger. A headline is a claim by its publisher.
+    Where a story turns out to matter, it appears — sourced, dated and evidenced — in
+    <a class="press" href="/intelligence/">Intelligence</a>.
+  </p>
+
+  <div class="filterbar" role="group" aria-label="Filter news">
+    <div class="fld">
+      <label for="newsCompany">Company</label>
+      <select id="newsCompany">
+        <option value="">All tracked companies</option>
+        ${tickers.map(o => `<option value="${esc(o.ticker)}">${esc(o.ticker)} — ${esc(o.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fld">
+      <label for="newsSearch">Search headlines</label>
+      <input type="search" id="newsSearch" placeholder="Keyword" autocomplete="off" />
+    </div>
+    <span class="filtercount" id="newsCount" aria-live="polite">Loading…</span>
+  </div>
+
+  <div id="newsFeed" class="newsgrid" aria-busy="true">
+    <p class="mnote" id="newsLoading">Fetching the latest headlines…</p>
+  </div>
+
+  <p class="mnote" id="newsError" hidden></p>
+
+  <div class="secondary">
+    ${section('why', 'Why news sits apart from the ledger', 'How T2C treats a headline',
+      `<p class="blocklede">A wire story can report a number the company never published, repeat an old
+        figure as if it were new, or describe a target as an achievement. T2C's delivery records only
+        move when a primary document says so.</p>
+       ${evidenceKey()}`)}
   </div>
 </div>`;
 }

@@ -23,6 +23,25 @@
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var ND = 'Not disclosed';
 
+  /* Dates are formatted and compared UTC-safe from a YYYY-MM-DD string, matching
+     the build's own formatter. Parsing a bare date as local time shifts it a day
+     for anyone west of Greenwich. */
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var fmtDate = function (iso) {
+    if (!iso) return ND;
+    var p = String(iso).slice(0, 10).split('-');
+    var y = +p[0], m = +p[1], d = +p[2];
+    if (!y || !m || !d) return ND;
+    return d + ' ' + MONTHS[m - 1] + ' ' + y;
+  };
+  var dayGap = function (iso) {
+    if (!iso) return null;
+    var t = Date.parse(String(iso).slice(0, 10) + 'T00:00:00Z');
+    if (!isFinite(t)) return null;
+    var today = Date.parse(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+    return Math.round((t - today) / 86400000);
+  };
+
   /* ============ legacy hashes ============
      The old build was one page with #tabs. Anything indexed or bookmarked must
      still land somewhere sensible, so a known hash redirects to its route. */
@@ -140,12 +159,18 @@
   var MODE_KEY = 't2c-mode';
   var MODE = 'live';
   (function modeToggle() {
-    var buttons = qsa('.modebtn');
+    // The header pair plus the "leave focus" button in the focus banner. All of
+    // them carry data-mode, so one handler serves the lot.
+    var buttons = qsa('.modebtn, .focusbar button[data-mode]');
     var apply = function (mode, persist) {
       MODE = mode === 'focus' ? 'focus' : 'live';
       document.documentElement.setAttribute('data-mode', MODE);
       buttons.forEach(function (b) {
-        b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === MODE));
+        // The banner's escape hatch is an action, not a state, so it takes no
+        // pressed state — only the header toggle pair does.
+        if (b.classList.contains('modebtn')) {
+          b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === MODE));
+        }
       });
       if (persist) { try { localStorage.setItem(MODE_KEY, MODE); } catch (e) {} }
       // Anything animating asks the mode rather than being told, so a controller
@@ -601,9 +626,14 @@
       var view = $('mapView'), img = $('mapImg'), car = $('mapVehicle');
       if (!view || !img) return;
 
+      var fx = $('mapFx');
       var zoom = 1;
       var apply = function () {
         img.style.transform = 'scale(' + zoom + ')';
+        // The effects layer scales with the artwork so the vehicle stays on the
+        // road; the sprite itself counter-scales so it does not balloon.
+        if (fx) fx.style.transform = 'scale(' + zoom + ')';
+        if (car) car.style.transform = 'translate(-50%,-50%) scale(' + (1 / zoom) + ')';
         qsa('#mapView .hot').forEach(function (h) {
           h.style.transform = 'translate(-50%,-50%) scale(' + (1 / Math.max(1, zoom * 0.72)) + ')';
         });
@@ -617,21 +647,63 @@
 
       /* The one piece of decorative movement on the page, confined to the map
          and to Live mode. It carries no meaning and is hidden from assistive
-         technology; a delivery vehicle we do not track must not look tracked. */
+         technology; a delivery vehicle we do not track must not look tracked.
+
+         The route traces the campus perimeter road clockwise. Points are
+         percentages of the map box, which maps 1:1 onto the artwork because the
+         image is 3:2 and the box is locked to the same ratio. The sprite faces
+         whichever of eight directions the next segment is heading, so it can
+         never appear to drive backwards. */
+      var ROUTE = [
+        [7.0, 57.1], [8.9, 48.6], [12.7, 42.9], [19.1, 35.2], [26.7, 27.6],
+        [34.3, 21.9], [41.9, 17.1], [49.6, 14.5], [57.2, 15.2], [64.8, 18.1],
+        [72.4, 23.8], [80.1, 30.5], [87.7, 39.0], [92.8, 46.7], [94.7, 52.4],
+        [91.5, 60.0], [85.1, 67.6], [77.5, 74.3], [68.6, 79.6], [58.4, 83.8],
+        [48.3, 86.1], [38.1, 86.7], [29.2, 83.4], [21.6, 78.5], [15.2, 72.4],
+        [10.8, 65.7], [8.3, 61.0]
+      ];
+
+      // Screen angle -> the eight sheet cells. 0deg is east, +90 is south.
+      var DIRS = ['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne'];
+      var facing = function (dx, dy) {
+        var a = Math.atan2(dy, dx) * 180 / Math.PI;      // -180..180
+        return DIRS[((Math.round(a / 45) % 8) + 8) % 8];
+      };
+
+      // Total route length, so the vehicle travels at a constant speed rather
+      // than hurrying through the short segments.
+      var segs = [], total = 0;
+      for (var i = 0; i < ROUTE.length; i++) {
+        var a = ROUTE[i], b = ROUTE[(i + 1) % ROUTE.length];
+        var dx = b[0] - a[0], dy = b[1] - a[1];
+        var len = Math.sqrt(dx * dx + dy * dy);
+        segs.push({ a: a, dx: dx, dy: dy, len: len, dir: facing(dx, dy) });
+        total += len;
+      }
+
+      var LAP_MS = 32000;
       var raf = null, t0 = null;
       var stop = function () {
         if (raf) cancelAnimationFrame(raf);
         raf = null;
         if (car) car.hidden = true;
       };
+      var place = function (p) {
+        var want = p * total, acc = 0, s = segs[0], f = 0;
+        for (var j = 0; j < segs.length; j++) {
+          if (acc + segs[j].len >= want) { s = segs[j]; f = (want - acc) / segs[j].len; break; }
+          acc += segs[j].len;
+        }
+        car.style.left = (s.a[0] + s.dx * f) + '%';
+        car.style.top = (s.a[1] + s.dy * f) + '%';
+        if (car.getAttribute('data-dir') !== s.dir) car.setAttribute('data-dir', s.dir);
+      };
       var start = function () {
         if (!car || raf) return;
         car.hidden = false;
         t0 = performance.now();
         var step = function (now) {
-          var p = ((now - t0) / 14000) % 1;
-          car.style.left = (8 + p * 78) + '%';
-          car.style.top = (84 - Math.sin(p * Math.PI) * 8) + '%';
+          place((((now - t0) / LAP_MS) % 1 + 1) % 1);
           raf = requestAnimationFrame(step);
         };
         raf = requestAnimationFrame(step);
@@ -674,6 +746,92 @@
       };
       paint();
     })();
+  }
+
+  /* ============ news ============
+     A wire feed, not a T2C record. Every item is attributed to its publisher and
+     opens off-site; nothing here is presented as evidenced. */
+  if (ROUTE === 'news') {
+    var feed = $('newsFeed'), loading = $('newsLoading'), errEl = $('newsError');
+    var ITEMS = [];
+
+    var when = function (ts) {
+      if (!ts) return '';
+      var mins = Math.round((Date.now() / 1000 - ts) / 60);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + ' min ago';
+      var hrs = Math.round(mins / 60);
+      if (hrs < 24) return hrs + (hrs === 1 ? ' hour ago' : ' hours ago');
+      var d = Math.round(hrs / 24);
+      return d + (d === 1 ? ' day ago' : ' days ago');
+    };
+
+    var paint = function () {
+      var t = ($('newsCompany') || {}).value || '';
+      var q = (($('newsSearch') || {}).value || '').toLowerCase().trim();
+      var rows = ITEMS.filter(function (n) {
+        return (!t || (n.symbols || []).indexOf(t) !== -1) &&
+               (!q || n.headline.toLowerCase().indexOf(q) !== -1);
+      });
+
+      var counter = $('newsCount');
+      if (counter) counter.textContent = rows.length + (rows.length === 1 ? ' story' : ' stories');
+
+      if (!rows.length) {
+        feed.innerHTML = '<p class="mnote">No headline matches that filter.</p>';
+        return;
+      }
+      feed.innerHTML = rows.map(function (n) {
+        var tags = (n.symbols || []).map(function (s) {
+          return '<span class="newstick">' + esc(s) + '</span>';
+        }).join('');
+        return '<article class="newscard">' +
+          (n.image
+            ? '<img class="newsimg" src="' + esc(n.image) + '" alt="" loading="lazy" ' +
+              'referrerpolicy="no-referrer" onerror="this.remove()" />'
+            : '') +
+          '<div class="newsbody">' +
+            '<div class="newsmeta">' + tags +
+              '<span class="newssrc">' + esc(n.source || 'wire') + '</span>' +
+              '<span class="newsage">' + esc(when(n.datetime)) + '</span>' +
+            '</div>' +
+            '<h3 class="newshead"><a class="press" href="' + esc(n.url) + '" target="_blank" ' +
+              'rel="noopener noreferrer">' + esc(n.headline) + '</a></h3>' +
+          '</div>' +
+        '</article>';
+      }).join('');
+    };
+
+    api('/api/news?symbols=' + WATCH.join(','))
+      .then(function (d) {
+        ITEMS = (d && d.items) || [];
+        if (loading) loading.remove();
+        feed.setAttribute('aria-busy', 'false');
+        if (!ITEMS.length) {
+          feed.innerHTML = '<p class="mnote">The provider returned no stories for these companies right now.</p>';
+          var c0 = $('newsCount'); if (c0) c0.textContent = '0 stories';
+          return;
+        }
+        paint();
+      })
+      .catch(function () {
+        if (loading) loading.remove();
+        feed.setAttribute('aria-busy', 'false');
+        feed.innerHTML = '';
+        if (errEl) {
+          errEl.hidden = false;
+          errEl.textContent = 'The news feed is unavailable right now. This affects headlines only — ' +
+            'every sourced delivery record on the rest of the site is built at publish time and is unaffected.';
+        }
+        var c1 = $('newsCount'); if (c1) c1.textContent = 'Unavailable';
+      });
+
+    ['newsCompany', 'newsSearch'].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener('input', paint);
+      el.addEventListener('change', paint);
+    });
   }
 
   /* ============ sites directory ============ */
@@ -831,6 +989,41 @@
       paintReviewed();
     })();
   }
+
+  /* ============ scheduled earnings in the snapshot ============
+     A company's next catalyst is whichever comes first: a T2C-curated delivery
+     window, or the scheduled results date. The build only knows the former, so
+     the earlier of the two is resolved here. An earnings date that is LATER than
+     what is already shown changes nothing. */
+  (function nextCatalyst() {
+    var slots = qsa('[data-nextcat]');
+    if (!slots.length) return;
+    var wanted = slots.map(function (s) { return s.getAttribute('data-nextcat'); });
+
+    api('/api/catalysts?symbols=' + wanted.join(',') + '&days=270')
+      .then(function (d) {
+        if (!d || !d.available || !d.events) return;
+        slots.forEach(function (slot) {
+          var tick = slot.getAttribute('data-nextcat');
+          var soonest = d.events
+            .filter(function (e) { return e.ticker === tick && dayGap(e.expectedAt) >= 0; })
+            .sort(function (a, b) { return String(a.expectedAt).localeCompare(String(b.expectedAt)); })[0];
+          if (!soonest) return;
+
+          var current = slot.getAttribute('data-nextcat-at');
+          if (current && current <= soonest.expectedAt) return;   // already showing something sooner
+
+          var gap = dayGap(soonest.expectedAt);
+          slot.innerHTML = '<b>' + esc(fmtDate(soonest.expectedAt)) + '</b>';
+          var note = slot.parentElement.querySelector('[data-nextcat-title]');
+          if (note) {
+            note.textContent = soonest.title + ' — scheduled results date' +
+              (gap === 0 ? ', today' : gap > 0 ? ', in ' + gap + ' days' : '');
+          }
+        });
+      })
+      .catch(function () { /* the build-time catalyst stands */ });
+  })();
 
   /* ============ watch control on a company page ============ */
   (function companyWatch() {
@@ -1064,6 +1257,54 @@
       var el = $(id); if (el) el.addEventListener('change', renderCats);
     });
     renderCats();
+
+    /* ---- scheduled earnings dates ----
+       These are exchange-scheduled events from the provider, not company
+       guidance about delivery, and they are labelled as such on every card.
+       They are merged in at render time rather than baked into the build,
+       because a build from last week would show a date that has since moved. */
+    api('/api/catalysts?symbols=' + WATCH.join(',') + '&days=270')
+      .then(function (d) {
+        if (!d || !d.available || !d.events || !d.events.length) return;
+        var merged = d.events.map(function (e) {
+          var days = dayGap(e.expectedAt);
+          if (days === null || days < 0) return null;
+          return {
+            id: e.id,
+            companyId: (CFG.companyByTicker || {})[e.ticker] || e.ticker,
+            ticker: e.ticker,
+            company: NAMES[e.ticker] || e.ticker,
+            title: e.title,
+            category: 'earnings',
+            status: 'confirmed-date',
+            when: fmtDate(e.expectedAt),
+            certainty: 'Scheduled date',
+            countdown: days === 0 ? 'Today' : 'in ' + days + ' days',
+            group: days <= 30 ? 'Next 30 days' : days <= 92 ? 'Next quarter' : 'Later',
+            tone: 'ok',
+            description: e.description,
+            affects: null,
+            // Provider-supplied, so it carries the provider's name rather than a
+            // T2C source link it does not have.
+            sourceHtml: '<span class="src none" title="Scheduled date supplied by the market data ' +
+              'provider, not a T2C-sourced document.">provider: ' + esc(e.provider || 'finnhub') + '</span>'
+          };
+        }).filter(Boolean);
+
+        if (!merged.length) return;
+        window.T2C_CATALYSTS = (window.T2C_CATALYSTS || []).concat(merged);
+
+        // Offer the new category only now that something matches it.
+        var catSel = $('catCategory');
+        if (catSel && !catSel.querySelector('option[value="earnings"]')) {
+          var opt = document.createElement('option');
+          opt.value = 'earnings';
+          opt.textContent = 'Earnings';
+          catSel.appendChild(opt);
+        }
+        renderCats();
+      })
+      .catch(function () { /* the curated catalysts still render */ });
   }
 
   /* ============ shared interactions ============ */

@@ -442,7 +442,9 @@ export function infrastructureMap(sites) {
       </picture>
       <a class="mapsurface" href="/sites/" aria-label="Open the Sites explorer"></a>
       ${hotspots}
-      <span class="vehicle" id="mapVehicle" hidden aria-hidden="true"></span>
+      <div class="mapfx" id="mapFx" aria-hidden="true">
+        <span class="vehicle" id="mapVehicle" data-dir="e" hidden></span>
+      </div>
 
       <div class="mapctl" role="group" aria-label="Map controls">
         <button class="mapbtn press" type="button" id="mapIn" aria-label="Zoom in">+</button>
