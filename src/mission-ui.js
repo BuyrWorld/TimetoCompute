@@ -209,14 +209,21 @@ export function signalFilters(counts, { selected = null } = {}) {
   </div>`;
 }
 
-export function signalRow(s, { reviewable = true } = {}) {
+/**
+ * `anchor` gives the row a real id so `/intelligence/#<signal>` lands on it. Only
+ * one copy of a signal on a page may claim the id — the same signal appears in
+ * both the daily set and the full ledger, and duplicate ids would make the
+ * anchor ambiguous.
+ */
+export function signalRow(s, { reviewable = true, anchor = false } = {}) {
   const delta = s.previousValue !== null && s.newValue !== null && s.unit
     ? `<span class="sigdelta ${esc(s.direction || '')}">${esc(s.previousValue)} → ${esc(s.newValue)} ${esc(s.unit)}</span>`
     : s.newValue !== null && s.unit
       ? `<span class="sigdelta">${esc(s.newValue)} ${esc(s.unit)}</span>`
       : '';
 
-  return `<li class="sig ${esc(s.tone)}" data-cat="${esc(s.category)}" data-id="${esc(s.id)}"
+  return `<li class="sig ${esc(s.tone)}"${anchor ? ` id="${esc(s.id)}"` : ''}
+      data-cat="${esc(s.category)}" data-id="${esc(s.id)}"
       data-company="${esc(s.companyId)}" data-at="${esc(s.announcedAt)}">
     <span class="sigglyph" aria-hidden="true">${esc(s.glyph)}</span>
     <div class="sigmain">
@@ -241,9 +248,11 @@ export function signalRow(s, { reviewable = true } = {}) {
   </li>`;
 }
 
-export function signalList(rows, { reviewable = true, emptyNote = 'No signal matches this filter.' } = {}) {
+export function signalList(rows, {
+  reviewable = true, anchor = false, emptyNote = 'No signal matches this filter.'
+} = {}) {
   if (!rows.length) return `<p class="mnote">${esc(emptyNote)}</p>`;
-  return `<ul class="siglist">${rows.map(s => signalRow(s, { reviewable })).join('')}</ul>`;
+  return `<ul class="siglist">${rows.map(s => signalRow(s, { reviewable, anchor })).join('')}</ul>`;
 }
 
 /* ================= contracts on a site ================= */

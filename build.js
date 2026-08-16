@@ -889,6 +889,10 @@ function investmentSnapshot(c, v) {
   </div>
 
   <div class="csnapacts">
+    <button class="cta ghost press watchbtn" type="button" data-watch="${esc(c.ticker)}"
+      aria-pressed="false" aria-label="Watch ${esc(c.name)}">
+      <span class="watchglyph" aria-hidden="true">☆</span> <span class="watchtext">Watch</span>
+    </button>
     ${canModel
       ? `<a class="cta primary" href="/lab/?company=${esc(c.id)}">Open in Edge Lab</a>`
       : `<span class="cta disabled" aria-disabled="true"

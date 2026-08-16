@@ -219,6 +219,9 @@ export function companiesBody() {
     <span class="filtercount" id="coCount" aria-live="polite">${COMPANIES.length} shown</span>
   </div>
 
+  <p class="watchbanner" id="watchBanner" hidden>Showing only the companies you are watching.
+    <a class="press" href="/companies/">Show all companies</a></p>
+
   <div id="companyGrid">${snapshotCards()}</div>
 
   ${section('watchonly', 'Watchlist only', 'Profile available, delivery not yet tracked',
@@ -720,7 +723,7 @@ export function intelligenceBody() {
 
   ${section('all', 'The whole ledger', `${all.length} sourced changes`,
     `${signalFilters(counts)}
-     <div id="signalAll">${signalList(all)}</div>
+     <div id="signalAll">${signalList(all, { anchor: true })}</div>
      <p class="blocknote"><b>Advanced</b> means evidenced delivery moved forward. A raised target is
        <b>outlook</b>, not progress — no megawatt moves because a company lifted an ambition.
        ${CATEGORIES.filter(c => !counts.some(k => k.id === c.id)).length

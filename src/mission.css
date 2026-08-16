@@ -746,6 +746,15 @@ html[data-mode="focus"] .secondary { display: none; }
 .wbtn[aria-pressed="true"] { color: var(--brand); }
 .watchempty { font-size: 13px; color: var(--dim); padding: var(--s2) var(--s1); margin: 0; }
 
+.watchbanner {
+  display: flex; flex-wrap: wrap; gap: var(--s1); align-items: center;
+  font-size: 13.5px; color: var(--soft); margin: 0 0 var(--s2);
+  padding: 10px var(--s2); border-radius: var(--m-radius-sm);
+  background: var(--m-lime-soft); border: 1px solid rgba(214, 255, 0, .28);
+}
+.watchbanner[hidden] { display: none; }
+.watchbtn[aria-pressed="true"] { color: var(--brand); border-color: rgba(214, 255, 0, .5); }
+
 /* ---- daily signal progress ---- */
 .progcard { margin-top: var(--s2); }
 .prog { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }

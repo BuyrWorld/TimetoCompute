@@ -65,6 +65,36 @@
     try { localStorage.setItem('t2c-theme', next); } catch (e) {}
   });
 
+  /* ============ local stores ============
+     Both live in this browser and leave it only when the reader looks at them.
+     They are declared here, above every route controller, because a controller
+     further down the file runs at parse time and a `var` assignment below it
+     would not exist yet.
+
+     Reviewed: this reader's progress through the ledger. It records an id and
+     nothing else — not what the signal said, not when it was read.
+
+     Watch: one store shared by the homepage panel, the companies directory
+     filter and the button on a company page, so starring a company anywhere is
+     the same fact everywhere. Writes report success, because storage can be full
+     or blocked and a star that will not survive a reload must not be left
+     showing. */
+  var REVIEW_KEY = 't2c-reviewed';
+  var readReviewed = function () {
+    try { return JSON.parse(localStorage.getItem(REVIEW_KEY) || '[]'); } catch (e) { return []; }
+  };
+  var writeReviewed = function (list) {
+    try { localStorage.setItem(REVIEW_KEY, JSON.stringify(list.slice(-400))); } catch (e) {}
+  };
+
+  var WATCH_KEY = 't2c-watch';
+  var readWatch = function () {
+    try { return JSON.parse(localStorage.getItem(WATCH_KEY) || '[]'); } catch (e) { return []; }
+  };
+  var writeWatch = function (v) {
+    try { localStorage.setItem(WATCH_KEY, JSON.stringify(v)); return true; } catch (e) { return false; }
+  };
+
   /* ============ click-glow ============
      One primitive for every pressable thing. Three rules it exists to keep:
 
@@ -421,20 +451,35 @@
   if (ROUTE === 'companies') {
     var grid = $('companyGrid');
     var cards = grid ? qsa('#companyGrid .snap') : [];
+    // "View all watchlist" arrives here with ?filter=watching, so the link has to
+    // actually filter rather than merely land on the page.
+    var watchingOnly = new URLSearchParams(location.search).get('filter') === 'watching';
     var applyCo = function () {
       var q = (($('coSearch') || {}).value || '').toLowerCase();
       var model = ($('coModel') || {}).value || '';
       var stage = ($('coStage') || {}).value || '';
+      var watched = watchingOnly ? readWatch() : null;
       var shown = 0;
       cards.forEach(function (card) {
         var ok = (!q || card.textContent.toLowerCase().indexOf(q) !== -1) &&
                  (!model || card.getAttribute('data-model') === model) &&
-                 (!stage || card.getAttribute('data-stage') === stage);
+                 (!stage || card.getAttribute('data-stage') === stage) &&
+                 (!watched || watched.indexOf(card.getAttribute('data-ticker')) !== -1);
         card.hidden = !ok;
         if (ok) shown++;
       });
       var c = $('coCount');
-      if (c) c.textContent = shown + (shown === 1 ? ' company' : ' companies') + ' shown';
+      if (c) {
+        c.textContent = shown + (shown === 1 ? ' company' : ' companies') + ' shown' +
+          (watchingOnly ? ' · watching only' : '');
+      }
+      var banner = $('watchBanner');
+      if (banner) {
+        banner.hidden = !watchingOnly;
+        if (watchingOnly && !shown) {
+          banner.textContent = 'You are not watching any company yet. Clear this filter to see all of them.';
+        }
+      }
     };
     ['coSearch', 'coModel', 'coStage'].forEach(function (id) {
       var el = $(id);
@@ -442,6 +487,9 @@
       el.addEventListener('input', applyCo);
       el.addEventListener('change', applyCo);
     });
+    // Run once on load: the page can arrive already filtered, via
+    // /companies/?filter=watching from the homepage.
+    if (watchingOnly) applyCo();
 
     var sortSel = $('coSort');
     if (sortSel && cards.length) {
@@ -455,18 +503,6 @@
       });
     }
   }
-
-  /* ============ reviewed signals ============
-     This reader's own progress through the ledger. It stays in this browser and
-     records an id and nothing else — not what the signal said, not when it was
-     read. Shared by Today's progress track and the Intelligence feed. */
-  var REVIEW_KEY = 't2c-reviewed';
-  var readReviewed = function () {
-    try { return JSON.parse(localStorage.getItem(REVIEW_KEY) || '[]'); } catch (e) { return []; }
-  };
-  var writeReviewed = function (list) {
-    try { localStorage.setItem(REVIEW_KEY, JSON.stringify(list.slice(-400))); } catch (e) {}
-  };
 
   /* ============ Mission Control — Today ============ */
   if (ROUTE === 'today') {
@@ -518,17 +554,9 @@
        because storage can be full or blocked, and a silent failure would leave
        the star showing a state that will not survive a reload. */
     (function watchlist() {
-      var KEY = 't2c-watch';
       var list = $('watchList'), emptyEl = $('watchEmpty');
       if (!list) return;
-
-      var read = function () {
-        try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; }
-      };
-      var write = function (v) {
-        try { localStorage.setItem(KEY, JSON.stringify(v)); return true; } catch (e) { return false; }
-      };
-      var watched = read();
+      var watched = readWatch();
 
       var paint = function () {
         var any = watched.length > 0;
@@ -555,7 +583,7 @@
         var next = watched.slice();
         if (at === -1) next.push(t); else next.splice(at, 1);
 
-        if (!write(next)) {
+        if (!writeWatch(next)) {
           // Roll back rather than showing a star that will not survive a reload.
           btn.setAttribute('aria-label', 'Could not save — storage unavailable');
           return;
@@ -759,6 +787,25 @@
 
       // ?view=since-last-visit narrows the ledger to what is new for this reader.
       var view = p.get('view');
+
+      if (view === 'today') {
+        // The finite daily set, in the full ledger. Narrow to the latest
+        // announcement date the page already rendered at the top.
+        var todayAt = null;
+        var firstToday = document.querySelector('#todayset .sig[data-at]');
+        if (firstToday) todayAt = firstToday.getAttribute('data-at');
+        if (todayAt) {
+          var n = 0;
+          qsa('#signalAll .sig').forEach(function (row) {
+            var ok = row.getAttribute('data-at') === todayAt;
+            row.hidden = !ok;
+            if (ok) n++;
+          });
+          var todayHead = document.querySelector('#all .blockmeta');
+          if (todayHead) todayHead.textContent = n + (n === 1 ? ' signal' : ' signals') + ' in the latest set';
+        }
+      }
+
       if (view === 'since-last-visit') {
         var head = document.querySelector('#all .blockmeta');
         if (!SINCE) {
@@ -784,6 +831,38 @@
       paintReviewed();
     })();
   }
+
+  /* ============ watch control on a company page ============ */
+  (function companyWatch() {
+    var btns = qsa('.watchbtn[data-watch]');
+    if (!btns.length) return;
+    var watched = readWatch();
+    var paint = function () {
+      btns.forEach(function (b) {
+        var on = watched.indexOf(b.getAttribute('data-watch')) !== -1;
+        b.setAttribute('aria-pressed', String(on));
+        b.querySelector('.watchglyph').textContent = on ? '★' : '☆';
+        b.querySelector('.watchtext').textContent = on ? 'Watching' : 'Watch';
+        b.setAttribute('aria-label', (on ? 'Stop watching ' : 'Watch ') + b.getAttribute('data-watch'));
+      });
+    };
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var t = b.getAttribute('data-watch');
+        var at = watched.indexOf(t);
+        var next = watched.slice();
+        if (at === -1) next.push(t); else next.splice(at, 1);
+        if (!writeWatch(next)) {
+          b.querySelector('.watchtext').textContent = 'Could not save';
+          return;
+        }
+        watched = next;
+        paint();
+        track('watchlist_changed', { watching: watched.length });
+      });
+    });
+    paint();
+  })();
 
   /* ============ path step evidence ============ */
   qsa('.pstep-btn').forEach(function (b) {

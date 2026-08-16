@@ -374,6 +374,38 @@ const run = async () => {
   const nodeHref = await page.$eval('.pnodebtn', el => el.getAttribute('href'));
   check('a progress node opens its own signal', /\/intelligence\/#/.test(nodeHref), nodeHref);
 
+  /* ---- the watchlist journey works end to end ---- */
+  await page.evaluate(() => localStorage.removeItem('t2c-watch'));
+  await page.goto(base + '/companies/iren/', { waitUntil: 'networkidle0' });
+  await page.click('.watchbtn[data-watch]');
+  await new Promise(r => setTimeout(r, 200));
+  const watchText = await page.$eval('.watchbtn .watchtext', el => el.textContent.trim());
+  check('the company page watch button confirms immediately', watchText === 'Watching', watchText);
+
+  await page.goto(base + '/companies/?filter=watching', { waitUntil: 'networkidle0' });
+  const watchingShown = await page.$$eval('#companyGrid .snap', els => els.filter(e => !e.hidden).length);
+  const bannerOn = await page.$eval('#watchBanner', el => !el.hidden);
+  check('"view all watchlist" actually filters to watched companies',
+    watchingShown === 1 && bannerOn, `${watchingShown} shown, banner=${bannerOn}`);
+
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  const homeWatched = await page.$$eval('#watchList .wrow', els => els.filter(e => !e.hidden).length);
+  check('starring on a company page shows up on the homepage', homeWatched === 1, `${homeWatched}`);
+
+  /* ---- signal progress reaches a real anchor ---- */
+  await page.goto(base + '/intelligence/?view=today', { waitUntil: 'networkidle0' });
+  const todayOnly = await page.$$eval('#signalAll .sig', els => els.filter(e => !e.hidden).length);
+  const totalSignals = await page.$$eval('#signalAll .sig', els => els.length);
+  check('?view=today narrows the ledger to the finite daily set',
+    todayOnly > 0 && todayOnly < totalSignals, `${todayOnly} of ${totalSignals}`);
+
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  const nodeTarget = await page.$eval('.pnodebtn', el => el.getAttribute('href'));
+  await page.goto(base + nodeTarget, { waitUntil: 'networkidle0' });
+  const anchorId = nodeTarget.split('#')[1];
+  const anchorExists = await page.evaluate(id => !!document.getElementById(id), anchorId);
+  check('a progress node lands on the signal it names', anchorExists, nodeTarget);
+
   /* ---- click-glow behaves for pointer, Enter and Space alike ---- */
   await page.goto(base + '/', { waitUntil: 'networkidle0' });
 
