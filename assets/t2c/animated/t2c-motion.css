@@ -1,0 +1,16 @@
+/* Attach these classes to SVG paths or wrappers; do not animate raster geometry itself. */
+@keyframes t2c-flow-dash { to { stroke-dashoffset: -72; } }
+@keyframes t2c-node-breathe { 0%,100% { opacity: .72; } 50% { opacity: 1; } }
+@keyframes t2c-photon-glow { 0%,100% { filter: drop-shadow(0 0 4px rgb(66 217 255 / 38%)); } 50% { filter: drop-shadow(0 0 14px rgb(66 217 255 / 72%)); } }
+@keyframes t2c-new-signal { 0% { transform: scale(.85); opacity: 0; } 55% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes t2c-complete { from { stroke-dashoffset: var(--ring-length, 565); } to { stroke-dashoffset: 0; } }
+
+.t2c-flow-path { stroke-dasharray: 8 16; animation: t2c-flow-dash 1.7s linear infinite; }
+.t2c-active-node { animation: t2c-node-breathe 2.4s ease-in-out infinite; }
+.t2c-photonics-asset { animation: t2c-photon-glow 2.2s ease-in-out infinite; }
+.t2c-new-dot { animation: t2c-new-signal 380ms cubic-bezier(.2,.8,.2,1) both; }
+.t2c-completion-ring { animation: t2c-complete 900ms cubic-bezier(.2,.8,.2,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .t2c-flow-path, .t2c-active-node, .t2c-photonics-asset, .t2c-new-dot, .t2c-completion-ring { animation: none !important; }
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 290 74" role="img" aria-labelledby="title desc">
+  <title id="title">T2C TimeToCompute</title>
+  <desc id="desc">Geometric T2C wordmark in white and acid lime.</desc>
+  <g transform="translate(4 5)">
+    <path fill="#F5F7F7" d="M0 0h54v13H34v39H20V13H0z"/>
+    <path fill="#F5F7F7" d="M62 0h54v13H78v7h38v32H62V39h38v-7H62z"/>
+    <path fill="#B7FF35" d="M124 0h54v13h-38v26h38v13h-54z"/>
+    <text x="0" y="65" fill="#DCE3E4" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="1.9">TIME TO COMPUTE</text>
+  </g>
+</svg>

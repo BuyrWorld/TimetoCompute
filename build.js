@@ -32,7 +32,7 @@ import {
   sitesBody, siteBody, intelligenceBody, newsBody, explainersBody, notFoundBody
 } from './src/pages.js';
 import { allSites, companyPath } from './src/lib/sites.js';
-import { ASSETS, ASSET_WIDTHS } from './src/lib/assets.js';
+import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
 import { signals, todaySet } from './src/lib/signals.js';
 import { signalIndex } from './src/lib/today.js';
 import { realityScore, FACTORS, MIN_WEIGHT_COVERAGE, THIN_SAMPLE } from './src/lib/score.js';
@@ -269,7 +269,7 @@ function footer() {
   return `<footer class="foot">
   <div class="wrap footin">
     <div class="footmark">
-      <img src="/Logo/logo-header.png" alt="" />
+      <img src="/Logo/logo-header.png" alt="" width="514" height="120" />
       <p>What management promised, what the evidence supports, what was physically delivered, what the
          customer accepted, and when revenue began.</p>
     </div>
@@ -1709,8 +1709,12 @@ const IMAGES = [
   {
     // The "black" variant has a near-black surround; the other has a
     // checkerboard baked into its pixels and carries no alpha channel.
+    /* 1536 is the source's own native width. It was being emitted at 1200 and
+       then displayed in a 1230px box, so every screen at 1366px or wider was
+       enlarging it — 2.05x on a 2x display. Emitting native costs a few KB and
+       removes the softness up to the limit of the art. */
     from: path.join(ROOT, 'Sprites', 'datecenter', 'datacenterdrivableblack.png'),
-    name: 'campus', width: 1200, quality: 78
+    name: 'campus', width: 1536, pngWidth: 1200, quality: 78
   },
   {
     /* The full 8-direction sheet, not a single sprite. The vehicle follows the
@@ -1763,6 +1767,13 @@ for (const a of ASSETS) {
   const srcPng = path.join(ROOT, 'assets', 't2c', 'images', `${a.id}.png`);
   const outPng = path.join(OUT, 'assets', 't2c', 'images', `${a.id}.png`);
   if (sharp) {
+    // A native-width WebP: the pack's largest derivative is 1600, which is
+    // smaller than a full-bleed hero's box on any 2x display from 1366px up.
+    await sharp(srcPng).resize({ width: ASSET_NATIVE_WIDTH, withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toFile(path.join(OUT, 'assets', 't2c', 'images', `${a.id}-${ASSET_NATIVE_WIDTH}.webp`));
+    packBytes += fs.statSync(path.join(OUT, 'assets', 't2c', 'images', `${a.id}-${ASSET_NATIVE_WIDTH}.webp`)).size;
+
     await sharp(srcPng).resize({ width: 1600, withoutEnlargement: true })
       .png({ compressionLevel: 9, palette: true }).toFile(outPng);
   } else {
@@ -1792,7 +1803,15 @@ for (const img of IMAGES) {
       ? { width: img.width, height: img.height, fit: img.fit || 'contain', background: img.background || '#000000' }
       : { width: img.width, withoutEnlargement: true });
   await resized.clone().webp({ quality: img.quality }).toFile(webp);
-  await resized.clone().png({ compressionLevel: 9, palette: true }).toFile(png);
+
+  /* The PNG is only reached by a browser with no WebP support, which in
+     practice is an old one on a low-density screen. It is capped below the
+     WebP's native width so the fallback does not cost more than the real path. */
+  await sharp(img.from)
+    .resize(img.height
+      ? { width: img.width, height: img.height, fit: img.fit || 'contain', background: img.background || '#000000' }
+      : { width: Math.min(img.width, img.pngWidth || img.width), withoutEnlargement: true })
+    .png({ compressionLevel: 9, palette: true }).toFile(png);
   imageBytes += fs.statSync(webp).size + fs.statSync(png).size;
 
   const before = fs.statSync(img.from).size;

@@ -14,6 +14,7 @@
 import { esc, mw, date, NOT_DISCLOSED } from './lib/format.js';
 import { sourceChips, evidenceChip } from './ui.js';
 import { furthestStage } from './lib/sites.js';
+import { ALL_ASSET_WIDTHS } from './lib/assets.js';
 
 /* ================= imagery ================= */
 
@@ -25,7 +26,7 @@ import { furthestStage } from './lib/sites.js';
  */
 export function illustration(asset, { eager = false, sizes = '100vw', className = '' } = {}) {
   const w = asset.intrinsic.width, h = asset.intrinsic.height;
-  const srcset = [800, 1200, 1600]
+  const srcset = ALL_ASSET_WIDTHS
     .map(n => `/assets/t2c/images/${asset.id}-${n}.webp ${n}w`).join(', ');
 
   return `<img class="ed-img ${esc(className)}"

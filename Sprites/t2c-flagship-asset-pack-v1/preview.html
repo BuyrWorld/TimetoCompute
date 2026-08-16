@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>T2C Flagship Asset Pack Preview</title>
+  <link rel="stylesheet" href="styles/t2c-components.css" />
+</head>
+<body>
+  <div class="t2c-shell">
+    <header class="t2c-header">
+      <img class="t2c-logo" src="assets/svg/brand/t2c-logo-horizontal.svg" alt="TimeToCompute" width="290" height="74" />
+      <nav class="t2c-nav" aria-label="Primary navigation">
+        <a href="#" aria-current="page">TODAY</a><a href="#">SUPPLY CHAIN</a><a href="#">COMPANIES</a><a href="#">PROJECTS</a><a href="#">PHOTONICS</a><a href="#">BOTTLENECKS</a>
+      </nav>
+      <div class="t2c-search">⌕&nbsp;&nbsp; Search the chain…</div>
+    </header>
+    <main class="t2c-main">
+      <section class="t2c-hero">
+        <div>
+          <div class="t2c-eyebrow">AI SUPPLY-CHAIN INTELLIGENCE</div>
+          <h1 class="t2c-title">Follow AI from atoms to revenue<span class="t2c-title-dot">.</span></h1>
+          <p class="t2c-lede">See who supplies what, where the bottlenecks are, what has actually shipped—and when infrastructure starts earning.</p>
+          <div class="t2c-actions"><button class="t2c-button t2c-button--primary">EXPLORE THE CHAIN →</button><button class="t2c-button">SEE WHAT CHANGED →</button></div>
+        </div>
+        <aside class="t2c-panel t2c-reaction">
+          <h2>TODAY’S CHAIN REACTION</h2><strong>1.6T optical order received</strong>
+          <div class="t2c-reaction-step"><span></span>Laser demand</div><div class="t2c-reaction-step"><span></span>Transceiver shipments</div><div class="t2c-reaction-step"><span></span>AI cluster bandwidth</div>
+        </aside>
+      </section>
+      <section class="t2c-chain" aria-label="AI supply-chain stages"><div class="t2c-chain-grid" id="chain"></div></section>
+      <section class="t2c-panel t2c-signals">
+        <div class="t2c-signals-head"><h2>7 MATERIAL CHANGES</h2><div class="t2c-progress"><span>3 OF 7 REVIEWED</span><i class="done"></i><i class="done"></i><i></i><i></i></div></div>
+        <div class="t2c-cards">
+          <article class="t2c-signal-card"><h3>01 &nbsp; Copper foil tightness</h3><div class="t2c-signal-row"><b>WHAT HAPPENED</b><span>Lead times extended.</span></div><div class="t2c-signal-row"><b>WHY IT MATTERS</b><span>Slower PCB and power-module output.</span></div><div class="t2c-signal-row"><b>EVIDENCE</b><span>High confidence · 2 sources</span></div></article>
+          <article class="t2c-signal-card"><h3>02 &nbsp; HBM yield improvement</h3><div class="t2c-signal-row"><b>WHAT HAPPENED</b><span>Higher advanced-memory yields.</span></div><div class="t2c-signal-row"><b>WHY IT MATTERS</b><span>More supply for AI accelerators.</span></div><div class="t2c-signal-row"><b>EVIDENCE</b><span>High confidence · 3 sources</span></div></article>
+          <article class="t2c-signal-card"><h3>03 &nbsp; Datacentre power queue</h3><div class="t2c-signal-row"><b>WHAT HAPPENED</b><span>Interconnection queues expanded.</span></div><div class="t2c-signal-row"><b>WHY IT MATTERS</b><span>Power gates delivery.</span></div><div class="t2c-signal-row"><b>EVIDENCE</b><span>Medium confidence · 2 sources</span></div></article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const stages=[['materials','MATERIALS','Critical inputs','amber'],['wafer','WAFERS','Substrates','amber'],['chips-hbm','CHIPS + HBM','Packaged','lime'],['photonics','PHOTONICS','Volume ramp','cyan'],['ai-factory','AI FACTORY','Building','neutral'],['accepted','ACCEPTED','Verified','neutral'],['revenue','REVENUE','Recognised','lime']];
+    const chain=document.querySelector('#chain');
+    stages.forEach(([asset,label,state,tone])=>{const b=document.createElement('button');b.className=`t2c-node t2c-node--${tone}`;b.type='button';b.setAttribute('aria-pressed',asset==='photonics');b.innerHTML=`<span class="t2c-node-frame"><picture class="t2c-node-picture ${asset==='photonics'?'t2c-photonics-asset':''}"><source type="image/webp" srcset="assets/responsive/stage-${asset}-192.webp 192w, assets/responsive/stage-${asset}-384.webp 384w, assets/responsive/stage-${asset}-768.webp 768w" sizes="180px"><img src="assets/responsive/stage-${asset}-1280.png" alt="" width="1280" height="1280"></picture></span><span class="t2c-node-label">${label}</span><span class="t2c-node-state">${state}</span>`;b.addEventListener('click',()=>{chain.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true')});chain.append(b)});
+  </script>
+</body>
+</html>

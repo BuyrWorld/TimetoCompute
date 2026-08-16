@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 100" role="img" aria-label="Animated optical data pulse">
+  <defs><linearGradient id="line"><stop stop-color="#42D9FF" stop-opacity="0"/><stop offset=".5" stop-color="#42D9FF"/><stop offset="1" stop-color="#42D9FF" stop-opacity="0"/></linearGradient><filter id="g" x="-100%" y="-300%" width="300%" height="700%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <path d="M0 50H800" stroke="url(#line)" stroke-width="2"/>
+  <circle class="photon" r="6" fill="#fff" stroke="#42D9FF" stroke-width="3" filter="url(#g)"><animateMotion dur="2.8s" repeatCount="indefinite" path="M0 50H800"/></circle>
+  <circle class="photon" r="3" fill="#42D9FF"><animateMotion dur="2.8s" begin="-.9s" repeatCount="indefinite" path="M0 50H800"/></circle>
+  <circle class="photon" r="3" fill="#42D9FF"><animateMotion dur="2.8s" begin="-1.8s" repeatCount="indefinite" path="M0 50H800"/></circle>
+  <style>@media (prefers-reduced-motion:reduce){.photon{display:none}}</style>
+</svg>

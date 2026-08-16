@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="t d">
+  <title id="t">TimeToCompute</title><desc id="d">Follow AI from atoms to revenue.</desc>
+  <defs><radialGradient id="bg" cx="60%" cy="45%"><stop stop-color="#102128"/><stop offset="1" stop-color="#080B0C"/></radialGradient><linearGradient id="flow"><stop stop-color="#FFB547"/><stop offset=".55" stop-color="#42D9FF"/><stop offset="1" stop-color="#B7FF35"/></linearGradient></defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g transform="translate(70 55) scale(.58)"><path fill="#F5F7F7" d="M0 0h54v13H34v39H20V13H0zM62 0h54v13H78v7h38v32H62V39h38v-7H62z"/><path fill="#B7FF35" d="M124 0h54v13h-38v26h38v13h-54z"/></g>
+  <text x="70" y="240" fill="#F5F7F7" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-size="86" font-weight="800">Follow AI from atoms</text>
+  <text x="70" y="325" fill="#F5F7F7" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-size="86" font-weight="800">to revenue<tspan fill="#B7FF35">.</tspan></text>
+  <text x="72" y="385" fill="#A8B3B7" font-family="Inter,Arial,sans-serif" font-size="28">Evidence-backed AI supply-chain intelligence.</text>
+  <path d="M75 500H1125" stroke="#344148" stroke-width="4"/><path d="M75 500H1125" stroke="url(#flow)" stroke-width="2"/>
+  <g fill="#080B0C" stroke-width="4"><circle cx="110" cy="500" r="24" stroke="#FFB547"/><circle cx="290" cy="500" r="24" stroke="#FFB547"/><circle cx="470" cy="500" r="24" stroke="#B7FF35"/><circle cx="650" cy="500" r="24" stroke="#42D9FF"/><circle cx="830" cy="500" r="24" stroke="#DCE3E4"/><circle cx="1010" cy="500" r="24" stroke="#B7FF35"/></g>
+  <text x="75" y="575" fill="#708087" font-family="Inter,Arial,sans-serif" font-size="18" letter-spacing="2">MATERIALS  •  CHIPS  •  PHOTONICS  •  AI FACTORIES  •  REVENUE</text>
+</svg>

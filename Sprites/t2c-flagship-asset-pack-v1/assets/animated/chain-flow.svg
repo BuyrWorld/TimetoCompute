@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 160" role="img" aria-label="Animated supply-chain data flow">
+  <defs>
+    <linearGradient id="flow" x1="0" x2="1"><stop stop-color="#7C8B91"/><stop offset=".32" stop-color="#FFB547"/><stop offset=".58" stop-color="#42D9FF"/><stop offset="1" stop-color="#B7FF35"/></linearGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <path id="track" d="M20 80H1580" fill="none" stroke="#3B474C" stroke-width="4" stroke-linecap="round"/>
+  <path d="M20 80H1580" fill="none" stroke="url(#flow)" stroke-width="2" stroke-linecap="round" opacity=".75"/>
+  <g fill="#fff" stroke="#809097" stroke-width="2"><circle cx="70" cy="80" r="9"/><circle cx="310" cy="80" r="9"/><circle cx="550" cy="80" r="9"/><circle cx="790" cy="80" r="9"/><circle cx="1030" cy="80" r="9"/><circle cx="1270" cy="80" r="9"/><circle cx="1510" cy="80" r="9"/></g>
+  <circle class="pulse pulse-cyan" r="7" fill="#42D9FF" filter="url(#glow)"><animateMotion dur="5.4s" repeatCount="indefinite" path="M20 80H1580"/></circle>
+  <circle class="pulse pulse-lime" r="5" fill="#B7FF35" filter="url(#glow)"><animateMotion dur="5.4s" begin="-2.7s" repeatCount="indefinite" path="M20 80H1580"/></circle>
+  <style>@media (prefers-reduced-motion:reduce){.pulse{display:none}}</style>
+</svg>

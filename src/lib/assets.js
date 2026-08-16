@@ -57,5 +57,19 @@ export const ASSET = Object.fromEntries(ASSETS.map(a => [a.id, a]));
 /** Convenience alias for the one image the homepage loads eagerly. */
 ASSET.hero = ASSET['hero-ai-campus-dusk'];
 
-/** The responsive widths shipped for every image. */
+/**
+ * The responsive widths shipped for every image.
+ *
+ * 800/1200/1600 come from the pack. 1672 is the art's own native width, added
+ * because the largest supplied derivative was smaller than the hero's CSS box on
+ * any display at 1366px or wider on a 2x screen — the source was being enlarged
+ * 1.7x at 1440 and 2.4x at 1920, which is what made it look soft.
+ *
+ * 1672 is the ceiling: it is the native resolution of the supplied art, so a
+ * full-bleed hero is still upscaled above roughly 1670 device pixels. That is a
+ * limit of the source image, not of the pipeline, and no derivative can invent
+ * detail that was never rendered.
+ */
 export const ASSET_WIDTHS = [800, 1200, 1600];
+export const ASSET_NATIVE_WIDTH = 1672;
+export const ALL_ASSET_WIDTHS = [...ASSET_WIDTHS, ASSET_NATIVE_WIDTH];
