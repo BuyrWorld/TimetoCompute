@@ -11,6 +11,7 @@ import { GATE_STATUS } from '../data/schema.js';
 import { esc, mw, date, usdBn, NOT_DISCLOSED, windowLabel, firstSentence } from './lib/format.js';
 import { CATEGORIES } from './lib/signals.js';
 import { furthestStage } from './lib/sites.js';
+import { FACTOR_BY_ID } from './lib/score.js';
 import { sourceChips, evidenceChip, pill } from './ui.js';
 
 /* ================= atoms ================= */
@@ -260,6 +261,124 @@ export function siteContracts(contracts) {
         <span class="depstatus">${c.mw ? esc(mw(c.mw)) : NOT_DISCLOSED}${c.valueBn ? ` · ${esc(usdBn(c.valueBn))}` : ''}${c.years ? ` · ${esc(c.years)}-year term` : ''}</span>
       </span>
     </div>`).join('') + `</div>`;
+}
+
+/* ================= Reality Score ================= */
+
+/**
+ * The score panel.
+ *
+ * When the composite cannot be justified the panel does not go blank — it shows
+ * the factors that could be computed and names the ones that could not. An
+ * "Unavailable" that explains itself is more useful than a number that does not.
+ */
+export function scorePanel(score) {
+  const head = score.available
+    ? `<div class="scorehead">
+        <span class="scoreval ${esc(score.band)}">${score.score}</span>
+        ${meter(score.score / 10, 10, {
+          tone: score.band === 'strong' ? '' : score.band === 'mixed' ? 'warn' : 'bad',
+          showLabel: false,
+          label: `${score.score} out of 100 — ${score.bandLabel}`
+        })}
+        <span class="scoreband">${esc(score.bandLabel)}</span>
+        <span class="scorederived">Derived · <a class="press" href="/methodology/#reality-score">how this is calculated</a></span>
+      </div>`
+    : `<div class="scorehead">
+        <span class="scoreval nd">—</span>
+        <span class="scoreband">Not enough published record to score</span>
+        <span class="scorederived"><a class="press" href="/methodology/#reality-score">what would be needed</a></span>
+      </div>
+      <p class="mnote">${esc(score.reason)}</p>`;
+
+  const rows = score.factors.map(f => `
+    <div class="sfactor${f.available ? '' : ' is-missing'}">
+      <span class="sflabel" title="${esc(FACTOR_BY_ID[f.id].definition)}">${esc(f.label)}</span>
+      <span class="sfbar">${f.available
+        ? meter(f.value * 12, 12, {
+          tone: f.value >= 0.75 ? '' : f.value >= 0.5 ? 'warn' : 'bad',
+          showLabel: false,
+          label: `${f.label}: ${Math.round(f.value * 100)}% — ${f.detail}`
+        })
+        : `<span class="nd">Not available</span>`}</span>
+      <span class="sfdetail">${esc(f.available ? f.detail : f.reason)}</span>
+      <span class="sfweight" title="Share of the composite this factor carries.">${Math.round(f.weight * 100)}%</span>
+    </div>`).join('');
+
+  return `${head}
+    <div class="sfactors">${rows}</div>
+    ${score.available && score.thinNote
+      ? `<p class="mnote warnnote">${esc(score.thinNote)}</p>` : ''}
+    ${score.available && score.missing.length
+      ? `<p class="mnote">Computed over ${Math.round(score.coverage * 100)}% of the score's weight.
+          ${esc(score.missing.join(' and '))} could not be computed and ${score.missing.length === 1 ? 'is' : 'are'}
+          excluded rather than counted as passing.</p>` : ''}`;
+}
+
+/* ================= capacity truth ================= */
+
+/**
+ * The four capacity figures side by side. Each states its own basis, because
+ * announced gross power and billing critical IT are not the same quantity and
+ * the row must not imply they can be subtracted from one another.
+ */
+export function capacityTruth(cells) {
+  return `<div class="ctruth">` + cells.map(c => `
+    <div class="ctcell">
+      <span class="ctglyph" aria-hidden="true">${esc(c.glyph)}</span>
+      <span class="ctval">${c.value === null
+        ? `<span class="nd">${NOT_DISCLOSED}</span>`
+        : esc(c.value)}</span>
+      <span class="ctlabel">${esc(c.label)}</span>
+      <span class="ctbasis">${esc(c.basis)}</span>
+    </div>`).join('') + `</div>`;
+}
+
+/* ================= contract x-ray ================= */
+
+/**
+ * Firm against optional value, and what the disclosure does not say.
+ *
+ * A conditional maximum is never added to committed value: TeraWulf's $27bn
+ * Meta ceiling is $12bn committed plus up to $15bn that depends on events which
+ * have not happened.
+ */
+export function contractXray(contracts) {
+  if (!contracts.length) {
+    return `<p class="mnote">No contract disclosure for this company names megawatts or value.</p>`;
+  }
+  return `<div class="xray">` + contracts.map(c => {
+    const optional = c.valueMaxBn && c.valueBn ? c.valueMaxBn - c.valueBn : null;
+    return `<article class="xcard">
+      <header class="xhead">
+        <span class="xcust">${esc(c.customer)}</span>
+        <span class="xmw">${c.mw ? esc(mw(c.mw)) : `<span class="nd">MW not disclosed</span>`}</span>
+      </header>
+      <dl class="xgrid">
+        <div class="xitem ok">
+          <dt>Firm</dt>
+          <dd>${c.valueBn ? esc(usdBn(c.valueBn)) : `<span class="nd">${NOT_DISCLOSED}</span>`}</dd>
+          <p>${c.years ? `${esc(c.years)}-year term, committed.` : 'Committed value.'}</p>
+        </div>
+        <div class="xitem${optional ? '' : ' is-missing'}">
+          <dt>Optional</dt>
+          <dd>${optional ? esc(usdBn(optional)) : `<span class="nd">None disclosed</span>`}</dd>
+          <p>${optional
+            ? 'Conditional on events that have not occurred. Never added to committed revenue.'
+            : 'The company has disclosed no conditional upside on this agreement.'}</p>
+        </div>
+        <div class="xitem${c.deliveredMw ? ' ok' : ' is-missing'}">
+          <dt>Delivered</dt>
+          <dd>${c.deliveredMw ? esc(mw(c.deliveredMw)) : `<span class="nd">None yet</span>`}</dd>
+          <p>${c.deliveredMw
+            ? 'Accepted by the customer under this agreement.'
+            : 'Contracted is not delivered. Nothing has been accepted under this agreement yet.'}</p>
+        </div>
+      </dl>
+      ${c.terms ? `<p class="xterms">${esc(c.terms)}</p>` : ''}
+      <div class="xsrc">${sourceChips(c.sourceIds)}</div>
+    </article>`;
+  }).join('') + `</div>`;
 }
 
 /* ================= Mission Control homepage ================= */

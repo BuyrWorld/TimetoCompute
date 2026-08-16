@@ -254,3 +254,44 @@ export function stageFilterOptions() {
 export function furthestStage(site) {
   return [...site.path].reverse().find(p => p.status === 'complete') || null;
 }
+
+/**
+ * A company's path to billing, merged across its projects.
+ *
+ * A stage counts as complete if ANY project has reached it — this is "the
+ * furthest this company has got anywhere", not "every site has got here", and
+ * the UI must say so. Each stage names the projects that evidence it, so the
+ * distinction is visible rather than merely documented.
+ */
+export function companyPath(companyId) {
+  const owned = PROJECTS.filter(p => p.companyId === companyId);
+  const perProject = owned.map(p => ({ project: p, stages: path(p) }));
+
+  return PATH.map((stage, i) => {
+    const reached = perProject.filter(x => x.stages[i].status === 'complete');
+    const progressing = perProject.filter(x =>
+      x.stages[i].status === 'inProgress' || x.stages[i].status === 'conditional');
+    const evidencing = reached.length ? reached : progressing;
+
+    const status = reached.length ? 'complete'
+      : progressing.length ? 'inProgress'
+        : perProject.some(x => x.stages[i].status === 'notStarted') ? 'notStarted'
+          : 'notDisclosed';
+
+    const dated = reached
+      .map(x => x.stages[i].effectiveAt).filter(Boolean).sort();
+
+    return {
+      id: stage.id, label: stage.label, short: stage.short, status,
+      statusLabel: GATE_STATUS[status].label, tone: GATE_STATUS[status].tone,
+      effectiveAt: dated.length ? dated[0] : null,
+      sourceIds: [...new Set(evidencing.flatMap(x => x.stages[i].sourceIds))],
+      confidence: evidencing.some(x => x.stages[i].confidence === 'confirmed') ? 'confirmed' : 'reported',
+      notes: null,
+      gates: stage.gates.map(id => GATE_BY_ID[id]?.label).filter(Boolean),
+      projects: evidencing.map(x => ({ slug: siteSlug(x.project), name: x.project.name })),
+      reachedCount: reached.length,
+      projectCount: owned.length
+    };
+  });
+}

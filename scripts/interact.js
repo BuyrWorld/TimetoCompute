@@ -185,6 +185,29 @@ const run = async () => {
       li.querySelector('.pstep-btn') || !li.querySelector('button')));
   check('a stage with no evidence offers no pressable control', inertAffordance);
 
+  /* ---- company page: score, path, x-ray ---- */
+  await page.goto(base + '/companies/iren/', { waitUntil: 'networkidle0' });
+  const scoreShown = await page.$eval('.scoreval', el => el.textContent.trim());
+  check('a scored company shows its number', /^\d+$/.test(scoreShown), scoreShown);
+
+  const factorSamples = await page.$$eval('.sfactor .sfdetail', els =>
+    els.map(e => e.textContent.trim()).filter(Boolean));
+  check('every score factor prints the sample behind it',
+    factorSamples.length === 4, factorSamples.join(' | '));
+
+  const coPathSteps = await page.$$eval('#path .pstep', els => els.length);
+  check('the company path shows all seven stages', coPathSteps === 7, `${coPathSteps}`);
+
+  await page.click('#path .pstep-btn');
+  await new Promise(r => setTimeout(r, 150));
+  const coEvidence = await page.$eval('#path .pstepev', el => !el.hidden);
+  check('a company path stage opens its evidence', coEvidence);
+
+  await page.goto(base + '/companies/coreweave/', { waitUntil: 'networkidle0' });
+  const unscored = await page.$eval('#score', el => el.textContent);
+  check('an unscored company explains itself rather than showing a blank panel',
+    /Not enough published record/.test(unscored) && /Not available/.test(unscored));
+
   /* ---- intelligence: filter, review, persist ---- */
   await page.goto(base + '/intelligence/', { waitUntil: 'networkidle0' });
   const allSignals = await page.$$eval('#signalAll .sig', els => els.filter(e => !e.hidden).length);

@@ -495,7 +495,103 @@ html[data-mode="focus"] .secondary { display: none; }
 @media (max-width: 900px) { .paltrigger .paltxt { display: none; } }
 
 /* ============================================================
-   9. Mission Control — the Today grid
+   9. Reality Score
+   ============================================================ */
+
+.scorehead { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2); }
+.scoreval {
+  font-family: var(--m-mono); font-size: 54px; font-weight: 700; letter-spacing: -.03em;
+  color: var(--brand); line-height: 1;
+}
+.scoreval.mixed { color: var(--warn); }
+.scoreval.weak { color: var(--bad); }
+.scoreval.nd { color: var(--dim); font-size: 40px; }
+.scoreband { font-size: 15px; font-weight: 700; color: var(--soft); }
+.scorederived {
+  font-family: var(--m-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--dim); margin-left: auto;
+}
+.scorederived a { color: var(--dim); }
+.scorederived a:hover { color: var(--brand); }
+
+.sfactors { margin-top: var(--s3); }
+.sfactor {
+  display: grid; gap: var(--s2); align-items: center; padding: 10px 0;
+  grid-template-columns: minmax(120px, 1.1fr) auto minmax(0, 1fr) 44px;
+  border-top: 1px solid var(--line-2);
+}
+.sflabel {
+  font-family: var(--m-mono); font-size: 11.5px; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--ink);
+  cursor: help;
+}
+.sfactor.is-missing .sflabel { color: var(--dim); }
+.sfdetail { font-size: 12.5px; color: var(--dim); }
+.sfweight {
+  font-family: var(--m-mono); font-size: 11px; color: var(--faint); text-align: right; cursor: help;
+}
+.warnnote { color: var(--warn); }
+
+@media (max-width: 700px) {
+  .sfactor { grid-template-columns: 1fr auto; row-gap: 4px; }
+  .sfbar { grid-column: 2; }
+  .sfdetail { grid-column: 1 / -1; }
+  .sfweight { display: none; }
+  .scorederived { margin-left: 0; width: 100%; }
+}
+
+/* ============================================================
+   9b. Capacity truth
+   ============================================================ */
+
+.ctruth {
+  display: grid; gap: var(--s2);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+.ctcell { padding: var(--s2) 0; border-left: 2px solid var(--line-2); padding-left: var(--s2); }
+.ctglyph { display: block; font-size: 17px; color: var(--brand); margin-bottom: 4px; }
+.ctval {
+  display: block; font-family: var(--m-mono); font-size: clamp(22px, 3vw, 32px);
+  font-weight: 700; letter-spacing: -.02em; color: var(--ink);
+}
+.ctval .nd { font-size: 13px; font-weight: 500; color: var(--dim); letter-spacing: 0; }
+.ctlabel { display: block; font-size: 13px; color: var(--soft); margin-top: 3px; }
+.ctbasis {
+  display: block; font-family: var(--m-mono); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim); margin-top: 2px;
+}
+
+/* ============================================================
+   9c. Contract X-ray
+   ============================================================ */
+
+.xray { display: grid; gap: var(--s2); }
+.xcard { background: var(--m-panel-2); border: 1px solid var(--line-2); border-radius: var(--m-radius-sm); padding: var(--s2); }
+.xhead {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: var(--s1); margin-bottom: var(--s2);
+}
+.xcust { font-size: 16px; font-weight: 800; }
+.xmw { font-family: var(--m-mono); font-size: 17px; font-weight: 700; color: var(--brand); }
+.xmw .nd { font-size: 12px; font-weight: 500; color: var(--dim); }
+.xgrid { display: grid; gap: var(--s2); margin: 0; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.xitem { border-left: 2px solid var(--line); padding-left: var(--s2); }
+.xitem.ok { border-left-color: var(--brand); }
+.xitem.is-missing { border-left-style: dashed; }
+.xitem dt {
+  font-family: var(--m-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+}
+.xitem dd {
+  margin: 2px 0 4px; font-family: var(--m-mono); font-size: 20px; font-weight: 700; color: var(--ink);
+}
+.xitem dd .nd { font-size: 12.5px; font-weight: 500; color: var(--dim); }
+.xitem p { font-size: 12px; color: var(--dim); line-height: 1.5; margin: 0; }
+.xterms { font-size: 13px; color: var(--soft); line-height: 1.55; margin: var(--s2) 0 var(--s1); }
+.xsrc { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ============================================================
+   10. Mission Control — the Today grid
    ============================================================
    Three dominant regions: the signal, the map, and the day's progress.
    Everything else is deliberately quieter. */

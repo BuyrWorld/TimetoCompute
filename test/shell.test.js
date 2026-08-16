@@ -161,6 +161,59 @@ test('every Mission Control module is present and points somewhere real', () => 
   }
 });
 
+test('the Reality Score publishes its formula and links to it', () => {
+  const method = read('methodology/index.html');
+  assert.ok(method.includes('id="reality-score"'), 'the score has no methodology entry');
+  assert.ok(/constructed by T2C/i.test(method), 'the methodology does not say the score is constructed');
+  for (const label of ['Promise delivery', 'Evidence quality', 'Timeline stability', 'Financing']) {
+    assert.ok(method.includes(label), `the published formula omits ${label}`);
+  }
+  // Every company page must reach the formula from the score itself.
+  for (const slug of ['iren', 'coreweave']) {
+    const html = read(`companies/${slug}/index.html`);
+    assert.ok(html.includes('href="/methodology/#reality-score"'),
+      `${slug} shows a score with no link to how it is calculated`);
+  }
+});
+
+test('a company that cannot be scored says why and still shows its factors', () => {
+  const html = read('companies/coreweave/index.html');
+  assert.ok(/Not enough published record to score/.test(html),
+    'an unscored company does not explain itself');
+  // The factor rows are still present — "unavailable" is not an empty panel.
+  const factors = [...html.matchAll(/class="sfactor[ "]/g)].length;
+  assert.equal(factors, 4, `expected 4 factor rows, found ${factors}`);
+});
+
+test('a scored company shows every input behind the number', () => {
+  const html = read('companies/iren/index.html');
+  const score = html.match(/<span class="scoreval [^"]*">(\d+)<\/span>/);
+  assert.ok(score, 'IREN shows no score');
+  assert.ok(Number(score[1]) > 0 && Number(score[1]) <= 100);
+  assert.ok(/Derived/.test(html), 'the score is not labelled as derived');
+  // Sample counts are printed beside each bar, not just the percentage.
+  assert.ok(/\d+ of \d+ met/.test(html), 'promise delivery shows no sample');
+  assert.ok(/\d+ of \d+ confirmed/.test(html), 'evidence quality shows no sample');
+});
+
+test('capacity truth states a basis for every figure', () => {
+  const html = read('companies/iren/index.html');
+  const cells = [...html.matchAll(/class="ctbasis">([^<]+)</g)].map(m => m[1].trim());
+  assert.equal(cells.length, 4, `expected 4 capacity cells, found ${cells.length}`);
+  for (const b of cells) assert.ok(b.length > 0, 'a capacity figure states no basis');
+  assert.ok(/never subtracted from one another/.test(html),
+    'the page does not warn that these are not one funnel');
+});
+
+test('the contract x-ray never adds a conditional maximum to committed value', () => {
+  // Nebius: $12bn committed, up to $27bn. The two must appear apart.
+  const html = read('companies/nebius/index.html');
+  assert.ok(/class="xray"/.test(html), 'no contract x-ray on a company with contracts');
+  assert.ok(/\$12bn/.test(html), 'committed value missing');
+  assert.ok(/never added/i.test(html), 'the page does not state that the two are not added');
+  assert.ok(!/\$27bn committed/.test(html), 'a conditional ceiling is described as committed');
+});
+
 test('the map is schematic and says so', () => {
   const html = read('index.html');
   assert.ok(/class="mapnote"/.test(html), 'the map carries no explanation');

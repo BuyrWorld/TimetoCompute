@@ -31,9 +31,11 @@ import {
   todayBody, companiesBody, compareBody, catalystsBody, researchBody, labBody,
   sitesBody, siteBody, intelligenceBody
 } from './src/pages.js';
-import { allSites } from './src/lib/sites.js';
+import { allSites, companyPath } from './src/lib/sites.js';
 import { signals, todaySet } from './src/lib/signals.js';
 import { signalIndex } from './src/lib/today.js';
+import { realityScore, FACTORS, MIN_WEIGHT_COVERAGE, THIN_SAMPLE } from './src/lib/score.js';
+import { scorePanel, capacityTruth, contractXray, pathTrack } from './src/mission-ui.js';
 import { LAB_COVERAGE, CONTRACT_ECONOMICS, CAPEX_REFERENCE, MODEL_DEFAULTS, ASSUMPTION_PROVENANCE } from './data/economics.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -957,6 +959,8 @@ function companyPage(c) {
   /* The sections a reader can jump between. Built from what this company actually
      has, so the sticky nav never offers a link to an absent section. */
   const sections = [
+    ['score', 'Reality Score'],
+    ['path', 'Path to billing'],
     ['story', 'The story'],
     ['record', 'Capacity record'],
     ...(targetRows ? [['targets', 'Targets']] : []),
@@ -968,6 +972,27 @@ function companyPage(c) {
     ['sources', 'Sources']
   ];
 
+  const score = realityScore(c);
+  const cpath = companyPath(c.id);
+  const reached = cpath.filter(s => s.status === 'complete');
+
+  /* Capacity truth: four figures, each stating its own basis. They are stages of
+     different measurements, not one funnel, and are never subtracted. */
+  const truthCell = (metricKey, label, glyph) => {
+    const m = v.measures[metricKey];
+    return {
+      glyph, label,
+      value: isKnown(m) ? mw(m.valueMw) : null,
+      basis: POWER_BASIS[m.powerBasis]?.short || '—'
+    };
+  };
+  const truth = [
+    truthCell('securedPowerMw', 'Secured', '⌁'),
+    truthCell('customerContractedMw', 'Contracted', '§'),
+    truthCell('energisedCriticalItMw', 'Energised', '▣'),
+    truthCell('revenueLiveMw', 'Billing', '$')
+  ];
+
   const body = `<div class="shell">
   <nav class="crumb" aria-label="Breadcrumb">
     <a href="/">T2C</a> <span aria-hidden="true">/</span> <a href="/companies/">Companies</a>
@@ -977,8 +1002,44 @@ function companyPage(c) {
   ${investmentSnapshot(c, v)}
 
   <nav class="secnav" aria-label="Sections of this page">
-    ${sections.map(([id, label]) => `<a href="#${id}">${esc(label)}</a>`).join('')}
+    ${sections.map(([id, label]) => `<a class="press" href="#${id}">${esc(label)}</a>`).join('')}
   </nav>
+
+  <section class="mpanel" id="score">
+    <div class="mhead">
+      <span class="mkicker">T2C Reality Score</span>
+      <span class="mnote secondary">Constructed from sourced records — not a disclosed figure</span>
+    </div>
+    ${scorePanel(score)}
+  </section>
+
+  <section class="mpanel" id="path">
+    <div class="mhead">
+      <span class="mkicker">Path to billing</span>
+      <span class="mnote">${reached.length
+        ? `Furthest reached anywhere: ${esc(reached[reached.length - 1].label)}`
+        : 'No stage evidenced'}</span>
+    </div>
+    ${pathTrack(cpath, { idPrefix: `co-${c.slug}` })}
+    <p class="mnote">A stage is marked complete when <b>any</b> of ${c.name}'s
+      ${v.projects.length} tracked ${v.projects.length === 1 ? 'project' : 'projects'} has reached it —
+      this is the furthest the company has got anywhere, not the state of every site.
+      ${cpath.some(s => s.projects.length)
+        ? 'Open a stage to see which sites evidence it.'
+        : ''}</p>
+  </section>
+
+  <section class="mpanel" id="capacity">
+    <div class="mhead">
+      <span class="mkicker">Capacity truth</span>
+      <span class="mnote secondary">Four different measurements</span>
+    </div>
+    ${capacityTruth(truth)}
+    <p class="mnote">These are four separate disclosures on different bases, not four stages of one
+      funnel. Secured power is measured at the utility connection; the rest are critical IT. They are
+      never subtracted from one another, and a figure the company has not published shows as
+      <b>${NOT_DISCLOSED}</b> rather than zero.</p>
+  </section>
 
   <div id="story">${storybook(v)}</div>
 
@@ -1006,8 +1067,18 @@ function companyPage(c) {
     <div class="projgrid">${projects}</div>
   </section>
 
-  ${contracts.length ? `<section class="panel" id="contracts">
-    <div class="ph"><h2>Major contracts</h2><span class="meta">${contracts.length}</span></div>
+  ${contracts.length ? `<section class="mpanel" id="contracts">
+    <div class="mhead">
+      <span class="mkicker">Contract X-ray</span>
+      <span class="mnote">${contracts.length} disclosed agreement${contracts.length === 1 ? '' : 's'}</span>
+    </div>
+    ${contractXray(contracts)}
+    <p class="mnote">Committed value and conditional maximum are shown apart and never added. Where a
+      company discloses a ceiling — "up to" — the difference depends on events that have not happened.</p>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><h2>Contract detail</h2><span class="meta">Every disclosed field</span></div>
     <div class="scrollnote">Scroll sideways for all columns →</div>
     <div class="tw"><table>
       <thead><tr><th scope="col">Customer</th><th scope="col">MW</th><th scope="col">Term</th>
@@ -1256,6 +1327,41 @@ function methodologyPage() {
     <p>T2C is an information tool. Nothing here is a recommendation to buy or sell anything, and no
       financial outcome described on this site is guaranteed or certain. Figures are compiled from public
       filings, may lag, and may contain errors — the corrections log below exists because they sometimes do.</p>
+
+    <h2 id="reality-score">The T2C Reality Score</h2>
+    <p>Every other figure on this site is disclosed by a company and cited to a document. The Reality
+      Score is not: it is <b>constructed by T2C</b> from those disclosures. That makes it the one number
+      here that you should check the workings of, so the workings are below.</p>
+    <p>It is a weighted mean of four factors, each derived from sourced records. No input is
+      hand-assigned, and no factor is scored by opinion.</p>
+    <div class="tw"><table class="rectable">
+      <thead><tr><th scope="col">Factor</th><th scope="col">Weight</th><th scope="col">What it measures</th></tr></thead>
+      <tbody>${FACTORS.map(f => `<tr>
+        <td><b>${esc(f.label)}</b></td>
+        <td>${Math.round(f.weight * 100)}%</td>
+        <td class="tleft dim">${esc(f.definition)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <h3>What it refuses to do</h3>
+    <ul>
+      <li><b>A missing factor is never a passing one.</b> If a company has published nothing that lets a
+        factor be computed, that factor is excluded and the mean is taken over the weight actually
+        covered — not filled in with a zero or a default.</li>
+      <li><b>The composite is withheld below ${Math.round(MIN_WEIGHT_COVERAGE * 100)}% weight coverage.</b>
+        A score resting on one factor out of four is noise wearing a number's clothes. Today that means
+        most tracked companies show no score, because only one has reached a milestone it had guided.</li>
+      <li><b>A thin sample is declared.</b> "100%" from one observation moves the score exactly as much
+        as "100%" from twenty, so where a factor rests on fewer than ${THIN_SAMPLE} observations the
+        page says so beside the number.</li>
+      <li><b>Landing inside a guided window counts as delivered.</b> Only missing the window is a miss.
+        Scoring a window against one of its edges produces artefacts like "early by one day".</li>
+    </ul>
+    <p>The weights are a judgement — delivering what you promised matters most, and how checkable the
+      record is matters next, because an unevidenced record cannot be audited at all. Publishing them
+      is the honest way to hold a judgement. They are defined in one place,
+      <code>src/lib/score.js</code>, and changing them changes every score on the site at once.</p>
+    <p><b>The score is not a rating, a recommendation, or a prediction.</b> It summarises how well a
+      company has delivered against its own published promises, on the evidence available today.</p>
 
     <h2 id="corrections">Corrections</h2>
     <p>Values are not edited silently. When a figure changes, the change is recorded and published here.</p>
