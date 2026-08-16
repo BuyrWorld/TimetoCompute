@@ -245,6 +245,117 @@ const run = async () => {
     focusTrail.length === 15 && !focusTrail.includes('BODY'),
     `${walk.start} → ${focusTrail.join(',')}`);
 
+  /* ---- click-glow behaves for pointer, Enter and Space alike ---- */
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+
+  const glowOnPointer = await page.evaluate(async () => {
+    const el = document.querySelector('.navlink.press');
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const on = el.classList.contains('is-pressed');
+    await new Promise(r => setTimeout(r, 420));
+    return { on, off: !el.classList.contains('is-pressed') };
+  });
+  check('a pointer press glows and then settles', glowOnPointer.on && glowOnPointer.off,
+    JSON.stringify(glowOnPointer));
+
+  const glowOnKey = await page.evaluate(async () => {
+    const el = document.querySelector('.modebtn.press');
+    el.focus();
+    const before = el.classList.contains('is-pressed');
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    const after = el.classList.contains('is-pressed');
+    // A held key repeats keydown; it must not re-trigger.
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, repeat: true }));
+    return { before, after };
+  });
+  check('keyboard activation produces the same glow as a pointer',
+    !glowOnKey.before && glowOnKey.after, JSON.stringify(glowOnKey));
+
+  const noShift = await page.evaluate(() => {
+    const el = document.querySelector('.navlink.press');
+    const before = el.getBoundingClientRect();
+    const neighbourBefore = el.nextElementSibling.getBoundingClientRect().left;
+    el.classList.add('is-pressed');
+    const after = el.getBoundingClientRect();
+    const neighbourAfter = el.nextElementSibling.getBoundingClientRect().left;
+    el.classList.remove('is-pressed');
+    return {
+      sameWidth: Math.abs(before.width - after.width) < 0.5,
+      neighbourStill: Math.abs(neighbourBefore - neighbourAfter) < 0.5
+    };
+  });
+  check('the glow causes no layout shift', noShift.sameWidth && noShift.neighbourStill,
+    JSON.stringify(noShift));
+
+  /* ---- Live / Focus persists and pauses motion ---- */
+  await page.click('.modebtn[data-mode="focus"]');
+  await new Promise(r => setTimeout(r, 150));
+  const focusOn = await page.evaluate(() => document.documentElement.getAttribute('data-mode'));
+  check('Focus mode applies immediately', focusOn === 'focus', String(focusOn));
+
+  const secondaryHidden = await page.evaluate(() => {
+    const el = document.querySelector('.secondary');
+    return !el || getComputedStyle(el).display === 'none';
+  });
+  check('Focus mode hides secondary metrics', secondaryHidden);
+
+  await page.goto(base + '/companies/', { waitUntil: 'networkidle0' });
+  const focusPersisted = await page.evaluate(() => document.documentElement.getAttribute('data-mode'));
+  check('the mode preference persists across pages', focusPersisted === 'focus', String(focusPersisted));
+
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 400));
+  const pausedA = await page.evaluate(() => {
+    const cv = document.getElementById('flow');
+    return cv ? cv.toDataURL().length : 0;
+  });
+  await new Promise(r => setTimeout(r, 500));
+  const pausedB = await page.evaluate(() => {
+    const cv = document.getElementById('flow');
+    return cv ? cv.toDataURL().length : 0;
+  });
+  check('Focus mode pauses decorative motion', pausedA === pausedB, `${pausedA} vs ${pausedB}`);
+
+  await page.click('.modebtn[data-mode="live"]');
+  await new Promise(r => setTimeout(r, 150));
+  const backLive = await page.evaluate(() => document.documentElement.getAttribute('data-mode'));
+  check('switching back to Live restores the mode', backLive === 'live', String(backLive));
+
+  /* ---- command palette ---- */
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  await page.keyboard.down('Control');
+  await page.keyboard.press('KeyK');
+  await page.keyboard.up('Control');
+  await new Promise(r => setTimeout(r, 200));
+  const palOpen = await page.$eval('#palette', el => el.open);
+  check('Ctrl+K opens the command palette', palOpen);
+
+  const palFocused = await page.evaluate(() => document.activeElement.id);
+  check('the palette focuses its input on open', palFocused === 'palInput', palFocused);
+
+  await page.type('#palInput', 'horizon');
+  await new Promise(r => setTimeout(r, 200));
+  const palRows = await page.$$eval('#palResults .palitem', els =>
+    els.map(e => e.getAttribute('href')));
+  check('the palette finds a site by name',
+    palRows.some(h => h.startsWith('/sites/')), palRows.join(', '));
+
+  await page.keyboard.press('Escape');
+  await new Promise(r => setTimeout(r, 200));
+  const palClosed = await page.$eval('#palette', el => !el.open);
+  const focusRestored = await page.evaluate(() => document.activeElement.id);
+  check('Escape closes the palette and returns focus to its trigger',
+    palClosed && focusRestored === 'palOpen', `closed=${palClosed} focus=${focusRestored}`);
+
+  /* ---- nav marks exactly one destination current ---- */
+  for (const [route, expect] of [['/sites/', '/sites/'], ['/intelligence/', '/intelligence/']]) {
+    await page.goto(base + route, { waitUntil: 'networkidle0' });
+    const current = await page.$$eval('[aria-current="page"]', els =>
+      els.filter(e => e.classList.contains('navlink')).map(e => e.getAttribute('href')));
+    check(`${route} marks itself current in the nav`,
+      current.length === 1 && current[0] === expect, current.join(', '));
+  }
+
   /* ---- reduced motion is honoured ---- */
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await page.goto(base + '/', { waitUntil: 'networkidle0' });

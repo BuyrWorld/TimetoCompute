@@ -65,6 +65,152 @@
     try { localStorage.setItem('t2c-theme', next); } catch (e) {}
   });
 
+  /* ============ click-glow ============
+     One primitive for every pressable thing. Three rules it exists to keep:
+
+       1. Pointer, Enter and Space produce identical feedback. A keyboard user
+          gets the same confirmation a mouse user does.
+       2. Navigation is never delayed for the animation. The class is applied and
+          a timer removes it; if the page changes first, the timer is irrelevant.
+       3. Double activation is suppressed. Space on a <button> fires click on
+          keyup, and holding a key repeats keydown — neither may fire twice. */
+  (function clickGlow() {
+    var GLOW_MS = 340;
+    var held = null;
+
+    var flash = function (el) {
+      if (!el || el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') return;
+      el.classList.add('is-pressed');
+      // The timer only removes a visual class, so navigation is free to happen
+      // underneath it at any moment.
+      setTimeout(function () { el.classList.remove('is-pressed'); }, GLOW_MS);
+    };
+
+    document.addEventListener('pointerdown', function (e) {
+      var el = e.target.closest ? e.target.closest('.press') : null;
+      if (el) flash(el);
+    }, { passive: true });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+      if (e.repeat) return;                       // holding a key must not strobe
+      var el = document.activeElement;
+      if (!el || !el.classList || !el.classList.contains('press')) return;
+      if (held === el) return;                    // already flashed for this press
+      held = el;
+      flash(el);
+    });
+    document.addEventListener('keyup', function () { held = null; });
+  })();
+
+  /* ============ Live / Focus ============
+     Focus mode pauses decorative movement and hides secondary metrics. It must
+     not disturb the investigation in progress, so it only toggles a root
+     attribute — no panel is closed, no filter is reset, no scroll is moved. */
+  var MODE_KEY = 't2c-mode';
+  var MODE = 'live';
+  (function modeToggle() {
+    var buttons = qsa('.modebtn');
+    var apply = function (mode, persist) {
+      MODE = mode === 'focus' ? 'focus' : 'live';
+      document.documentElement.setAttribute('data-mode', MODE);
+      buttons.forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === MODE));
+      });
+      if (persist) { try { localStorage.setItem(MODE_KEY, MODE); } catch (e) {} }
+      // Anything animating asks the mode rather than being told, so a controller
+      // that starts later still honours it.
+      if (window.__t2cModeChanged) window.__t2cModeChanged(MODE);
+    };
+    var saved = null;
+    try { saved = localStorage.getItem(MODE_KEY); } catch (e) {}
+    apply(saved === 'focus' ? 'focus' : 'live', false);
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () { apply(b.getAttribute('data-mode'), true); });
+    });
+  })();
+  /** Decorative motion runs only in Live mode, and never under reduced motion. */
+  var motionAllowed = function () { return !reduced && MODE !== 'focus'; };
+
+  /* ============ command palette ============ */
+  (function palette() {
+    var dlg = $('palette'), input = $('palInput'), list = $('palResults'), empty = $('palEmpty');
+    var trigger = $('palOpen');
+    if (!dlg || !input || !list || !trigger || !dlg.showModal) return;
+
+    var INDEX = CFG.palette || [];
+    var active = -1, rows = [];
+
+    var render = function (q) {
+      var needle = q.trim().toLowerCase();
+      rows = !needle ? INDEX.slice(0, 8) : INDEX.filter(function (r) {
+        return r.n.toLowerCase().indexOf(needle) !== -1 || r.k.toLowerCase().indexOf(needle) !== -1;
+      }).slice(0, 12);
+      active = rows.length ? 0 : -1;
+      list.innerHTML = rows.map(function (r, i) {
+        return '<li role="option" aria-selected="' + (i === 0) + '">' +
+          '<a class="palitem' + (i === 0 ? ' is-active' : '') + '" href="' + esc(r.h) + '">' +
+          '<span class="palkind">' + esc(r.k) + '</span>' +
+          '<span class="palname">' + esc(r.n) + '</span>' +
+          '<span class="palhint" aria-hidden="true">↵</span></a></li>';
+      }).join('');
+      empty.hidden = rows.length > 0;
+    };
+
+    var move = function (delta) {
+      if (!rows.length) return;
+      active = (active + delta + rows.length) % rows.length;
+      qsa('#palResults .palitem').forEach(function (el, i) {
+        el.classList.toggle('is-active', i === active);
+        el.parentElement.setAttribute('aria-selected', String(i === active));
+        if (i === active && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+      });
+    };
+
+    // <dialog> traps focus while modal for free. It also restores focus to
+    // whatever was focused before — but opening by shortcut means that was the
+    // body, which would strand the keyboard user. Remember a real return point.
+    var returnTo = null;
+    var open = function () {
+      var prev = document.activeElement;
+      returnTo = prev && prev !== document.body && prev.focus ? prev : trigger;
+      input.value = '';
+      render('');
+      dlg.showModal();
+      input.focus();
+      track('palette_opened', {});
+    };
+
+    dlg.addEventListener('close', function () {
+      if (returnTo && document.contains(returnTo)) returnTo.focus();
+    });
+
+    trigger.addEventListener('click', open);
+    input.addEventListener('input', function () { render(input.value); });
+
+    dlg.addEventListener('keydown', function (e) {
+      // A search input eats the first Escape to clear itself, so the dialog's
+      // native cancel never fires. Close explicitly.
+      if (e.key === 'Escape') { e.preventDefault(); dlg.close(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+      else if (e.key === 'Enter') {
+        var el = qsa('#palResults .palitem')[active];
+        if (el) { e.preventDefault(); location.href = el.getAttribute('href'); }
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        if (dlg.open) dlg.close(); else open();
+      }
+    });
+
+    // Clicking the backdrop closes; clicking the panel must not.
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+  })();
+
   /* ============ visit window ============
      "Since last visit" needs the timestamp of the PREVIOUS session, and it must
      survive moving between pages within this one. Two rules follow:
@@ -246,7 +392,7 @@
             ctx.fillStyle = 'rgba(214,255,0,0.2)';
             ctx.fillRect(x - 2, y - 2, 4, 4);
           }
-          if (!reduced) {
+          if (motionAllowed()) {
             var period = 11 + l * 2.6, p = ((el + l * 3.4) % period) / period;
             var px = pad + span * (p * p * (3 - 2 * p));
             var g = ctx.createLinearGradient(px - 50, 0, px, 0);
@@ -257,11 +403,17 @@
             ctx.beginPath(); ctx.arc(px, y, 2.4, 0, Math.PI * 2); ctx.fill();
           }
         }
-        if (!reduced) raf = requestAnimationFrame(draw);
+        if (motionAllowed()) raf = requestAnimationFrame(draw);
       };
       size(); draw(performance.now());
       new ResizeObserver(function () { cancelAnimationFrame(raf); size(); draw(performance.now()); })
         .observe(cv.parentElement);
+      // Switching to Live must restart the loop; switching to Focus lets the
+      // current frame finish and stops, leaving the static rails drawn.
+      window.__t2cModeChanged = function () {
+        cancelAnimationFrame(raf);
+        draw(performance.now());
+      };
     }
   }
 

@@ -36,6 +36,12 @@ html[data-theme="light"] {
   --m-lime-soft: rgba(150, 175, 0, .16);
 }
 
+/* Visually hidden, still announced. */
+.vh {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
 /* ============================================================
    1. Click-glow — one primitive, applied everywhere
    ============================================================
@@ -487,3 +493,57 @@ html[data-mode="focus"] .secondary { display: none; }
   border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; color: var(--dim);
 }
 @media (max-width: 900px) { .paltrigger .paltxt { display: none; } }
+
+/* ============================================================
+   9. Active route — an underline, not a filled chip
+   ============================================================
+   The reference marks the current destination with a lime underline. A filled
+   block reads as a button and competes with the one primary action. */
+
+.mainnav .navlink.is-active {
+  background: none;
+  color: var(--ink);
+  border-radius: 0;
+  box-shadow: inset 0 -2px 0 var(--brand);
+}
+.mainnav .navlink.is-primary { color: var(--brand); }
+.mainnav .navlink.is-primary.is-active {
+  background: none;
+  color: var(--brand);
+  box-shadow: inset 0 -2px 0 var(--brand);
+}
+.mainnav .navlink:hover { background: var(--surface-2); border-radius: 6px; }
+.mainnav .navlink.is-active:hover { border-radius: 0; }
+
+/* The bottom bar has no room for an underline under a 5-up grid, so the current
+   item is marked by colour AND weight AND aria-current, never colour alone. */
+.bottomnav .bnav.is-active { box-shadow: inset 0 2px 0 var(--brand); }
+
+/* ============================================================
+   10. The shell on small screens
+   ============================================================
+   The header gained a palette trigger and a Live/Focus toggle. Below the
+   breakpoint where the primary nav moves to the bottom bar, the brand takes the
+   free space and the utility cluster is allowed to shrink rather than push the
+   document sideways. */
+
+@media (max-width: 1080px) {
+  .brand { margin-right: auto; }
+  .appbarutil { min-width: 0; flex-shrink: 1; }
+}
+
+@media (max-width: 760px) {
+  /* The market pill duplicates the feed row already inside the utility menu. */
+  .appbarutil .mstate { display: none; }
+  .paltrigger .palkbd { display: none; }
+  .paltrigger { padding: 0 10px; }
+  .modebtn { padding: 0 10px; letter-spacing: .06em; }
+}
+
+@media (max-width: 420px) {
+  /* Both controls stay reachable — the toggle keeps its labels, which are the
+     only thing distinguishing the two states. */
+  .modetoggle { padding: 2px; }
+  .modebtn { padding: 0 8px; font-size: 10.5px; }
+  .appbarin { gap: var(--s1); }
+}

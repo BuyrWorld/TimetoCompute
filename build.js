@@ -58,13 +58,31 @@ console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
  * Real routes, not tabs. Each is its own page, so an internal tool starts near the
  * top of the screen instead of below a repeated marketing hero.
  */
+/**
+ * Five destinations. Today, Companies, Sites and Intelligence are the four the
+ * brief asks for; Edge Lab keeps its place because it is the most substantial
+ * tool on the site and burying it in a menu would be a downgrade dressed as
+ * tidiness. Compare, Catalysts and Research stay real routes, reachable from the
+ * pages they belong to and from the utility menu — never orphaned.
+ */
 const NAV = [
   { id: 'today', label: 'Today', href: '/' },
   { id: 'companies', label: 'Companies', href: '/companies/' },
-  { id: 'compare', label: 'Compare', href: '/compare/' },
-  { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
-  { id: 'lab', label: 'Edge Lab', href: '/lab/', primary: true },
-  { id: 'research', label: 'Research', href: '/research/' }
+  { id: 'sites', label: 'Sites', href: '/sites/' },
+  { id: 'intelligence', label: 'Intelligence', href: '/intelligence/' },
+  { id: 'lab', label: 'Edge Lab', href: '/lab/', primary: true }
+];
+
+/**
+ * Secondary routes, reachable from the utility menu on every page. They carry
+ * ids so that a reader standing on one still sees where they are — a demoted
+ * route must not become a page with no current marker anywhere.
+ */
+const UTILITY_ROUTES = [
+  { id: 'compare', label: 'Compare companies', href: '/compare/' },
+  { id: 'catalysts', label: 'Catalyst calendar', href: '/catalysts/' },
+  { id: 'research', label: 'Research', href: '/research/' },
+  { id: 'methodology', label: 'Methodology', href: '/methodology/' }
 ];
 
 /**
@@ -118,37 +136,52 @@ ${(Array.isArray(structured) ? structured : [structured]).filter(Boolean)
  */
 function appHeader(active = 'today') {
   const items = NAV.map(n =>
-    `<a class="navlink${n.id === active ? ' is-active' : ''}${n.primary ? ' is-primary' : ''}"
+    `<a class="navlink press${n.id === active ? ' is-active' : ''}${n.primary ? ' is-primary' : ''}"
         href="${n.href}"${n.id === active ? ' aria-current="page"' : ''}>${esc(n.label)}</a>`).join('');
 
   return `<a class="skiplink" href="#main">Skip to content</a>
 <header class="appbar">
   <div class="shell appbarin">
-    <a class="brand" href="/" aria-label="T2C — Time to Compute, home">
+    <a class="brand press" href="/" aria-label="T2C — Time to Compute, home">
       <img src="/Logo/logo-header.png" width="514" height="120" alt="" />
     </a>
     <nav class="mainnav" aria-label="Primary">${items}</nav>
     <div class="appbarutil">
-      <span class="mstate" id="marketState" aria-live="polite">
+      <button class="paltrigger press" id="palOpen" type="button"
+        aria-haspopup="dialog" aria-label="Search or run a command">
+        <span aria-hidden="true">⌕</span>
+        <span class="paltxt">Search or run a command</span>
+        <kbd class="palkbd" aria-hidden="true">Ctrl K</kbd>
+      </button>
+      <div class="modetoggle" role="group" aria-label="Interface mode">
+        <button class="modebtn press" type="button" data-mode="live" aria-pressed="true">Live</button>
+        <button class="modebtn press" type="button" data-mode="focus" aria-pressed="false">Focus</button>
+      </div>
+      <span class="mstate secondary" id="marketState" aria-live="polite">
         <i aria-hidden="true"></i><span class="mstate-text">Updating…</span>
       </span>
       <details class="umenu">
-        <summary aria-label="Settings and data status"><span aria-hidden="true">⋯</span></summary>
+        <summary class="press" aria-label="Settings and data status"><span aria-hidden="true">⋯</span></summary>
         <div class="umenupanel">
           <div class="umenugroup">
             <div class="umenuhead">Data</div>
             <div class="umenurow" id="feedDetail">Checking the feed…</div>
-            <button class="umenubtn" id="refreshBtn" type="button">Refresh data</button>
+            <button class="umenubtn press" id="refreshBtn" type="button">Refresh data</button>
           </div>
           <div class="umenugroup">
             <div class="umenuhead">Display</div>
-            <button class="umenubtn" id="themeBtn" type="button" aria-label="Switch to light theme">Light theme</button>
+            <button class="umenubtn press" id="themeBtn" type="button" aria-label="Switch to light theme">Light theme</button>
+          </div>
+          <div class="umenugroup">
+            <div class="umenuhead">More of T2C</div>
+            ${UTILITY_ROUTES.map(r =>
+              `<a class="umenubtn press${r.id === active ? ' is-active' : ''}" href="${r.href}"${
+                r.id === active ? ' aria-current="page"' : ''}>${esc(r.label)}</a>`).join('\n            ')}
           </div>
           <div class="umenugroup">
             <div class="umenuhead">Reference</div>
-            <a class="umenubtn" href="/methodology/">Methodology</a>
-            <a class="umenubtn" href="/research/#data-health">Data health</a>
-            <a class="umenubtn" href="/methodology/#corrections">Corrections</a>
+            <a class="umenubtn press" href="/research/#data-health">Data health</a>
+            <a class="umenubtn press" href="/methodology/#corrections">Corrections</a>
           </div>
         </div>
       </details>
@@ -156,11 +189,24 @@ function appHeader(active = 'today') {
   </div>
 </header>
 <nav class="bottomnav" aria-label="Primary, mobile">
-  ${NAV.filter(n => n.id !== 'research').map(n =>
-    `<a class="bnav${n.id === active ? ' is-active' : ''}" href="${n.href}"${n.id === active ? ' aria-current="page"' : ''}>
+  ${NAV.map(n =>
+    `<a class="bnav press${n.id === active ? ' is-active' : ''}" href="${n.href}"${n.id === active ? ' aria-current="page"' : ''}>
       <span>${esc(n.label)}</span></a>`).join('')}
-  <a class="bnav${active === 'research' ? ' is-active' : ''}" href="/research/"><span>More</span></a>
-</nav>`;
+</nav>
+
+<dialog class="pal" id="palette" aria-label="Search or run a command">
+  <div class="palin">
+    <div class="palfield">
+      <span aria-hidden="true">⌕</span>
+      <label class="vh" for="palInput">Search companies, sites and pages</label>
+      <input type="search" id="palInput" placeholder="Search companies, sites and pages…"
+        autocomplete="off" spellcheck="false" />
+      <kbd class="palkbd" aria-hidden="true">Esc</kbd>
+    </div>
+    <ul class="palresults" id="palResults" role="listbox" aria-label="Results"></ul>
+    <p class="palempty" id="palEmpty" hidden>Nothing matches that.</p>
+  </div>
+</dialog>`;
 }
 
 /**
@@ -211,6 +257,30 @@ function footer() {
 </footer>`;
 }
 
+/**
+ * Everything the command palette can reach. Built from the same records as the
+ * pages themselves, so the palette can never offer a destination that was not
+ * generated — a stale search index is a broken link with extra steps.
+ */
+let PALETTE_CACHE = null;
+function paletteIndex() {
+  if (PALETTE_CACHE) return PALETTE_CACHE;
+  const rows = [];
+  for (const n of NAV) rows.push({ k: 'Page', n: n.label, h: n.href });
+  for (const r of UTILITY_ROUTES) rows.push({ k: 'Page', n: r.label, h: r.href });
+  for (const c of COMPANIES) {
+    rows.push({ k: 'Company', n: `${c.name} (${c.ticker})`, h: `/companies/${c.slug}/` });
+  }
+  for (const p of PROFILES.filter(x => x.deliveryTracked === false)) {
+    rows.push({ k: 'Company', n: `${p.legalName} (${p.ticker})`, h: `/companies/${p.id}/` });
+  }
+  for (const s of allSites()) {
+    rows.push({ k: 'Site', n: `${s.name} — ${s.ticker || s.companyName}`, h: `/sites/${s.slug}/` });
+  }
+  PALETTE_CACHE = rows;
+  return rows;
+}
+
 function page({ title, description, canonical, body, active = 'today', structured = null, extraScripts = [], inlineData = null }) {
   return `<!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -224,7 +294,8 @@ ${footer()}
 <script type="application/json" id="t2c-config">${JSON.stringify({
     tickers: WATCH_TICKERS, names: TICKER_NAMES, maxCompare: MAX_TICKERS, buildStamp: BUILD_STAMP,
     route: active, hashRoutes: HASH_ROUTES,
-    labReady: Object.entries(LAB_COVERAGE).filter(([, v]) => v.ready).map(([k]) => k)
+    labReady: Object.entries(LAB_COVERAGE).filter(([, v]) => v.ready).map(([k]) => k),
+    palette: paletteIndex()
   })}</script>
 ${inlineData ? `<script>Object.assign(window, ${JSON.stringify(inlineData)});</script>` : ''}
 <script src="/app.js" defer></script>

@@ -18,16 +18,105 @@ const DIST = path.join(ROOT, 'dist');
 const read = rel => fs.readFileSync(path.join(DIST, rel), 'utf8');
 const exists = rel => fs.existsSync(path.join(DIST, rel));
 
-const ROUTES = ['index.html', 'companies/index.html', 'compare/index.html',
-  'catalysts/index.html', 'lab/index.html', 'research/index.html', 'methodology/index.html'];
+const ROUTES = ['index.html', 'companies/index.html', 'sites/index.html',
+  'intelligence/index.html', 'compare/index.html', 'catalysts/index.html',
+  'lab/index.html', 'research/index.html', 'methodology/index.html'];
+
+/** The five primary destinations, in the order the shell presents them. */
+const NAV_HREFS = ['/', '/companies/', '/sites/', '/intelligence/', '/lab/'];
 
 /* ================= routes ================= */
 
 test('every navigation route is a real page, not a hash', () => {
   for (const r of ROUTES) assert.ok(exists(r), `${r} was not built`);
   const home = read('index.html');
-  for (const href of ['/companies/', '/compare/', '/catalysts/', '/lab/', '/research/']) {
+  for (const href of ['/companies/', '/sites/', '/intelligence/', '/compare/',
+    '/catalysts/', '/lab/', '/research/']) {
     assert.ok(home.includes(`href="${href}"`), `home does not link to ${href}`);
+  }
+});
+
+/* ================= the shared shell ================= */
+
+test('the shell offers exactly the five primary destinations, in order', () => {
+  for (const r of ROUTES) {
+    const html = read(r);
+    const hrefs = [...html.matchAll(/class="navlink[^"]*"\s+href="([^"]+)"/g)].map(m => m[1]);
+    assert.deepEqual(hrefs, NAV_HREFS, `${r} has the wrong primary navigation`);
+  }
+});
+
+test('a route demoted from the nav is still reachable from every page', () => {
+  // Compare, Catalysts and Research lost their nav slot. Losing a slot must not
+  // mean losing the route.
+  for (const r of ROUTES) {
+    const html = read(r);
+    for (const href of ['/compare/', '/catalysts/', '/research/', '/methodology/']) {
+      assert.ok(html.includes(`href="${href}"`), `${r} orphans ${href}`);
+    }
+  }
+});
+
+test('a demoted route still tells the reader where they are', () => {
+  // Research and Compare have no nav slot. They must still mark themselves
+  // current somewhere, or the reader lands on a page the shell does not admit to.
+  for (const [file, href] of [['research/index.html', '/research/'],
+    ['compare/index.html', '/compare/'], ['catalysts/index.html', '/catalysts/'],
+    ['methodology/index.html', '/methodology/']]) {
+    const html = read(file);
+    const link = html.match(new RegExp(`<a class="umenubtn[^"]*"[^>]*href="${href}"[^>]*>`));
+    assert.ok(link, `${file} has no utility-menu link to itself`);
+    assert.ok(/aria-current="page"/.test(link[0]), `${file} does not mark itself current`);
+  }
+});
+
+test('every page carries the Live/Focus toggle and it is a real pair of buttons', () => {
+  for (const r of ROUTES) {
+    const html = read(r);
+    assert.ok(/<div class="modetoggle" role="group"/.test(html), `${r} has no mode toggle`);
+    assert.ok(html.includes('data-mode="live"') && html.includes('data-mode="focus"'),
+      `${r} is missing a mode button`);
+    // Pressed state is expressed to assistive technology, not by colour alone.
+    assert.ok(/data-mode="live" aria-pressed="true"/.test(html), `${r} does not default to Live`);
+  }
+});
+
+test('every page carries the command palette and states its shortcut', () => {
+  for (const r of ROUTES) {
+    const html = read(r);
+    assert.ok(html.includes('id="palette"'), `${r} has no palette dialog`);
+    assert.ok(/<button class="paltrigger press"[^>]*aria-haspopup="dialog"/.test(html),
+      `${r} has no palette trigger`);
+    assert.ok(html.includes('Ctrl K'), `${r} does not show the palette shortcut`);
+    assert.ok(/<label class="vh" for="palInput">/.test(html),
+      `${r} palette input has no accessible name`);
+  }
+});
+
+test('the palette can only offer destinations that were built', () => {
+  const cfg = JSON.parse(read('index.html').match(/id="t2c-config">([^<]+)</)[1]);
+  assert.ok(Array.isArray(cfg.palette) && cfg.palette.length > 0, 'the palette index is empty');
+  for (const row of cfg.palette) {
+    const file = row.h === '/' ? 'index.html' : row.h.replace(/^\//, '') + 'index.html';
+    assert.ok(exists(file), `the palette offers ${row.h}, which was not built`);
+    assert.ok(row.n && row.k, `a palette row has no name or kind: ${JSON.stringify(row)}`);
+  }
+});
+
+test('the palette reaches every company and every site', () => {
+  const cfg = JSON.parse(read('index.html').match(/id="t2c-config">([^<]+)</)[1]);
+  const hrefs = new Set(cfg.palette.map(r => r.h));
+  assert.ok(hrefs.has('/sites/iren-horizon-1/'), 'a known site is missing from the palette');
+  assert.ok(hrefs.has('/companies/iren/'), 'a known company is missing from the palette');
+  assert.equal(cfg.palette.filter(r => r.k === 'Site').length, 23, 'not every site is indexed');
+});
+
+test('nav links carry the click-glow primitive', () => {
+  const html = read('index.html');
+  const navLinks = [...html.matchAll(/<a class="(navlink[^"]*)"/g)].map(m => m[1]);
+  assert.ok(navLinks.length > 0);
+  for (const cls of navLinks) {
+    assert.ok(cls.includes('press'), `a nav link is missing the press primitive: "${cls}"`);
   }
 });
 
@@ -83,7 +172,7 @@ test('the current route is marked for assistive technology, not colour alone', (
 test('no page ships a hard-coded price, change or market state', () => {
   for (const r of [...ROUTES, 'companies/iren/index.html']) {
     const html = read(r);
-    const pill = html.match(/<span class="mstate"[^>]*>([\s\S]*?)<\/span>\s*<\/span>/);
+    const pill = html.match(/<span class="mstate[^"]*"[^>]*>([\s\S]*?)<\/span>\s*<\/span>/);
     assert.ok(pill, `${r} has no market-state pill`);
     assert.ok(/Updating…/.test(pill[0]),
       `${r} states a market session in static HTML instead of waiting for the client`);
@@ -155,11 +244,13 @@ test('undisclosed figures render as not disclosed, never as zero', () => {
 /* ================= mobile and interaction affordances ================= */
 
 test('the mobile bottom navigation exists and mirrors the primary routes', () => {
-  const html = read('index.html');
-  assert.ok(html.includes('class="bottomnav"'), 'no mobile navigation');
-  for (const href of ['/companies/', '/compare/', '/catalysts/', '/lab/']) {
-    assert.ok(new RegExp(`class="bnav[^"]*" href="${href}"`).test(html),
-      `mobile navigation is missing ${href}`);
+  // Mobile shows the same five destinations as the desktop bar — no "More"
+  // bucket that hides a route from one viewport but not the other.
+  for (const r of ROUTES) {
+    const html = read(r);
+    assert.ok(html.includes('class="bottomnav"'), `${r} has no mobile navigation`);
+    const hrefs = [...html.matchAll(/class="bnav[^"]*" href="([^"]+)"/g)].map(m => m[1]);
+    assert.deepEqual(hrefs, NAV_HREFS, `${r} mobile navigation does not mirror the primary nav`);
   }
 });
 
