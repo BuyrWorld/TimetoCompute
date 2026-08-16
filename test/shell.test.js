@@ -24,10 +24,13 @@ const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites
   'catalysts/index.html', 'lab/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/chain/', '/companies/', '/ai-news/', '/catalysts/', '/explainers/'];
+const NAV_HREFS = ['/', '/chain/', '/companies/', '/ai-news/', '/catalysts/', '/explainers/', '/time-machine/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
 const SECONDARY = ['/sites/', '/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/'];
+
+/** Primary destinations must not also sit in the utility menu. */
+const NOT_SECONDARY = ['/time-machine/'];
 
 /* ================= routes ================= */
 
@@ -57,6 +60,16 @@ test('a route demoted from the nav is still reachable from every page', () => {
     const html = read(r);
     for (const href of SECONDARY) {
       assert.ok(html.includes(`href="${href}"`), `${r} orphans ${href}`);
+    }
+  }
+});
+
+test('a primary destination is not duplicated in the utility menu', () => {
+  for (const r of ROUTES) {
+    const html = read(r);
+    for (const href of NOT_SECONDARY) {
+      assert.ok(!new RegExp('<a class="umenubtn[^"]*"[^>]*href="' + href + '"').test(html),
+        r + ' lists ' + href + ' in both the primary nav and the utility menu');
     }
   }
 });

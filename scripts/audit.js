@@ -116,7 +116,7 @@ if (controlIds.length < 6) fail(`expected the Edge Lab inputs, found ${controlId
 for (const [pageName, html] of [['home', home], ['lab', lab], ['research', research], ['companies', companiesPg]]) {
   if (!/<nav class="mainnav" aria-label="Primary">/.test(html)) fail(`${pageName}: no primary navigation`);
   const links = [...html.matchAll(/class="navlink[^"]*"\s+href="([^"]+)"/g)].map(m => m[1]);
-  if (links.length !== 6) fail(`${pageName}: expected 6 primary nav links, found ${links.length}`);
+  if (links.length !== 7) fail(`${pageName}: expected 7 primary nav links, found ${links.length}`);
   for (const href of links) {
     const clean = href.split('#')[0];
     if (!routes.has(clean)) fail(`${pageName}: nav points at unbuilt route ${href}`);

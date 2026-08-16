@@ -236,7 +236,12 @@
     var render = function (q) {
       var needle = q.trim().toLowerCase();
       rows = !needle ? INDEX.slice(0, 8) : INDEX.filter(function (r) {
-        return r.n.toLowerCase().indexOf(needle) !== -1 || r.k.toLowerCase().indexOf(needle) !== -1;
+        /* `r.s` is a hidden search alias, for rows whose nav label is shorter
+           than the thing it names — "Play" is right on a tab and wrong in a
+           search box, where somebody will type "time machine". */
+        return r.n.toLowerCase().indexOf(needle) !== -1 ||
+          r.k.toLowerCase().indexOf(needle) !== -1 ||
+          (r.s ? r.s.toLowerCase().indexOf(needle) !== -1 : false);
       }).slice(0, 12);
       active = rows.length ? 0 : -1;
       list.innerHTML = rows.map(function (r, i) {

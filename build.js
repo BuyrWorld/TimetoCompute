@@ -109,7 +109,12 @@ const NAV = [
      reader has not been promised yet. It joins when it has something to show. */
   { id: 'ainews', label: 'AI news', href: '/ai-news/' },
   { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
-  { id: 'explainers', label: 'Explainers', href: '/explainers/' }
+  { id: 'explainers', label: 'Explainers', href: '/explainers/' },
+  /* The game gets its own tab. It sits last because it is the one destination
+     that is not the research record, and the label says what it is rather than
+     what it contains — nobody scanning a nav is looking for "AI Time Machine"
+     unless they already know what that is. */
+  { id: 'timemachine', label: 'Play', href: '/time-machine/', search: 'AI Time Machine game play history simulation' }
 ];
 
 /**
@@ -130,7 +135,6 @@ const MOBILE_NAV = [
  * route must not become a page with no current marker anywhere.
  */
 const UTILITY_ROUTES = [
-  { id: 'timemachine', label: 'Play the AI Time Machine', href: '/time-machine/' },
   { id: 'sites', label: 'All data centres', href: '/sites/' },
   { id: 'intelligence', label: 'Intelligence ledger', href: '/intelligence/' },
   { id: 'news', label: 'News wire', href: '/news/' },
@@ -350,7 +354,10 @@ let PALETTE_CACHE = null;
 function paletteIndex() {
   if (PALETTE_CACHE) return PALETTE_CACHE;
   const rows = [];
-  for (const n of NAV) rows.push({ k: 'Page', n: n.label, h: n.href });
+  /* `search` carries what a reader might type when the nav label is shorter than
+     the thing itself. "Play" is the right word on a tab and the wrong one in a
+     search box: somebody looking for the game will type "time machine". */
+  for (const n of NAV) rows.push({ k: 'Page', n: n.label, h: n.href, ...(n.search ? { s: n.search } : {}) });
   for (const r of UTILITY_ROUTES) rows.push({ k: 'Page', n: r.label, h: r.href });
   for (const c of COMPANIES) {
     rows.push({ k: 'Company', n: `${c.name} (${c.ticker})`, h: `/companies/${c.slug}/` });
