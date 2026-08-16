@@ -171,6 +171,19 @@ export function flagshipHero(stages, coverage, story) {
           <a class="ed-cta secondary press" href="/intelligence/?view=since-last-visit">
             See what changed <span aria-hidden="true">&rarr;</span></a>
         </div>
+
+        <!-- The game is a way into the same subject for a reader who would
+             bounce off a research page. It sits below the two primary actions
+             rather than competing with them, and says plainly that it is a
+             simulation so nobody mistakes it for the tracked record. -->
+        <p class="fl-play">
+          <a class="fl-playlink press" href="/time-machine/">
+            <span class="fl-playglyph" aria-hidden="true">&#9654;</span>
+            Play the AI Time Machine
+          </a>
+          <span class="fl-playnote">Five campaigns, 34 real turning points, fictional capital.
+            Educational only.</span>
+        </p>
       </div>
 
       ${story.available ? `<aside class="fl-reaction" aria-labelledby="fl-react-h">

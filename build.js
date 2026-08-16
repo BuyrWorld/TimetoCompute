@@ -38,6 +38,8 @@ import { ART } from './data/artpack.js';
 import { explainerRoutes, explainerHref } from './src/lib/explain.js';
 import { explainerPageBody } from './src/explainer-page.js';
 import { aiNewsBody, aiNewsConfig } from './src/ainews-page.js';
+import { timeMachineBody } from './src/timemachine-page.js';
+import { checkTimeMachine, CAMPAIGNS, chapterCount } from './src/lib/timemachine.js';
 import { aiFactoryGraph } from './src/lib/corridor.js';
 import { passport } from './src/lib/passport.js';
 import {
@@ -128,6 +130,7 @@ const MOBILE_NAV = [
  * route must not become a page with no current marker anywhere.
  */
 const UTILITY_ROUTES = [
+  { id: 'timemachine', label: 'Play the AI Time Machine', href: '/time-machine/' },
   { id: 'sites', label: 'All data centres', href: '/sites/' },
   { id: 'intelligence', label: 'Intelligence ledger', href: '/intelligence/' },
   { id: 'news', label: 'News wire', href: '/news/' },
@@ -885,6 +888,27 @@ function notFoundPage() {
  * The two are deliberately different routes because they are different claims —
  * one is what T2C has evidenced, the other is what other people have published.
  */
+/**
+ * The AI Time Machine.
+ *
+ * Its own route rather than a modal or a tab, because it is a destination people
+ * will link to. It keeps the site shell — header, footer, palette — so it reads
+ * as part of TimeToCompute, and mounts its immersive game header inside.
+ */
+function timeMachinePage() {
+  return page({
+    title: 'The AI Time Machine — play the AI infrastructure buildout | T2C',
+    description:
+      'Go back to the moment before the outcome. Five campaigns, ' + chapterCount() +
+      ' real turning points, three theses each, primary sources and a hard knowledge cutoff. ' +
+      'Educational only, using fictional capital.',
+    canonical: SITE + '/time-machine/',
+    body: timeMachineBody(),
+    active: 'timemachine',
+    extraScripts: ['/time-machine.js']
+  });
+}
+
 function aiNewsPage() {
   return page({
     title: 'AI news — only what changes the chain | T2C',
@@ -1787,6 +1811,7 @@ bytes += write('research/index.html', researchPage());
 bytes += write('sites/index.html', sitesPage());
 bytes += write('intelligence/index.html', intelligencePage());
 bytes += write('ai-news/index.html', aiNewsPage());
+bytes += write('time-machine/index.html', timeMachinePage());
 bytes += write('news/index.html', newsPage());
 bytes += write('chain/index.html', chainPage());
 bytes += write('explainers/index.html', explainersPage());
@@ -1867,6 +1892,7 @@ const urls = [
      sitemap cannot fall behind the build. Stage hubs rank above component pages
      because a stage is the destination a reader is more likely to want. */
   { loc: SITE + '/ai-news/', priority: '0.9', freq: 'daily' },
+  { loc: SITE + '/time-machine/', priority: '0.8', freq: 'monthly' },
   ...explainerRoutes().map(({ explainer, href }) => ({
     loc: SITE + href,
     priority: explainer.kind === 'stage' ? '0.8' : '0.6',
@@ -1893,11 +1919,14 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css', 'ainews.css']
+  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css', 'ainews.css', 'timemachine.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
 fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
 fs.cpSync(path.join(ROOT, 'src', 'lab-ui.js'), path.join(OUT, 'lab-ui.js'));
+fs.cpSync(path.join(ROOT, 'src', 'timemachine-app.js'), path.join(OUT, 'time-machine.js'));
+fs.cpSync(path.join(ROOT, 'assets', 'time-machine'),
+  path.join(OUT, 'assets', 'time-machine'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'Logo'), path.join(OUT, 'Logo'), { recursive: true });
 
 /* Illustrative campus artwork, copied under a name that says what it is: a
@@ -1965,6 +1994,20 @@ try {
 fs.mkdirSync(path.join(OUT, 'assets', 't2c', 'images'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'icons'),
   path.join(OUT, 'assets', 't2c', 'icons'), { recursive: true });
+
+/* The game's own integrity gate. The check that matters most is no future
+   leakage: a briefing source published after its own knowledge cutoff would hand
+   the player evidence the historical decision-maker could not have had, which is
+   the one way this game could cheat without looking broken. */
+{
+  const errs = checkTimeMachine();
+  if (errs.length) {
+    console.error(`  FAIL: AI Time Machine data has ${errs.length} problem(s):`);
+    for (const e of errs.slice(0, 12)) console.error(`    ${e}`);
+    process.exit(1);
+  }
+  console.log(`  time machine: ${CAMPAIGNS.length} campaigns, ${chapterCount()} chapters, no future leakage`);
+}
 
 /* Every declared asset must exist before anything can reference it.
    `data/artpack.js` is the manifest; this proves the manifest matches the disk.

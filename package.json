@@ -6,7 +6,8 @@
   "description": "T2C — Time to Compute. AI infrastructure delivery intelligence.",
   "scripts": {
     "build": "node build.js",
-    "test": "node --test",
+    "//test": "scoped to test/ — the vendored game reference under Game/ ships its own Next.js tests, which node --test would otherwise try to run against a build that does not exist here",
+    "test": "node --test \"test/*.test.js\"",
     "check": "node --check src/app.js && node build.js",
     "dev": "node build.js && node serve.js",
     "shots": "node scripts/shots.js",
@@ -19,9 +20,11 @@
     "imagecheck": "node scripts/imagecheck.js",
     "//centring": "automates the asset pack's manual centring lab: measures each cutout's alpha bounding box and fails if its optical centre drifts",
     "centring": "node scripts/centring.js",
+    "//timemachine": "drives the whole game path in a browser: fail-closed pricing, no future leakage, resume, and the real logo at four widths",
+    "timemachine": "node scripts/timemachine-qa.js",
     "//verify": "build first: the shell tests read dist/, and build.js already gates itself on data validation",
     "verify": "npm run build && npm run test && node scripts/audit.js && node scripts/anchors.js",
-    "verify:visual": "npm run verify && npm run shots && npm run overflow && npm run imagecheck && npm run centring && npm run interact"
+    "verify:visual": "npm run verify && npm run shots && npm run overflow && npm run imagecheck && npm run centring && npm run timemachine && npm run interact"
   },
   "engines": {
     "node": ">=20"

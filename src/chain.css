@@ -671,3 +671,27 @@ button.bnav {
 html[data-mode="focus"] .cn-art,
 html[data-mode="focus"] .cn-asset,
 html[data-mode="focus"] .cn-node::before { animation: none; }
+
+/* The game CTA on the homepage hero. Uses the site's lime interactive treatment
+   so it reads as one of our own actions, but sits below the two primary CTAs and
+   states what it is — a simulation, not the tracked record. */
+.fl-play {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 16px;
+  margin: var(--s3) 0 0;
+}
+.fl-playlink {
+  display: inline-flex; align-items: center; gap: 9px; min-height: 44px;
+  padding: 9px 16px; text-decoration: none;
+  font-family: var(--m-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--brand); border: 1px solid rgb(214 255 0 / 45%);
+  border-radius: var(--m-radius-sm); background: rgb(214 255 0 / 6%);
+  transition: background var(--t2c-fast) var(--t2c-ease),
+              border-color var(--t2c-fast) var(--t2c-ease);
+}
+.fl-playlink:hover, .fl-playlink:focus-visible {
+  background: var(--brand); border-color: var(--brand); color: var(--brand-ink);
+}
+.fl-playglyph { font-size: 10px; }
+.fl-playnote { font-size: 11.5px; line-height: 1.5; color: var(--dim); max-width: 42ch; }
+@media (prefers-reduced-motion: reduce) { .fl-playlink { transition: none; } }

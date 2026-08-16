@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": "2026-08-16.seed.1",
+  "methodology": {
+    "currency": "USD",
+    "calendar": "US_EQUITIES",
+    "listingTimezone": "America/New_York",
+    "priceField": "adjusted_close",
+    "note": "Venue labels and provider symbols must be verified against the selected licensed market-data provider before publication."
+  },
+  "instruments": [
+    { "id": "CASH", "symbol": "CASH", "name": "Uninvested fictional cash", "kind": "cash", "venue": "SIMULATION", "providerSymbol": null, "tradableFrom": null },
+    { "id": "QQQ", "symbol": "QQQ", "name": "Invesco QQQ Trust", "kind": "benchmark", "venue": "US", "providerSymbol": "QQQ", "tradableFrom": "1999-03-10" },
+    { "id": "SPY", "symbol": "SPY", "name": "SPDR S&P 500 ETF Trust", "kind": "benchmark", "venue": "US", "providerSymbol": "SPY", "tradableFrom": "1993-01-29" },
+    { "id": "MSFT", "symbol": "MSFT", "name": "Microsoft", "kind": "equity", "venue": "US", "providerSymbol": "MSFT", "tradableFrom": "1986-03-13" },
+    { "id": "NVDA", "symbol": "NVDA", "name": "NVIDIA", "kind": "equity", "venue": "US", "providerSymbol": "NVDA", "tradableFrom": "1999-01-22" },
+    { "id": "GOOGL", "symbol": "GOOGL", "name": "Alphabet Class A", "kind": "equity", "venue": "US", "providerSymbol": "GOOGL", "tradableFrom": "2004-08-19" },
+    { "id": "TSM", "symbol": "TSM", "name": "Taiwan Semiconductor Manufacturing ADR", "kind": "equity", "venue": "US_ADR", "providerSymbol": "TSM", "tradableFrom": "1997-10-09" },
+    { "id": "ASML", "symbol": "ASML", "name": "ASML Holding NY Registry Shares", "kind": "equity", "venue": "US", "providerSymbol": "ASML", "tradableFrom": "1995-03-15" },
+    { "id": "MU", "symbol": "MU", "name": "Micron Technology", "kind": "equity", "venue": "US", "providerSymbol": "MU", "tradableFrom": "1984-06-01" },
+    { "id": "ANET", "symbol": "ANET", "name": "Arista Networks", "kind": "equity", "venue": "US", "providerSymbol": "ANET", "tradableFrom": "2014-06-06" },
+    { "id": "AVGO", "symbol": "AVGO", "name": "Broadcom", "kind": "equity", "venue": "US", "providerSymbol": "AVGO", "tradableFrom": "2009-08-06" },
+    { "id": "VRT", "symbol": "VRT", "name": "Vertiv Holdings", "kind": "equity", "venue": "US", "providerSymbol": "VRT", "tradableFrom": "2020-02-10" },
+    { "id": "AMKR", "symbol": "AMKR", "name": "Amkor Technology", "kind": "equity", "venue": "US", "providerSymbol": "AMKR", "tradableFrom": "1998-05-01" },
+    { "id": "ETN", "symbol": "ETN", "name": "Eaton", "kind": "equity", "venue": "US", "providerSymbol": "ETN", "tradableFrom": "1923-01-01" },
+    { "id": "PWR", "symbol": "PWR", "name": "Quanta Services", "kind": "equity", "venue": "US", "providerSymbol": "PWR", "tradableFrom": "1998-02-12" },
+    { "id": "COHR", "symbol": "COHR", "name": "Coherent", "kind": "equity", "venue": "US", "providerSymbol": "COHR", "tradableFrom": "1987-10-02" },
+    { "id": "LITE", "symbol": "LITE", "name": "Lumentum Holdings", "kind": "equity", "venue": "US", "providerSymbol": "LITE", "tradableFrom": "2015-08-04" },
+    { "id": "NBIS", "symbol": "NBIS", "name": "Nebius Group", "kind": "equity", "venue": "US", "providerSymbol": "NBIS", "tradableFrom": "2024-10-21", "availabilitySourceId": "nebius-trading-resume-2024" },
+    { "id": "APLD", "symbol": "APLD", "name": "Applied Digital", "kind": "equity", "venue": "US", "providerSymbol": "APLD", "tradableFrom": "2022-04-13" },
+    { "id": "CRWV", "symbol": "CRWV", "name": "CoreWeave", "kind": "equity", "venue": "US", "providerSymbol": "CRWV", "tradableFrom": "2025-03-28" },
+    { "id": "IREN", "symbol": "IREN", "name": "IREN", "kind": "equity", "venue": "US", "providerSymbol": "IREN", "tradableFrom": "2021-11-17" },
+    { "id": "META", "symbol": "META", "name": "Meta Platforms", "kind": "equity", "venue": "US", "providerSymbol": "META", "tradableFrom": "2012-05-18" },
+    { "id": "WULF", "symbol": "WULF", "name": "TeraWulf", "kind": "equity", "venue": "US", "providerSymbol": "WULF", "tradableFrom": "2021-12-14" }
+  ]
+}
