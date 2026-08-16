@@ -30,15 +30,18 @@ import {
   infrastructureMap, watchlistPanel, signalProgress
 } from './mission-ui.js';
 import { GROSS_TO_CRITICAL_IT } from './lib/estimate.js';
-import { leadStory } from './lib/leadstory.js';
+import { leadStory, journeyRail } from './lib/leadstory.js';
 import {
   deliveryLeaders, nextCatalyst, promiseReality, megaprojects, imageForSite, EXPLAINER_STEPS
 } from './lib/homepage.js';
 import {
-  leadStoryHero, whyDrawer, returningSummary, nextCatalystCard, audienceLens,
+  whyDrawer, returningSummary, nextCatalystCard, audienceLens, deliveryRail,
   megaprojectCard, explainer, deliveryLeaders as edDeliveryLeaders,
   promiseReality as promiseRealityPanel
 } from './editorial-ui.js';
+import { chainState, chainCoverage, STAGES } from './lib/chain.js';
+import { CORRIDORS, RELATIONSHIP_TYPES, aiFactoryGraph, relationshipRows } from './lib/corridor.js';
+import { flagshipHero, chainTrack, chainCoverageNote, stageAsset } from './chain-ui.js';
 import { ASSET } from './lib/assets.js';
 
 /* ================= shared bits ================= */
@@ -122,7 +125,9 @@ export function todayBody() {
   };
 
   return `
-${leadStoryHero(story, ASSET.hero)}
+<div class="t2c-shell">
+  ${flagshipHero(chainState(), chainCoverage(), story)}
+</div>
 ${whyDrawer(story)}
 
 <div class="t2c-shell ed-main">
@@ -666,7 +671,7 @@ export function siteBody(site) {
 
   ${section('path', 'Path to billing',
     stage ? `Furthest evidenced: ${esc(stage.label)}` : 'No stage evidenced',
-    `${pathTrack(site.path, { idPrefix: `site-${site.slug}` })}
+    `${deliveryRail(journeyRail(site.path), { idPrefix: `site-${site.slug}` })}
      <p class="blocknote">Each stage rolls up the project gates that evidence it. A stage marked
        <b>Not disclosed</b> has no gate on record — which is not the same as a stage the site has
        yet to reach.</p>`)}
@@ -714,6 +719,115 @@ export function siteBody(site) {
         signalList(site.events.map(toSignal), { reviewable: false })) : ''}
     </div>
   </div>
+</div>`;
+}
+
+/* ================= /chain/ ================= */
+
+/**
+ * The AI Supply Chain Explorer.
+ *
+ * Built on what T2C can evidence. The AI-factory corridor is a real graph of 35
+ * sourced relationships; the other three corridors are declared with what they
+ * would need, because a corridor drawn from invented edges would be worse than
+ * no corridor at all.
+ *
+ * The table is not a fallback for the graph — it is the same data, keyboard
+ * operable, and every row carries its documents.
+ */
+export function chainBody() {
+  const g = aiFactoryGraph();
+  const rows = relationshipRows();
+  const cov = chainCoverage();
+
+  return `<div class="t2c-shell ed-main">
+  ${pageHeadHtml({
+    title: 'AI supply chain explorer',
+    lede: 'Trace every dependency T2C can evidence, and see plainly where the evidence stops.',
+    meta: `<span class="pill-lite">${g.counts.confirmed} confirmed relationships</span>
+           <span class="pill-lite">${cov.tracked} of ${cov.total} stages tracked</span>`
+  })}
+
+  <section class="ed-section" aria-labelledby="chain-stages-h">
+    <h2 class="ed-sectionh" id="chain-stages-h">The chain</h2>
+    ${chainTrack(chainState())}
+    ${chainCoverageNote(cov)}
+  </section>
+
+  <section class="ed-section" aria-labelledby="corridors-h">
+    <h2 class="ed-sectionh" id="corridors-h">Corridors</h2>
+    <div class="cor-list" role="group" aria-label="Supply-chain corridors">
+      ${CORRIDORS.map(c => `<article class="cor-card${c.tracked ? ' is-live' : ' is-gap'}">
+        <h3 class="cor-h">${esc(c.label)}</h3>
+        <p class="cor-state">${c.tracked
+          ? `<b>${g.counts.confirmed} relationships</b> · all confirmed`
+          : '<b>Not yet tracked</b> · no records'}</p>
+        <p class="cor-plain">${esc(c.plain)}</p>
+        ${c.needs ? `<p class="cor-needs">${esc(c.needs)}</p>` : ''}
+      </article>`).join('')}
+    </div>
+  </section>
+
+  <section class="ed-section" aria-labelledby="graph-h">
+    <div class="ed-sectionhead">
+      <h2 class="ed-sectionh" id="graph-h">AI-factory delivery</h2>
+      <span class="ed-morelink">Operator → site → customer</span>
+    </div>
+
+    <div class="cor-legend" role="group" aria-label="Relationship types">
+      ${RELATIONSHIP_TYPES.map(t => `<span class="cor-key" data-line="${esc(t.id)}">
+        <i aria-hidden="true"></i>${esc(t.label)}
+        <span class="cor-keyn">${g.counts[t.id]}</span>
+      </span>`).join('')}
+      <p class="ed-note">Every relationship T2C currently holds is <b>confirmed</b> — the company
+        disclosed it in a document that is linked. There are no ecosystem or inferred edges on file,
+        and none is drawn to fill the picture out.</p>
+    </div>
+
+    <div class="cor-cols">
+      ${g.columns.map(col => `<div class="cor-col">
+        <h3 class="cor-colh">${esc(col.label)} <span>${col.nodes.length}</span></h3>
+        <ul class="cor-nodes">
+          ${col.nodes.map(n => `<li class="cor-node">
+            ${n.href
+              ? `<a class="cor-nodelink press" href="${esc(n.href)}">
+                   <span class="cor-nodelabel">${esc(n.label)}</span>
+                   <span class="cor-nodesub">${esc(n.sub)}</span></a>`
+              : `<span class="cor-nodelink">
+                   <span class="cor-nodelabel">${esc(n.label)}</span>
+                   <span class="cor-nodesub">${esc(n.sub)}</span></span>`}
+          </li>`).join('')}
+        </ul>
+      </div>`).join('')}
+    </div>
+
+    ${g.counts.unsited ? `<p class="ed-note">${g.counts.unsited} customer relationships name no site.
+      Where a company discloses a customer without naming the location, the edge stops at the
+      operator — guessing the site would put a fabricated delivery date into everything downstream.</p>` : ''}
+  </section>
+
+  <section class="ed-section" aria-labelledby="rels-h">
+    <h2 class="ed-sectionh" id="rels-h">Every relationship, with its evidence</h2>
+    <p class="ed-note">The same ${rows.length} relationships as the columns above, in a form that
+      can be read, sorted and tabbed through.</p>
+    <div class="tw">
+      <table class="cor-table">
+        <thead><tr>
+          <th scope="col">From</th><th scope="col">To</th>
+          <th scope="col">Type</th><th scope="col">Evidence</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r => `<tr>
+            <td class="tleft">${esc(r.from)}</td>
+            <td class="tleft">${esc(r.to)}${r.unsited
+              ? ' <span class="cor-flag">site not disclosed</span>' : ''}</td>
+            <td><span class="cor-type" data-line="${esc(r.type)}">${esc(r.typeLabel)}</span></td>
+            <td class="tleft">${sourceChips(r.sourceIds)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>`;
 }
 

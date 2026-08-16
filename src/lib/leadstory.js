@@ -147,6 +147,28 @@ export function consequenceFor(s) {
   }
 }
 
+/**
+ * Map a set of path stages onto the two-layer journey vocabulary.
+ *
+ * "Promised" and "Announced" are the same gate said two ways: one for a reader
+ * who has never bought a megawatt, one for a reader who has. Both ship, so
+ * neither audience is patronised or lost.
+ */
+export function journeyRail(stages) {
+  const lastComplete = stages.reduce((acc, st, i) => (st.status === 'complete' ? i : acc), -1);
+  return stages.map((st, i) => {
+    const j = JOURNEY_BY_ID[st.id] || { simple: st.label, detailed: st.label };
+    const state = st.status === 'complete' ? 'complete'
+      : i === lastComplete + 1 && st.status !== 'notDisclosed' ? 'current'
+        : st.status === 'notDisclosed' ? 'unknown' : 'pending';
+    return {
+      id: st.id, simple: j.simple, detailed: j.detailed, state,
+      statusLabel: st.statusLabel, effectiveAt: st.effectiveAt,
+      sourceIds: st.sourceIds, gates: st.gates
+    };
+  });
+}
+
 /** The journey rail for whichever subject the story is about. */
 function railFor(s) {
   const stages = s.projectId && PROJECT_BY_ID[s.projectId]

@@ -116,7 +116,7 @@ if (controlIds.length < 6) fail(`expected the Edge Lab inputs, found ${controlId
 for (const [pageName, html] of [['home', home], ['lab', lab], ['research', research], ['companies', companiesPg]]) {
   if (!/<nav class="mainnav" aria-label="Primary">/.test(html)) fail(`${pageName}: no primary navigation`);
   const links = [...html.matchAll(/class="navlink[^"]*"\s+href="([^"]+)"/g)].map(m => m[1]);
-  if (links.length !== 5) fail(`${pageName}: expected 5 primary nav links, found ${links.length}`);
+  if (links.length !== 6) fail(`${pageName}: expected 6 primary nav links, found ${links.length}`);
   for (const href of links) {
     const clean = href.split('#')[0];
     if (!routes.has(clean)) fail(`${pageName}: nav points at unbuilt route ${href}`);
@@ -136,15 +136,18 @@ for (const [pageName, html] of [['home', home], ['lab', lab], ['research', resea
   if (/class="hero"/.test(html)) fail(`${pageName}: ships a marketing hero — every route starts with the tool`);
   if (/class="tapein"/.test(html)) fail(`${pageName}: repeats the ticker tape`);
 }
-// The homepage leads with one dominant story. These are the load-bearing parts.
-if (!/class="ed-hero"/.test(home)) fail('the homepage lost its lead story hero');
-if (!/class="ed-headline"/.test(home)) fail('the homepage lost its lead story headline');
+// The homepage leads with the proposition, then the chain, then the day's story.
+if (!/class="fl-hero"/.test(home)) fail('the homepage lost its flagship hero');
+if (!/Follow AI from atoms to revenue/.test(home)) fail('the homepage lost its proposition headline');
+if (!/class="cn-track"/.test(home)) fail('the homepage lost the supply chain');
 if (!/id="whyDrawer"/.test(home)) fail('the homepage lost its why-this-matters drawer');
-if (!/class="ed-railstep/.test(home)) fail('the homepage lost its delivery rail');
 if (!/class="ed-disclosure"/.test(home)) fail('an illustration is on the homepage with no disclosure');
-// Exactly one image may load eagerly, and it must be the hero.
+// Every chain stage must state whether it is tracked, in words.
+const chainNodes = (home.match(/class="cn-node/g) || []).length;
+if (chainNodes !== 7) fail(`homepage chain has ${chainNodes} stages; the model has 7`);
+// Nothing above the fold may load eagerly except a genuine LCP image.
 const eagerImgs = (home.match(/loading="eager"/g) || []).length;
-if (eagerImgs !== 1) fail(`homepage has ${eagerImgs} eagerly-loaded images; exactly 1 (the hero) is allowed`);
+if (eagerImgs > 1) fail(`homepage has ${eagerImgs} eagerly-loaded images; at most 1 is allowed`);
 
 // mode switchers keep proper tab semantics
 if (!/role="tablist"/.test(lab)) fail('Edge Lab mode switcher is not a tablist');

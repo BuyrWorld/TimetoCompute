@@ -1121,10 +1121,13 @@ html[data-estimates="off"] [data-estimate] { display: none !important; }
 .appbarutil { min-width: 0; flex-shrink: 1; }
 .paltrigger { min-width: 0; }
 
-@media (max-width: 1460px) {
+/* The nav carries six destinations, so the utility cluster has to give way
+   earlier than it did at five. Order of sacrifice is unchanged: the palette's
+   label first, then the market pill, which the utility menu also reports. */
+@media (max-width: 1560px) {
   .paltrigger .paltxt { display: none; }
 }
-@media (max-width: 1240px) {
+@media (max-width: 1500px) {
   .appbarutil .mstate { display: none; }
   .navlink { padding: 0 10px; }
 }

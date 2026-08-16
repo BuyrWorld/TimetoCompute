@@ -184,10 +184,39 @@ const run = async () => {
 
   // The headline is selectable HTML, never part of the bitmap.
   const selectable = await page.evaluate(() => {
-    const h = document.querySelector('.ed-headline');
+    const h = document.querySelector('.fl-h1');
     return h && getComputedStyle(h).userSelect !== 'none' && h.textContent.trim().length > 0;
   });
   check('the headline is selectable text, not baked into the image', selectable);
+
+  /* ---- the supply chain ---- */
+  const chain = await page.$$eval('.cn-node', els => els.map(e => ({
+    gap: e.classList.contains('is-gap'),
+    label: (e.querySelector('.cn-label') || {}).textContent,
+    count: (e.querySelector('.cn-count') || {}).textContent,
+    link: !!e.querySelector('a.cn-hit')
+  })));
+  check('the chain shows all seven stages', chain.length === 7, `${chain.length}`);
+  check('four stages are marked as untracked',
+    chain.filter(c => c.gap).length === 4, `${chain.filter(c => c.gap).length}`);
+  check('every stage states its state in words, not colour alone',
+    chain.every(c => (c.count || '').trim().length > 2), chain.map(c => c.count).join(' | '));
+  check('an untracked stage offers no link to nowhere',
+    chain.filter(c => c.gap).every(c => !c.link));
+  check('a tracked stage links to its records',
+    chain.filter(c => !c.gap).every(c => c.link));
+
+  // Opening a gap explains it; only one panel opens at a time.
+  const gapBtn = await page.$('.cn-node.is-gap .cn-hit');
+  await gapBtn.click();
+  await new Promise(r => setTimeout(r, 200));
+  const openPanels = await page.$$eval('.cn-why', els => els.filter(e => !e.hidden).length);
+  const gapText = await page.$eval('.cn-why:not([hidden])', el => el.textContent);
+  check('an untracked stage explains why it is empty',
+    openPanels === 1 && /not yet tracked/i.test(gapText), gapText.slice(0, 70));
+
+  const cutoutFit = await page.$eval('.cn-asset', el => getComputedStyle(el).objectFit);
+  check('stage cutouts are contained, never stretched', cutoutFit === 'contain', cutoutFit);
 
   /* why-this-matters drawer: focus trapped, Escape closes, focus restored */
   await page.click('#whyBtn');
@@ -210,13 +239,19 @@ const run = async () => {
   check('Escape closes the drawer and returns focus to its trigger',
     drawerClosed && focusBack === 'whyBtn', `closed=${drawerClosed} focus=${focusBack}`);
 
-  /* delivery rail */
+  /* delivery rail — on the site page, where the delivery record is */
+  await page.goto(base + '/sites/iren-horizon-1/', { waitUntil: 'networkidle0' });
   const railSteps = await page.$$eval('.ed-railstep', els => els.length);
   check('the delivery rail shows all seven stages', railSteps === 7, `${railSteps}`);
 
-  const railText = await page.$$eval('.ed-railstate', els => els.map(e => e.textContent.trim()));
-  check('every stage states its status in words, not colour alone',
-    railText.length === 7 && railText.every(t => t.length > 2), railText.join(', '));
+  const railLabels = await page.$$eval('.ed-railstep', els => els.map(e => ({
+    simple: (e.querySelector('.ed-railsimple') || {}).textContent,
+    detailed: (e.querySelector('.ed-raildetail') || {}).textContent,
+    state: (e.querySelector('.ed-railstate') || {}).textContent
+  })));
+  check('every stage carries both label layers and a worded status',
+    railLabels.length === 7 && railLabels.every(l => l.simple && l.detailed && l.state.trim().length > 2),
+    railLabels.map(l => `${l.simple}/${l.detailed}`).join(', '));
 
   const railBtn = await page.$('.ed-railbtn[aria-controls]');
   if (railBtn) {
@@ -226,6 +261,8 @@ const run = async () => {
     const after = await page.$eval('.ed-railev', el => el.hidden);
     check('an evidenced stage opens its sources', before === true && after === false);
   }
+
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
 
   /* audience lens: explanation only */
   const factsBefore = await page.$$eval('.ed-prval', els => els.map(e => e.textContent.trim()));
@@ -349,20 +386,20 @@ const run = async () => {
   const ladder = await page.$$eval('.ladder .lstep', els => els.length);
   check('the site page renders its status ladder', ladder === 7, `${ladder} steps`);
 
-  /* ---- path steps reveal evidence rather than doing nothing ---- */
+  /* ---- rail steps reveal evidence rather than doing nothing ---- */
   await page.goto(base + '/sites/iren-horizon-1/', { waitUntil: 'networkidle0' });
-  const pressable = await page.$$('.pstep-btn');
-  const firstPanelHidden = await page.$eval('.pstepev', el => el.hidden);
+  const pressable = await page.$$('.ed-railbtn[aria-controls]');
+  const firstPanelHidden = await page.$eval('.ed-railev', el => el.hidden);
   await pressable[0].click();
   await new Promise(r => setTimeout(r, 120));
-  const afterPanel = await page.$eval('.pstepev', el => el.hidden);
+  const afterPanel = await page.$eval('.ed-railev', el => el.hidden);
   check('an evidenced path stage opens its sources',
     firstPanelHidden === true && afterPanel === false);
 
   const inertAffordance = await page.evaluate(() =>
     // A stage with no sources must not look pressable.
-    [...document.querySelectorAll('.pstep')].every(li =>
-      li.querySelector('.pstep-btn') || !li.querySelector('button')));
+    [...document.querySelectorAll('.ed-railstep')].every(li =>
+      li.querySelector('.ed-railbtn[aria-controls]') || !li.querySelector('button')));
   check('a stage with no evidence offers no pressable control', inertAffordance);
 
   /* ---- company page: score, path, x-ray ---- */

@@ -26,6 +26,8 @@ const OUT = path.join(ROOT, arg('out', 'shots'));
 
 const ROUTES = [
   ['home', '/'],
+  ['chain', '/chain/'],
+  ['explainers', '/explainers/'],
   ['companies', '/companies/'],
   ['sites', '/sites/'],
   ['site-horizon1', '/sites/iren-horizon-1/'],
@@ -93,8 +95,18 @@ const run = async () => {
       });
 
       await page.goto(base + route, { waitUntil: 'networkidle0', timeout: 45000 });
+      /* Walk the page so lazy images actually load. Without this a full-page
+         screenshot shows empty boxes where below-the-fold imagery belongs, and
+         the shot misrepresents the page rather than recording it. */
+      await page.evaluate(async () => {
+        for (let y = 0; y < document.body.scrollHeight; y += 600) {
+          window.scrollTo(0, y);
+          await new Promise(r => setTimeout(r, 45));
+        }
+        window.scrollTo(0, 0);
+      });
       // give the canvas and any client render a frame
-      await new Promise(r => setTimeout(r, 350));
+      await new Promise(r => setTimeout(r, 450));
 
       const metrics = await page.evaluate(() => {
         const de = document.documentElement;

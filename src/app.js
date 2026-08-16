@@ -267,9 +267,11 @@
     });
 
     trigger.addEventListener('click', open);
-    // The 404 offers its own way into search.
-    var alt = $('palOpen404');
-    if (alt) alt.addEventListener('click', open);
+    // The 404 and the mobile bar offer their own ways into search.
+    ['palOpen404', 'palOpenMobile'].forEach(function (id) {
+      var el = $(id);
+      if (el) el.addEventListener('click', open);
+    });
     input.addEventListener('input', function () { render(input.value); });
 
     dlg.addEventListener('keydown', function (e) {
@@ -578,16 +580,27 @@
       dlg.addEventListener('close', function () { btn.focus(); });
     })();
 
-    /* ---- delivery rail: a stage opens its own evidence ---- */
-    qsa('.ed-railbtn[aria-controls]').forEach(function (b) {
+    /* ---- supply-chain nodes ----
+       A tracked stage is a link and needs no script. An untracked one is a
+       button that opens the explanation of why it is empty. Only one panel is
+       open at a time, so the track never turns into a wall of text. */
+    qsa('.cn-hit[aria-controls]').forEach(function (b) {
       b.addEventListener('click', function () {
         var panel = document.getElementById(b.getAttribute('aria-controls'));
         var open = b.getAttribute('aria-expanded') === 'true';
-        b.setAttribute('aria-expanded', String(!open));
-        if (panel) panel.hidden = open;
-        if (!open) track('delivery_stage_interact', { stage: b.getAttribute('aria-controls') });
+        qsa('.cn-hit[aria-controls]').forEach(function (o) {
+          o.setAttribute('aria-expanded', 'false');
+          var p = document.getElementById(o.getAttribute('aria-controls'));
+          if (p) p.hidden = true;
+        });
+        if (!open) {
+          b.setAttribute('aria-expanded', 'true');
+          if (panel) panel.hidden = false;
+          track('chain_stage_open', { stage: b.closest('.cn-node').getAttribute('data-stage') });
+        }
       });
     });
+
 
     /* ---- returning-user summary ----
        Counted in this browser against this browser's own last visit. A first
@@ -1276,6 +1289,19 @@
     });
     paint();
   })();
+
+  /* ============ delivery rail ============
+     A stage opens its own evidence. The rail lives on site pages, so this is
+     not scoped to a route. */
+  qsa('.ed-railbtn[aria-controls]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var panel = document.getElementById(b.getAttribute('aria-controls'));
+      var open = b.getAttribute('aria-expanded') === 'true';
+      b.setAttribute('aria-expanded', String(!open));
+      if (panel) panel.hidden = open;
+      if (!open) track('delivery_stage_interact', { stage: b.getAttribute('aria-controls') });
+    });
+  });
 
   /* ============ path step evidence ============ */
   qsa('.pstep-btn').forEach(function (b) {

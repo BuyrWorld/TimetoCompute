@@ -18,12 +18,12 @@ const DIST = path.join(ROOT, 'dist');
 const read = rel => fs.readFileSync(path.join(DIST, rel), 'utf8');
 const exists = rel => fs.existsSync(path.join(DIST, rel));
 
-const ROUTES = ['index.html', 'companies/index.html', 'sites/index.html',
+const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites/index.html',
   'intelligence/index.html', 'news/index.html', 'explainers/index.html', 'compare/index.html',
   'catalysts/index.html', 'lab/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/companies/', '/sites/', '/catalysts/', '/explainers/'];
+const NAV_HREFS = ['/', '/chain/', '/companies/', '/sites/', '/catalysts/', '/explainers/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
 const SECONDARY = ['/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/'];
@@ -169,28 +169,116 @@ test('no page ships a marketing hero', () => {
   }
 });
 
-test('the homepage leads with one dominant story, not a slogan', () => {
+test('the homepage leads with the proposition, in HTML', () => {
   const html = read('index.html');
   const h1s = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)];
   assert.equal(h1s.length, 1, 'the homepage does not have exactly one h1');
-  assert.ok(/class="ed-headline"/.test(h1s[0][0]), 'the h1 is not the lead story headline');
-  // The headline is HTML, not part of the bitmap.
-  assert.ok(h1s[0][1].trim().length > 15, 'the headline is empty or thin');
-  assert.ok(/class="ed-consequence"/.test(html), 'no plain-English consequence follows the headline');
+  assert.ok(/class="fl-h1"/.test(h1s[0][0]), 'the h1 is not the proposition headline');
+  assert.match(h1s[0][1].replace(/<[^>]+>/g, ''), /Follow AI from atoms to revenue/);
+  assert.ok(/class="fl-lede"/.test(html), 'no supporting copy follows the headline');
+  // Both primary actions, and both lead somewhere built.
+  assert.ok(html.includes('href="/chain/"'), 'no "explore the chain" destination');
+  assert.ok(html.includes('href="/intelligence/?view=since-last-visit"'), 'no "see what changed" destination');
 });
 
 test('the homepage answers its questions in order', () => {
   const html = read('index.html');
   const at = s => html.indexOf(s);
-  // What just happened → why care → who is delivering → what next → verify.
-  assert.ok(at('ed-headline') < at('The AI buildout today'), 'the story does not lead');
+  assert.ok(at('fl-h1') < at('cn-track'), 'the proposition does not lead the chain');
+  assert.ok(at('cn-track') < at('The AI buildout today'), 'the chain does not lead the detail');
   assert.ok(at('The AI buildout today') < at('Megaprojects to watch'), 'sections are out of order');
   assert.ok(at('Megaprojects to watch') < at('ed-explainer'), 'the explainer is not last');
 });
 
+/* ================= the supply chain ================= */
+
+test('the chain shows all seven stages and marks which are evidenced', () => {
+  for (const r of ['index.html', 'chain/index.html']) {
+    const html = read(r);
+    const nodes = [...html.matchAll(/class="cn-node([^"]*)"/g)].map(m => m[1]);
+    assert.equal(nodes.length, 7, `${r} has ${nodes.length} chain stages, expected 7`);
+    const gaps = nodes.filter(n => n.includes('is-gap')).length;
+    assert.equal(gaps, 4, `${r} marks ${gaps} stages as untracked, expected 4`);
+  }
+});
+
+test('an untracked stage says so in words, never by styling alone', () => {
+  const html = read('index.html');
+  // Each gap states "Not tracked" as text and explains what it would need.
+  const notTracked = (html.match(/Not tracked/g) || []).length;
+  assert.ok(notTracked >= 4, `expected at least 4 "Not tracked" labels, found ${notTracked}`);
+  assert.ok(/No sourced records yet/.test(html), 'a gap does not explain itself');
+  assert.ok(/declared and empty rather than illustrated/.test(html),
+    'the coverage note does not explain the gaps');
+});
+
+test('an untracked stage links nowhere, because there is nowhere honest to go', () => {
+  const html = read('index.html');
+  const gapBlocks = html.split('class="cn-node is-gap"').slice(1);
+  assert.equal(gapBlocks.length, 4);
+  for (const b of gapBlocks) {
+    const upToClose = b.slice(0, b.indexOf('</li>'));
+    assert.ok(!/<a\s/.test(upToClose), 'an untracked stage offers a link');
+    assert.ok(/<button/.test(upToClose), 'an untracked stage offers no way to learn why');
+  }
+});
+
+test('a tracked stage leads to its real records', () => {
+  const html = read('index.html');
+  const hrefs = [...html.matchAll(/class="cn-hit press" href="([^"]+)"/g)].map(m => m[1]);
+  assert.equal(hrefs.length, 3, `expected 3 tracked stages to link out, found ${hrefs.length}`);
+  for (const h of hrefs) {
+    const file = h.split('?')[0].replace(/^\//, '') + 'index.html';
+    assert.ok(exists(file), `a chain stage links to ${h}, which was not built`);
+  }
+});
+
+test('stage cutouts are contained, never stretched', () => {
+  const css = fs.readFileSync(path.join(DIST, 'styles.css'), 'utf8');
+  assert.ok(/\.cn-asset\s*\{[^}]*object-fit:\s*contain/.test(css),
+    'the stage cutout is not object-fit: contain');
+  assert.ok(/\.cn-cut\s*\{[^}]*aspect-ratio/.test(css),
+    'the stage cutout has no aspect-ratio container');
+  const html = read('index.html');
+  for (const img of html.match(/<img class="cn-asset[^>]*>/g) || []) {
+    assert.ok(/width="\d+"\s+height="\d+"/.test(img), 'a stage cutout declares no dimensions');
+    assert.ok(/srcset=/.test(img), 'a stage cutout ships no responsive derivatives');
+  }
+});
+
+test('relationship types are distinguishable without colour', () => {
+  const css = fs.readFileSync(path.join(DIST, 'styles.css'), 'utf8');
+  for (const [type, style] of [['confirmed', 'solid'], ['ecosystem', 'dotted'], ['inferred', 'dashed']]) {
+    assert.ok(new RegExp(`\\[data-line="${type}"\\][^}]*border-top-style:\\s*${style}`).test(css),
+      `${type} relationships are not distinguished by line style`);
+  }
+  // And each is named in text on the page.
+  const html = read('chain/index.html');
+  for (const label of ['Confirmed', 'Ecosystem', 'Inferred exposure']) {
+    assert.ok(html.includes(label), `the legend omits "${label}"`);
+  }
+});
+
+test('the chain explorer states that every edge it holds is confirmed', () => {
+  const html = read('chain/index.html');
+  assert.ok(/no ecosystem or inferred edges on file/i.test(html),
+    'the explorer does not say which relationship types it actually holds');
+  // The graph has an accessible equal, not a fallback.
+  assert.ok(/class="cor-table"/.test(html), 'there is no tabular form of the graph');
+  const rows = (html.match(/<td class="tleft">/g) || []).length;
+  assert.ok(rows > 20, `the relationship table looks thin: ${rows} cells`);
+});
+
+test('a customer with no disclosed site is flagged rather than guessed onto one', () => {
+  const html = read('chain/index.html');
+  assert.ok(/site not disclosed/.test(html), 'unsited relationships are not flagged');
+  assert.ok(/guessing the site would put a fabricated delivery date/i.test(html),
+    'the page does not explain why unsited edges stop at the operator');
+});
+
 test('every editorial module is present and points somewhere real', () => {
   const html = read('index.html');
-  for (const marker of ['ed-hero', 'whyDrawer', 'returnSummary', 'ed-grid4', 'ed-project', 'ed-explainer']) {
+  for (const marker of ['fl-hero', 'cn-track', 'whyDrawer', 'returnSummary', 'ed-grid4', 'ed-project', 'ed-explainer']) {
     assert.ok(html.includes(marker), `the homepage is missing ${marker}`);
   }
   // Every homepage href must resolve to a built route.
@@ -202,31 +290,23 @@ test('every editorial module is present and points somewhere real', () => {
   }
 });
 
-test('the hero image is illustrative, disclosed, and never carries the claim', () => {
+test('nothing above the fold loads eagerly without earning it', () => {
   const html = read('index.html');
-  // Exactly one eagerly-loaded image, and it is the hero.
+  // The chain leads now, and its cutouts are small; no full-bleed hero image
+  // means nothing needs eager loading at all.
   const eager = [...html.matchAll(/<img[^>]*loading="eager"[^>]*>/g)];
-  assert.equal(eager.length, 1, `expected 1 eager image, found ${eager.length}`);
-  assert.ok(/fetchpriority="high"/.test(eager[0][0]), 'the hero is not high priority');
-  assert.ok(/hero-ai-campus-dusk/.test(eager[0][0]), 'the eager image is not the hero');
-  assert.ok(/width="\d+"\s+height="\d+"/.test(eager[0][0]), 'the hero declares no dimensions');
-  assert.ok(/srcset=/.test(eager[0][0]), 'the hero ships no responsive variants');
-
-  assert.ok(/not a photograph of the named project/i.test(html),
-    'the hero carries no illustrative disclosure');
+  assert.ok(eager.length <= 1, `expected at most 1 eager image, found ${eager.length}`);
 });
 
-test('every illustration is disclosed and every non-hero image is lazy', () => {
+test('every illustration is disclosed, dimensioned and lazy', () => {
   const html = read('index.html');
   const imgs = [...html.matchAll(/<img[^>]*class="ed-img[^>]*>/g)].map(m => m[0]);
   assert.ok(imgs.length >= 3, `expected several illustrations, found ${imgs.length}`);
   for (const img of imgs) {
     assert.ok(/alt="[^"]{20,}"/.test(img), `an illustration has no meaningful alt: ${img.slice(0, 90)}`);
     assert.ok(/width="\d+"/.test(img) && /height="\d+"/.test(img), 'an illustration declares no dimensions');
+    assert.ok(/loading="lazy"/.test(img), 'an illustration below the fold is not lazy');
   }
-  const lazy = imgs.filter(i => /loading="lazy"/.test(i));
-  assert.equal(lazy.length, imgs.length - 1, 'more than one image loads eagerly');
-  // One disclosure per illustration.
   const disclosures = [...html.matchAll(/class="ed-disclosure"/g)].length;
   assert.ok(disclosures >= imgs.length, `${imgs.length} illustrations but ${disclosures} disclosures`);
 });
@@ -245,7 +325,9 @@ test('promise and reality are shown side by side and never subtracted', () => {
 });
 
 test('the delivery rail exposes both label layers and never colour alone', () => {
-  const html = read('index.html');
+  // The rail lives on the site pages, where the delivery record is; the
+  // homepage leads with the supply chain instead.
+  const html = read('sites/iren-horizon-1/index.html');
   const steps = [...html.matchAll(/class="ed-railstep[^"]*"/g)];
   assert.equal(steps.length, 7, `expected 7 delivery stages, found ${steps.length}`);
   for (const label of ['Promised', 'Power secured', 'Being built', 'Switched on',
@@ -515,14 +597,17 @@ test('undisclosed figures render as not disclosed, never as zero', () => {
 
 /* ================= mobile and interaction affordances ================= */
 
-test('the mobile bottom navigation exists and mirrors the primary routes', () => {
-  // Mobile shows the same five destinations as the desktop bar — no "More"
-  // bucket that hides a route from one viewport but not the other.
+test('the mobile bar carries four reachable destinations', () => {
+  // Six labels collide at 390px, so mobile prioritises Today, Chain, Watchlist
+  // and Search. Everything omitted stays reachable from the utility menu, which
+  // the "no orphaned route" test above already enforces on every page.
   for (const r of ROUTES) {
     const html = read(r);
     assert.ok(html.includes('class="bottomnav"'), `${r} has no mobile navigation`);
     const hrefs = [...html.matchAll(/class="bnav[^"]*" href="([^"]+)"/g)].map(m => m[1]);
-    assert.deepEqual(hrefs, NAV_HREFS, `${r} mobile navigation does not mirror the primary nav`);
+    assert.deepEqual(hrefs, ['/', '/chain/', '/companies/?filter=watching'],
+      `${r} mobile navigation is wrong`);
+    assert.ok(/id="palOpenMobile"/.test(html), `${r} mobile bar has no search`);
   }
 });
 

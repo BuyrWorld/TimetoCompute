@@ -1,0 +1,274 @@
+/* ============================================================
+   Flagship layer — the supply chain.
+
+   Tokens from the pack's styles/t2c-tokens.css, mapped onto the roles this
+   project already has rather than declared twice. Only genuinely new roles are
+   added: photonics cyan, the chain geometry, and the frame states.
+
+   Colour meaning, from DESIGN_SYSTEM.md and enforced here:
+     lime  = completion, primary action, verified progress
+     cyan  = optical/data flow, active investigation
+     amber = bottleneck, risk, evidence needing attention
+     red   = confirmed critical failure only  (unused today: nothing qualifies)
+   Never colour alone — every node states its status in words.
+   ============================================================ */
+
+:root {
+  --t2c-cyan: #42d9ff;
+  --t2c-cyan-soft: rgb(66 217 255 / 14%);
+  --t2c-amber-soft: rgb(255 181 71 / 14%);
+  --cn-node: 132px;
+  --cn-gap: clamp(8px, 1.4vw, 22px);
+}
+
+/* ============================================================
+   Chain track
+   ============================================================ */
+
+.cn-wrap {
+  /* The one place on the site a sideways scroller is allowed. Seven nodes are
+     not shrunk into illegibility on a phone; they scroll, with the scrollbar
+     contained here rather than on the document. */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  padding: var(--s3) 0 var(--s2);
+  margin-inline: calc(var(--t2c-gutter) * -1);
+  padding-inline: var(--t2c-gutter);
+}
+
+.cn-track {
+  display: flex; align-items: flex-start; gap: var(--cn-gap);
+  list-style: none; margin: 0; padding: 0;
+  min-width: max-content;
+}
+
+.cn-node {
+  position: relative; flex: 0 0 auto;
+  width: var(--cn-node);
+  scroll-snap-align: center;
+}
+
+/* The connector between nodes carries direction. It is drawn on the node rather
+   than between them so it cannot desync when the track scrolls. */
+.cn-node + .cn-node::before {
+  content: ''; position: absolute; z-index: 0;
+  top: calc(var(--cn-node) * .48);
+  left: calc(var(--cn-gap) * -1); width: var(--cn-gap); height: 2px;
+  background: linear-gradient(90deg, var(--surface-3), var(--brand));
+}
+.cn-node.is-gap + .cn-node::before,
+.cn-node.is-gap::before {
+  background: repeating-linear-gradient(90deg, var(--line) 0 4px, transparent 4px 8px);
+}
+
+.cn-hit {
+  display: block; width: 100%; text-align: center;
+  background: none; border: 0; padding: 0; color: inherit; font: inherit;
+  cursor: pointer; border-radius: var(--m-radius-sm);
+  transition: transform var(--t2c-fast, 140ms) var(--t2c-ease, ease);
+}
+.cn-hit:hover { transform: translateY(-5px); }   /* the pack caps the lift at 5px */
+@media (prefers-reduced-motion: reduce) { .cn-hit { transition: none; } .cn-hit:hover { transform: none; } }
+
+/* ---- the frame + cutout ---- */
+
+.cn-art {
+  position: relative; display: block; width: 100%;
+  aspect-ratio: 220 / 240;                 /* the frame's own ratio */
+  color: var(--line-strong, var(--line));  /* the frame follows currentColor */
+}
+.cn-art[data-frame="lime"] { color: var(--brand); }
+.cn-art[data-frame="cyan"] { color: var(--t2c-cyan); }
+.cn-art[data-frame="amber"] { color: var(--warn); }
+.cn-art[data-frame="neutral"] { color: var(--line-strong, #45545a); }
+
+.cn-frame { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* The cutout sits inside the frame and is NEVER stretched: contained, centred,
+   in its own aspect-ratio box. This is the pack's non-negotiable image rule. */
+.cn-cut {
+  position: absolute; left: 50%; top: 46%;
+  transform: translate(-50%, -50%);
+  width: 58%; aspect-ratio: 1;
+}
+.cn-asset {
+  width: 100%; height: 100%;
+  object-fit: contain; object-position: center;
+}
+
+.cn-node.is-gap .cn-asset { opacity: .28; filter: grayscale(1); }
+.cn-gapmark {
+  position: absolute; right: 16%; top: 26%;
+  display: grid; place-items: center; width: 22px; height: 22px;
+  border-radius: 50%; border: 1px solid var(--warn); color: var(--warn);
+  background: var(--bg); font-family: var(--m-mono); font-size: 12px; font-weight: 700;
+}
+
+.cn-label {
+  display: block; margin-top: 2px;
+  font-family: var(--m-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink);
+}
+.cn-node.is-gap .cn-label { color: var(--dim); }
+.cn-count {
+  display: block; margin-top: 3px;
+  font-size: 11.5px; color: var(--soft);
+}
+.cn-node.is-gap .cn-count { color: var(--warn); }
+
+/* ---- the explanation a node reveals ---- */
+.cn-why {
+  margin-top: var(--s2); padding: var(--s2);
+  border: 1px solid var(--line-2); border-radius: var(--m-radius-sm);
+  background: var(--m-panel-2, var(--surface-2));
+  text-align: left;
+}
+.cn-why p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--soft); }
+.cn-why p + p { margin-top: 6px; }
+.cn-needs { color: var(--warn) !important; }
+
+/* A revealed panel is wider than its node, so it escapes the column rather than
+   squeezing text into 132px. */
+.cn-why:not([hidden]) {
+  position: absolute; left: 0; z-index: 5;
+  width: min(320px, 78vw);
+}
+
+.cn-coverage {
+  font-size: 13px; line-height: 1.6; color: var(--dim);
+  margin: var(--s2) 0 0; max-width: 82ch;
+}
+.cn-covfig {
+  font-family: var(--m-mono); font-weight: 700; color: var(--warn);
+}
+
+/* ============================================================
+   Flagship hero
+   ============================================================ */
+
+.fl-hero { position: relative; padding: clamp(2.5rem, 6vw, 5rem) 0 var(--s4); }
+.fl-herotop {
+  display: grid; gap: var(--s4); align-items: start;
+}
+@media (min-width: 1100px) {
+  .fl-herotop { grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); }
+}
+.fl-herotop > * { min-width: 0; }
+
+.fl-h1 {
+  font-family: var(--ed-display); font-weight: 800;
+  font-size: clamp(2.6rem, 6.1vw, 6.5rem); line-height: .9; letter-spacing: -.03em;
+  margin: var(--s2) 0 0; color: var(--ink); text-wrap: balance;
+}
+.fl-h1 .dot { color: var(--brand); }
+.fl-lede {
+  font-size: clamp(1rem, 1.4vw, 1.25rem); line-height: 1.5; color: var(--soft);
+  margin: var(--s3) 0 0; max-width: 54ch;
+}
+.fl-acts { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s4); }
+
+/* ---- today's chain reaction ---- */
+.fl-reaction {
+  border: 1px solid var(--line); border-radius: var(--m-radius);
+  background: var(--m-panel, var(--surface)); padding: var(--s3);
+}
+.fl-reactkicker {
+  font-family: var(--m-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--brand); margin: 0;
+}
+.fl-reacth {
+  font-family: var(--ed-display); font-size: clamp(1.35rem, 2vw, 1.9rem); line-height: 1.05;
+  margin: var(--s1) 0 var(--s2); color: var(--ink);
+}
+.fl-reactsent { font-size: 13.5px; line-height: 1.55; color: var(--soft); margin: 0 0 var(--s2); }
+.fl-reactfoot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding-top: var(--s2); border-top: 1px solid var(--line-2);
+}
+
+@media (max-width: 640px) {
+  .fl-acts .ed-cta { width: 100%; }
+}
+
+/* The mobile bar mixes links and one button (search opens the palette rather
+   than navigating). The button must not look like a different kind of control. */
+button.bnav {
+  border: 0; background: none; font: inherit; cursor: pointer;
+  color: var(--dim); padding: 0;
+}
+
+/* ============================================================
+   Corridors and the relationship graph
+   ============================================================ */
+
+.cor-list { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.cor-list > * { min-width: 0; }
+.cor-card {
+  border: 1px solid var(--line-2); border-radius: var(--m-radius);
+  background: var(--m-panel, var(--surface)); padding: var(--s3);
+}
+.cor-card.is-live { border-left: 3px solid var(--brand); }
+.cor-card.is-gap { border-left: 3px dashed var(--warn); }
+.cor-h { font-size: 15px; font-weight: 800; margin: 0 0 6px; }
+.cor-state { font-family: var(--m-mono); font-size: 11.5px; color: var(--soft); margin: 0 0 8px; }
+.cor-card.is-gap .cor-state { color: var(--warn); }
+.cor-plain { font-size: 13px; line-height: 1.55; color: var(--dim); margin: 0; }
+.cor-needs { font-size: 12.5px; line-height: 1.55; color: var(--warn); margin: 8px 0 0; }
+
+/* legend — line style carries the type, never colour alone */
+.cor-legend { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; margin-bottom: var(--s3); }
+.cor-key {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: var(--soft);
+}
+.cor-key i { display: block; width: 30px; height: 0; border-top: 2px solid var(--soft); }
+.cor-key[data-line="confirmed"] i { border-top-style: solid; border-color: var(--brand); }
+.cor-key[data-line="ecosystem"] i { border-top-style: dotted; }
+.cor-key[data-line="inferred"] i { border-top-style: dashed; opacity: .55; }
+.cor-keyn { font-family: var(--m-mono); font-size: 11px; color: var(--dim); }
+.cor-legend .ed-note { flex: 1 1 100%; margin-top: 0; }
+
+.cor-cols { display: grid; gap: var(--s2); grid-template-columns: 1fr; }
+@media (min-width: 860px) { .cor-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.cor-cols > * { min-width: 0; }
+.cor-col {
+  border: 1px solid var(--line-2); border-radius: var(--m-radius);
+  background: var(--m-panel, var(--surface)); padding: var(--s2);
+}
+.cor-colh {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font-family: var(--m-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+  margin: 0 0 var(--s2); padding-bottom: 8px; border-bottom: 1px solid var(--line-2);
+}
+.cor-colh span { color: var(--brand); }
+.cor-nodes { list-style: none; margin: 0; padding: 0; max-height: 380px; overflow-y: auto; }
+.cor-node + .cor-node { border-top: 1px solid var(--line-2); }
+.cor-nodelink {
+  display: block; min-height: 44px; padding: 8px 6px;
+  text-decoration: none; color: inherit; border-radius: 6px;
+}
+.cor-nodelabel { display: block; font-size: 13.5px; font-weight: 700; }
+.cor-nodesub { display: block; font-size: 11.5px; color: var(--dim); }
+
+.cor-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cor-table th, .cor-table td {
+  padding: 9px 10px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: top;
+}
+.cor-table th {
+  font-family: var(--m-mono); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim);
+}
+.cor-type {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--m-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.cor-type[data-line="confirmed"] { color: var(--brand); }
+.cor-type[data-line="ecosystem"] { color: var(--soft); }
+.cor-type[data-line="inferred"] { color: var(--dim); }
+.cor-flag {
+  font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--warn); white-space: nowrap;
+}

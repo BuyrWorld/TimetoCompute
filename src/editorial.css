@@ -502,7 +502,7 @@ html[data-theme="light"] .ed-watch { background: rgba(255, 255, 255, .9); }
 
 /* The label goes before the palette label does: the icon still reads as a
    watchlist, and the destination is in its accessible name either way. */
-@media (max-width: 1320px) { .watchbtn-nav .watchtxt { display: none; } }
+@media (max-width: 1460px) { .watchbtn-nav .watchtxt { display: none; } }
 
 /* Below this, the bar keeps only the brand, search and the menu. The watchlist
    and the interface mode move INTO the menu rather than off the page — the

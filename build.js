@@ -29,10 +29,12 @@ import {
 } from './src/ui.js';
 import {
   todayBody, companiesBody, compareBody, catalystsBody, researchBody, labBody,
-  sitesBody, siteBody, intelligenceBody, newsBody, explainersBody, notFoundBody
+  sitesBody, siteBody, intelligenceBody, newsBody, explainersBody, notFoundBody, chainBody
 } from './src/pages.js';
 import { allSites, companyPath } from './src/lib/sites.js';
 import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
+import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
+import { aiFactoryGraph } from './src/lib/corridor.js';
 import { signals, todaySet } from './src/lib/signals.js';
 import { signalIndex } from './src/lib/today.js';
 import { realityScore, FACTORS, MIN_WEIGHT_COVERAGE, THIN_SAMPLE } from './src/lib/score.js';
@@ -83,10 +85,23 @@ console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
  */
 const NAV = [
   { id: 'today', label: 'Today', href: '/' },
+  { id: 'chain', label: 'Supply chain', href: '/chain/' },
   { id: 'companies', label: 'Companies', href: '/companies/' },
   { id: 'sites', label: 'Megaprojects', href: '/sites/' },
   { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
   { id: 'explainers', label: 'Explainers', href: '/explainers/' }
+];
+
+/**
+ * The mobile bar. Four destinations, because six labels collide at 390px and a
+ * bar nobody can read is worse than a shorter one. Everything omitted here is
+ * still one tap away in the utility menu.
+ */
+const MOBILE_NAV = [
+  { id: 'today', label: 'Today', href: '/' },
+  { id: 'chain', label: 'Chain', href: '/chain/' },
+  { id: 'watchlist', label: 'Watchlist', href: '/companies/?filter=watching' },
+  { id: 'search', label: 'Search', action: 'palOpenMobile' }
 ];
 
 /**
@@ -229,10 +244,16 @@ function appHeader(active = 'today') {
     unchanged — nothing that qualifies a number is hidden.</span>
   <button type="button" class="press" data-mode="live">Leave focus</button>
 </div>
+${/* Mobile gets four destinations, not six. Six labels collide at 390px, and
+      the brief prioritises Today, Chain, Watchlist and Search. Everything else
+      stays one tap away in the utility menu — nothing is unreachable. */''}
 <nav class="bottomnav" aria-label="Primary, mobile">
-  ${NAV.map(n =>
-    `<a class="bnav press${n.id === active ? ' is-active' : ''}" href="${n.href}"${n.id === active ? ' aria-current="page"' : ''}>
-      <span>${esc(n.label)}</span></a>`).join('')}
+  ${MOBILE_NAV.map(n => (n.action
+    ? `<button type="button" class="bnav press" id="${esc(n.action)}">
+        <span>${esc(n.label)}</span></button>`
+    : `<a class="bnav press${n.id === active ? ' is-active' : ''}" href="${n.href}"${
+        n.id === active ? ' aria-current="page"' : ''}>
+        <span>${esc(n.label)}</span></a>`)).join('')}
 </nav>
 
 <dialog class="pal" id="palette" aria-label="Search or run a command">
@@ -777,6 +798,18 @@ function sitePage(site) {
     canonical: `${SITE}/sites/${site.slug}/`,
     body: siteBody(site),
     active: 'sites'
+  });
+}
+
+function chainPage() {
+  return page({
+    title: 'AI supply chain explorer — trace every dependency | T2C',
+    description:
+      'Trace AI infrastructure from operator to site to customer, with every relationship carrying ' +
+      'the document that evidences it — and a plain statement of where the evidence stops.',
+    canonical: SITE + '/chain/',
+    body: chainBody(),
+    active: 'chain'
   });
 }
 
@@ -1462,6 +1495,25 @@ function methodologyPage() {
       financial outcome described on this site is guaranteed or certain. Figures are compiled from public
       filings, may lag, and may contain errors — the corrections log below exists because they sometimes do.</p>
 
+    <h2 id="chain">How much of the supply chain T2C tracks</h2>
+    <p>T2C's proposition is to follow AI from atoms to revenue. It does not yet follow the whole
+      distance, and the homepage says which part it follows.</p>
+    <p>The chain has seven stages. T2C holds sourced records for the last three —
+      <b>AI factory</b>, <b>customer accepted</b> and <b>revenue</b> — covering
+      ${COMPANIES.length} operators, ${allSites().length} sites and
+      ${aiFactoryGraph().counts.confirmed} confirmed relationships, every one of them citing a document.</p>
+    <p>It holds <b>nothing</b> for the first four — materials, wafers, chips and HBM, and photonics.
+      Not thin data: none. There are no supplier records, no qualification records, no order or
+      shipment records, and no relationship edges of any kind upstream of the data centre.</p>
+    <p>Those stages are therefore drawn as <b>declared gaps</b>. They appear in the chain because the
+      chain is the argument, and they are visibly empty because the alternative — an illustrated node
+      that looks as authoritative as an evidenced one — would be the single most misleading thing this
+      site could do. Each states what it would take to track it.</p>
+    <p>Every relationship T2C currently holds is <b>confirmed</b>: the company disclosed it in a primary
+      document and that document is linked. The interface also defines <b>ecosystem</b> and
+      <b>inferred</b> relationships, drawn with different line styles, so that the day one appears it
+      cannot be mistaken for a supply agreement. None is on file today.</p>
+
     <h2 id="estimates">Estimates, and what makes one allowable</h2>
     <p>T2C's default is to print <b>${NOT_DISCLOSED}</b> and stop. That is correct, and it is also —
       across the tracked set — unhelpful: nobody can judge scale from a column of blanks. So where a
@@ -1591,6 +1643,7 @@ bytes += write('research/index.html', researchPage());
 bytes += write('sites/index.html', sitesPage());
 bytes += write('intelligence/index.html', intelligencePage());
 bytes += write('news/index.html', newsPage());
+bytes += write('chain/index.html', chainPage());
 bytes += write('explainers/index.html', explainersPage());
 bytes += write('404.html', notFoundPage());
 const SITES = allSites();
@@ -1683,7 +1736,7 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css']
+  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
 fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
@@ -1755,6 +1808,36 @@ try {
 fs.mkdirSync(path.join(OUT, 'assets', 't2c', 'images'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'icons'),
   path.join(OUT, 'assets', 't2c', 'icons'), { recursive: true });
+
+/* Flagship pack: vectors, motion, and the responsive stage cutouts. The 1254px
+   raster masters are NOT shipped — nothing displays a stage above 180px, so
+   16 MB of masters would be downloaded by nobody. They stay in the pack for the
+   large detail views described in ASSET_MANIFEST.md, if one is ever built. */
+for (const d of ['svg', 'animated']) {
+  fs.cpSync(path.join(ROOT, 'assets', 't2c', d), path.join(OUT, 'assets', 't2c', d), { recursive: true });
+}
+fs.mkdirSync(path.join(OUT, 'assets', 't2c', 'responsive'), { recursive: true });
+let stageBytes = 0;
+for (const s of STAGES) {
+  for (const w of [192, 384, 768]) {
+    const rel = `${s.asset}-${w}.webp`;
+    fs.cpSync(path.join(ROOT, 'assets', 't2c', 'responsive', rel),
+      path.join(OUT, 'assets', 't2c', 'responsive', rel));
+    stageBytes += fs.statSync(path.join(OUT, 'assets', 't2c', 'responsive', rel)).size;
+  }
+  // The 1280 PNG is the transparent fallback; a stage node never exceeds 180px,
+  // so it is re-encoded down rather than shipped at full size.
+  const srcPng = path.join(ROOT, 'assets', 't2c', 'responsive', `${s.asset}-1280.png`);
+  const outPng = path.join(OUT, 'assets', 't2c', 'responsive', `${s.asset}-1280.png`);
+  if (sharp) {
+    await sharp(srcPng).resize({ width: 512, withoutEnlargement: true })
+      .png({ compressionLevel: 9 }).toFile(outPng);
+  } else {
+    fs.cpSync(srcPng, outPng);
+  }
+  stageBytes += fs.statSync(outPng).size;
+}
+console.log(`  chain stages: ${STAGES.length} cutouts + vectors → ${(stageBytes / 1024).toFixed(0)} KB`);
 
 let packBytes = 0;
 for (const a of ASSETS) {

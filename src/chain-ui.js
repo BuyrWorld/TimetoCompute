@@ -90,6 +90,48 @@ export function chainTrack(stages) {
   </div>`;
 }
 
+/**
+ * The flagship hero.
+ *
+ * Fixed proposition copy above the chain, then the day's real signal beside it
+ * as Today's Chain Reaction. The headline is the product's argument; the card is
+ * the evidence that the argument is being tracked.
+ */
+export function flagshipHero(stages, coverage, story) {
+  return `<section class="fl-hero" aria-labelledby="fl-h1">
+    <div class="fl-herotop">
+      <div>
+        <p class="ed-eyebrow">The physical race behind AI</p>
+        <h1 class="fl-h1" id="fl-h1">Follow AI from atoms to revenue<span class="dot">.</span></h1>
+        <p class="fl-lede">See who supplies what, where the bottlenecks are, what has actually
+          shipped&mdash;and when infrastructure starts earning.</p>
+        <div class="fl-acts">
+          <a class="ed-cta primary press" href="/chain/">Explore the chain <span aria-hidden="true">&rarr;</span></a>
+          <a class="ed-cta secondary press" href="/intelligence/?view=since-last-visit">
+            See what changed <span aria-hidden="true">&rarr;</span></a>
+        </div>
+      </div>
+
+      ${story.available ? `<aside class="fl-reaction" aria-labelledby="fl-react-h">
+        <p class="fl-reactkicker" id="fl-react-h">Today's chain reaction</p>
+        <h2 class="fl-reacth">${esc(story.headline)}</h2>
+        <p class="fl-reactsent">${esc(story.consequence)}</p>
+        <div class="fl-reactfoot">
+          <button type="button" class="ed-cta secondary press" id="whyBtn"
+            aria-haspopup="dialog" aria-controls="whyDrawer">Why this matters</button>
+          <span class="ed-badge" data-evidence="${esc(story.confidence)}">
+            <span class="ed-icon" data-icon="verified-shield" aria-hidden="true"></span>
+            High confidence &middot; Primary source
+          </span>
+        </div>
+      </aside>` : ''}
+    </div>
+
+    ${chainTrack(stages)}
+    ${chainCoverageNote(coverage)}
+  </section>`;
+}
+
 /** The honest coverage line that sits under the chain. */
 export function chainCoverageNote(cov) {
   return `<p class="cn-coverage">
