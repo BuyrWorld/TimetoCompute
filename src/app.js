@@ -1129,6 +1129,20 @@
       el.addEventListener('input', compute);
     });
 
+    // Capacity presets. Modelling today's billing alone answers a much narrower
+    // question than most readers think they are asking, so the alternatives are
+    // one click away and every one of them is on the same critical-IT basis.
+    qsa('.rvpreset').forEach(function (b) {
+      b.addEventListener('click', function () {
+        qsa('.rvpreset').forEach(function (o) {
+          o.classList.toggle('is-selected', o === b);
+          o.setAttribute('aria-pressed', String(o === b));
+        });
+        mwEl.value = b.getAttribute('data-mw');
+        compute();
+      });
+    });
+
     // Share count and live price arrive asynchronously; the calculator is usable
     // before either lands, and simply gains a per-share line when they do.
     var ticker = root.getAttribute('data-ticker');

@@ -1088,15 +1088,42 @@ function companyPage(c) {
     <p class="mnote">The megawatts and the revenue rate come from what ${esc(c.name)} has published.
       The multiple does not — it is an opinion, and it is the input that moves the answer most.
       Nothing here is a price target.</p>
-    ${revenueCalculator(c, {
-      billing: (() => {
+    ${(() => {
+      const billing = (() => {
         const live = v.measures.revenueLiveMw;
         if (isKnown(live)) return { valueMw: live.valueMw, isEstimate: false };
         const e = estimates.revenueLiveMw;
         return e ? { valueMw: e.valueMw, isEstimate: true } : null;
-      })(),
-      rate: estimateRevenueRate(c.id)
-    })}
+      })();
+
+      /* Only critical-IT measures are offered. The revenue rate is derived from
+         contracts priced per MW of critical IT, so applying it to gross utility
+         power would price megawatts that cannot be sold as compute. */
+      const CRITICAL_IT = ['revenueLiveMw', 'customerAcceptedMw', 'customerContractedMw', 'energisedCriticalItMw'];
+      const seen = new Set();
+      const bases = [];
+      if (billing) {
+        bases.push({
+          label: billing.isEstimate ? 'Billing (est)' : 'Billing today',
+          valueMw: billing.valueMw,
+          definition: 'Capacity the company has disclosed as billing, or T2C\'s estimate from accepted capacity.'
+        });
+        seen.add(billing.valueMw);
+      }
+      for (const key of CRITICAL_IT) {
+        const m = v.measures[key];
+        if (!isKnown(m) || seen.has(m.valueMw)) continue;
+        seen.add(m.valueMw);
+        bases.push({
+          label: METRICS[key].label,
+          valueMw: m.valueMw,
+          definition: METRICS[key].definition
+        });
+      }
+      bases.sort((a, b) => a.valueMw - b.valueMw);
+
+      return revenueCalculator(c, { billing, rate: estimateRevenueRate(c.id), bases });
+    })()}
   </section>
 
   <div id="story">${storybook(v)}</div>

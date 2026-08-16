@@ -640,6 +640,25 @@ html[data-estimates="off"] [data-estimate] { display: none !important; }
   .revcalc > .tw, .revcalc > .mnote { grid-column: 1 / -1; }
 }
 
+.rvpresets { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (min-width: 900px) { .rvpresets, .rvpresetnote { grid-column: 1 / -1; } }
+.rvpreset {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  min-height: 52px; padding: 8px 14px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--m-radius-sm);
+  color: var(--soft); font-size: 12.5px; font-weight: 700; text-align: left;
+}
+.rvpreset span {
+  font-family: var(--m-mono); font-size: 15px; font-weight: 700; color: var(--ink);
+}
+.rvpreset.is-selected {
+  border-color: var(--brand); background: var(--m-lime-soft); color: var(--brand);
+}
+.rvpreset.is-selected span { color: var(--brand); }
+.rvpresetnote {
+  font-size: 12px; line-height: 1.55; color: var(--dim); margin: 0; max-width: 78ch;
+}
+
 .rvinputs { display: grid; gap: var(--s2); }
 .rvrow { display: grid; gap: 4px; }
 .rvrow label {

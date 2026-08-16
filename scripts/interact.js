@@ -239,6 +239,25 @@ const run = async () => {
     afterMult.rev === beforeMult.rev && afterMult.ev !== beforeMult.ev,
     `${beforeMult.ev} → ${afterMult.ev}`);
 
+  // Capacity presets change what is being modelled, and only offer critical-IT
+  // measures — pricing gross utility power at a per-MW contract rate would value
+  // megawatts that cannot be sold as compute.
+  const presets = await page.$$eval('.rvpreset', els =>
+    els.map(e => ({ label: e.textContent, mw: Number(e.getAttribute('data-mw')) })));
+  check('the calculator offers more than one capacity basis', presets.length > 1,
+    presets.map(p => p.mw + 'MW').join(', '));
+  check('presets are ordered smallest first', presets.every((p, i) => i === 0 || p.mw >= presets[i - 1].mw));
+  const secured = await page.$eval('.rvpresetnote', el => el.textContent);
+  check('the page says why secured power is excluded', /gross power/i.test(secured));
+
+  const evBefore = await page.$eval('[data-out="ev"]', el => el.textContent);
+  await page.click('.rvpreset:last-child');
+  await new Promise(r => setTimeout(r, 150));
+  const evAfter = await page.$eval('[data-out="ev"]', el => el.textContent);
+  const mwNow = await page.$eval('.revcalc input[id$="-mw"]', el => Number(el.value));
+  check('selecting a larger capacity basis remodels the answer',
+    evAfter !== evBefore && mwNow === presets[presets.length - 1].mw, `${evBefore} → ${evAfter}`);
+
   // A share count turns the per-share line on.
   await page.evaluate(() => {
     const s = document.querySelector('.revcalc input[id$="-shares"]');

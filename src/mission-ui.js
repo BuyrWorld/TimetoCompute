@@ -448,7 +448,7 @@ export function contractXray(contracts) {
  * Every input row states what it rests on, because the difference between a
  * derived rate and an assumed multiple is the whole point.
  */
-export function revenueCalculator(c, { billing, rate, price = null }) {
+export function revenueCalculator(c, { billing, rate, price = null, bases = [] }) {
   const id = s => `rev-${c.slug}-${s}`;
 
   if (!billing || !rate) {
@@ -467,9 +467,19 @@ export function revenueCalculator(c, { billing, rate, price = null }) {
       data-rate="${rate.perMwYearM}" data-shares=""
       data-ticker="${esc(c.ticker)}" data-live-price="${price === null ? '' : price}">
 
+    ${bases.length > 1 ? `<div class="rvpresets" role="group" aria-label="Which capacity to model">
+      ${bases.map((b, i) => `<button type="button" class="rvpreset press${i === 0 ? ' is-selected' : ''}"
+        data-mw="${b.valueMw}" aria-pressed="${i === 0}"
+        title="${esc(b.definition)}">${esc(b.label)}<span>${esc(mw(b.valueMw))}</span></button>`).join('')}
+    </div>
+    <p class="rvpresetnote">Every option above is measured as <b>critical IT</b>, the same basis the
+      revenue rate is derived on. Secured power is deliberately absent: it is gross power at the
+      utility connection, and applying a per-MW contract rate to it would price megawatts that cannot
+      be sold as compute.</p>` : ''}
+
     <div class="rvinputs">
       <div class="rvrow">
-        <label for="${id('mw')}">Billing capacity</label>
+        <label for="${id('mw')}">Capacity modelled</label>
         <div class="rvfield">
           <input type="number" id="${id('mw')}" value="${billing.valueMw}" min="0" step="1" inputmode="decimal" />
           <span class="rvunit">MW</span>
