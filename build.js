@@ -35,6 +35,8 @@ import { allSites, companyPath } from './src/lib/sites.js';
 import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
 import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
 import { ART } from './data/artpack.js';
+import { explainerRoutes, explainerHref } from './src/lib/explain.js';
+import { explainerPageBody } from './src/explainer-page.js';
 import { aiFactoryGraph } from './src/lib/corridor.js';
 import { passport } from './src/lib/passport.js';
 import {
@@ -94,6 +96,12 @@ const NAV = [
   { id: 'chain', label: 'Supply chain', href: '/chain/' },
   { id: 'companies', label: 'Companies', href: '/companies/' },
   { id: 'sites', label: 'Megaprojects', href: '/sites/' },
+  /* The pack asks for AI News and Financials in the primary nav. News is
+     promoted here because the route exists and carries real sourced stories.
+     FINANCIALS IS DELIBERATELY ABSENT: its route is phase 6, and a primary nav
+     item leading to a 404 — or to a page of em-dashes — is worse than one the
+     reader has not been promised yet. It joins when it has something to show. */
+  { id: 'news', label: 'AI news', href: '/news/' },
   { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
   { id: 'explainers', label: 'Explainers', href: '/explainers/' }
 ];
@@ -117,7 +125,6 @@ const MOBILE_NAV = [
  */
 const UTILITY_ROUTES = [
   { id: 'intelligence', label: 'Intelligence ledger', href: '/intelligence/' },
-  { id: 'news', label: 'News wire', href: '/news/' },
   { id: 'lab', label: 'Edge Lab', href: '/lab/' },
   { id: 'compare', label: 'Compare companies', href: '/compare/' },
   { id: 'research', label: 'Research', href: '/research/' },
@@ -816,6 +823,27 @@ function chainPage() {
     canonical: SITE + '/chain/',
     body: chainBody(),
     active: 'chain'
+  });
+}
+
+/**
+ * The thirteen explainer routes.
+ *
+ * One template, one description rule: the page's own definition is the meta
+ * description, so what a search engine shows and what the reader lands on are
+ * the same sentence. A hand-written variant would drift within a month.
+ */
+function explainerDetailPage(e) {
+  const isStage = e.kind === 'stage';
+  return page({
+    title: `${e.title} | T2C`,
+    description: `${e.definition} In simple terms: ${e.simple}. ` +
+      (isStage
+        ? 'Where it sits in the AI supply chain, where it gets stuck, and which public companies make it.'
+        : 'Part of the photonics stage of the AI supply chain, with sourced component suppliers.'),
+    canonical: SITE + explainerHref(e),
+    body: explainerPageBody(e.slug),
+    active: 'explainers'
   });
 }
 
@@ -1725,6 +1753,9 @@ bytes += write('intelligence/index.html', intelligencePage());
 bytes += write('news/index.html', newsPage());
 bytes += write('chain/index.html', chainPage());
 bytes += write('explainers/index.html', explainersPage());
+for (const { explainer, href } of explainerRoutes()) {
+  bytes += write(`${href.slice(1)}index.html`, explainerDetailPage(explainer));
+}
 bytes += write('404.html', notFoundPage());
 const SITES = allSites();
 for (const s of SITES) bytes += write(`sites/${s.slug}/index.html`, sitePage(s));
@@ -1795,6 +1826,14 @@ const urls = [
   ...COMPANIES.map(c => ({ loc: `${SITE}/companies/${c.slug}/`, priority: '0.8', freq: 'weekly' })),
   ...PROFILES.filter(p => p.deliveryTracked === false)
     .map(p => ({ loc: `${SITE}/companies/${p.id}/`, priority: '0.5', freq: 'monthly' })),
+  /* The thirteen explainers, generated from the same table as the routes so the
+     sitemap cannot fall behind the build. Stage hubs rank above component pages
+     because a stage is the destination a reader is more likely to want. */
+  ...explainerRoutes().map(({ explainer, href }) => ({
+    loc: SITE + href,
+    priority: explainer.kind === 'stage' ? '0.8' : '0.6',
+    freq: 'monthly'
+  })),
   { loc: SITE + '/privacy/', priority: '0.2', freq: 'yearly' },
   { loc: SITE + '/terms/', priority: '0.2', freq: 'yearly' },
   { loc: SITE + '/contact/', priority: '0.3', freq: 'yearly' }
@@ -1816,7 +1855,7 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css']
+  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
 fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
@@ -1942,6 +1981,24 @@ for (const s of STAGES) {
   stageBytes += fs.statSync(outPng).size;
 }
 console.log(`  chain stages: ${STAGES.length} cutouts + vectors → ${(stageBytes / 1024).toFixed(0)} KB`);
+
+/* Photonics component cutouts and the news editorial raster.
+   Shipped by walking the manifest rather than a hand-kept list: the explainer
+   routes are generated from the same table, so a component added there cannot
+   ship without its artwork. The 1024px derivative is included because a
+   component hero displays at up to 480 CSS px, which is 960px on a 2x screen. */
+let partBytes = 0;
+for (const a of ART) {
+  if (a.base.startsWith('/assets/t2c/responsive/stage-')) continue;  // already copied above
+  const dir = path.join(OUT, path.dirname(a.base).replace(/^\//, ''));
+  fs.mkdirSync(dir, { recursive: true });
+  for (const w of a.widths) {
+    const rel = `${a.base}-${w}.webp`.replace(/^\//, '');
+    fs.cpSync(path.join(ROOT, rel), path.join(OUT, rel));
+    partBytes += fs.statSync(path.join(OUT, rel)).size;
+  }
+}
+console.log(`  photonics + editorial: ${ART.length - STAGES.length} assets → ${(partBytes / 1024).toFixed(0)} KB`);
 
 let packBytes = 0;
 for (const a of ASSETS) {

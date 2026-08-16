@@ -21,6 +21,7 @@ import { COMPANIES } from '../../data/companies.js';
 import { PROJECTS } from '../../data/projects.js';
 import { getMeasure, isKnown } from './compute.js';
 import { path as projectPath } from './sites.js';
+import { STAGE_BY_ID } from '../../data/explainers.js';
 
 /**
  * Frame colour carries meaning, per the pack: cyan for photonics, lime for
@@ -149,9 +150,15 @@ export function chainState() {
 
   return STAGES.map((s, i) => {
     const happened = s.tracked ? 'evidenced' : (i < lastTracked ? 'implied' : 'unknown');
+    /* Every stage now has an explainer, so every node in the chain leads
+       somewhere real. The explainer owns the plain-English one-liner, so the
+       node and the page it opens cannot describe the stage differently. */
+    const ex = STAGE_BY_ID[s.id];
     return {
       ...s,
       happened,
+      explainerHref: ex ? `/explainers/${ex.slug}/` : null,
+      simple: ex ? ex.simple : s.plain,
       impliedBy: happened === 'implied' ? anchor.label : null,
       count: s.tracked
         ? counts[s.id]

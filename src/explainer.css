@@ -1,0 +1,362 @@
+/* ============================================================
+   Explainer layer — the seven stage hubs and six component pages.
+
+   One stylesheet for thirteen routes, because they are one template. Anything
+   that looks like a per-page exception here is a bug: a reader who has learned
+   the shape on Photonics must not have to relearn it on Materials.
+   ============================================================ */
+
+.ex-page { padding-bottom: var(--s6, 64px); }
+
+/* ---- breadcrumb ---- */
+.ex-crumbs {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  font-family: var(--m-mono); font-size: 11px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--dim);
+  margin-bottom: var(--s3);
+}
+.ex-crumbs a { color: var(--dim); text-decoration: none; border-bottom: 1px solid var(--line); }
+.ex-crumbs a:hover { color: var(--brand); border-bottom-color: var(--brand); }
+.ex-crumbs [aria-current="page"] { color: var(--soft); }
+
+/* ---- hero ---- */
+.ex-hero { padding-top: var(--s3); }
+.ex-herogrid {
+  display: grid; gap: var(--s4); align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 860px) {
+  .ex-herogrid { grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: var(--s5); }
+}
+.ex-herogrid > * { min-width: 0; }
+
+.ex-heroart {
+  position: relative; margin: 0; display: grid; place-items: center;
+  width: min(100%, 340px); aspect-ratio: 220 / 240; justify-self: center;
+  color: var(--t2c-cyan);
+}
+/* Vector, not a clipped box: clip-path cuts a border into fragments, which is
+   exactly what the first attempt produced. Same silhouette as the chain node. */
+.ex-heroframe {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  filter: drop-shadow(0 0 14px rgb(66 217 255 / 28%));
+}
+.ex-heroart .ex-asset {
+  position: relative; width: 68%; height: 68%;
+  object-fit: contain; object-position: 50% 50%;
+  transform: translate(var(--asset-x, 0%), var(--asset-y, 0%)) scale(var(--asset-scale, 1));
+  filter: brightness(1.08) contrast(1.06) drop-shadow(0 0 22px rgb(66 217 255 / 30%));
+}
+
+.ex-stagenum {
+  font-family: var(--m-mono); font-size: 12px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--t2c-cyan);
+  margin: 0 0 10px;
+}
+.ex-stagenum span { color: var(--dim); }
+.ex-h1 {
+  font-family: var(--ed-display); font-weight: 800;
+  font-size: clamp(2rem, 5.2vw, 3.6rem); line-height: .96;
+  text-transform: uppercase; letter-spacing: -.015em;
+  margin: 0 0 var(--s2); color: var(--ink);
+}
+.ex-def { font-size: clamp(15px, 1.6vw, 18px); line-height: 1.55; color: var(--soft); margin: 0; }
+/* The one bracketed translation on the page. Everything after this is a
+   glossary trigger instead. */
+.ex-simple {
+  font-size: clamp(14px, 1.5vw, 16.5px); line-height: 1.5;
+  color: var(--brand); margin: var(--s2) 0 0; max-width: 56ch;
+}
+
+/* ---- sections ---- */
+.ex-block { margin-top: var(--s5); }
+.ex-blockh {
+  display: flex; align-items: baseline; gap: 10px;
+  font-family: var(--ed-display); font-size: clamp(1.15rem, 2vw, 1.6rem);
+  text-transform: uppercase; letter-spacing: -.01em; color: var(--ink);
+  margin: 0 0 var(--s2); padding-bottom: 10px; border-bottom: 1px solid var(--line-2);
+}
+.ex-blockn { font-family: var(--m-mono); font-size: .8em; color: var(--t2c-cyan); }
+.ex-lede { font-size: 15px; line-height: 1.65; color: var(--soft); margin: 0; max-width: 78ch; }
+.ex-note { font-size: 12.5px; line-height: 1.6; color: var(--dim); margin: var(--s2) 0 0; max-width: 82ch; }
+.ex-role { font-size: 13px; line-height: 1.6; color: var(--soft); margin: var(--s2) 0 0; }
+.ex-role b { color: var(--brand); }
+.ex-empty {
+  font-size: 13px; line-height: 1.65; color: var(--dim); margin: 0; max-width: 78ch;
+  padding: var(--s2) var(--s3); border-left: 2px solid var(--warn);
+  background: var(--m-panel, var(--surface)); border-radius: 0 var(--m-radius-sm) var(--m-radius-sm) 0;
+}
+
+/* ---- how it works ---- */
+.ex-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: s; }
+.ex-step {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start;
+  padding: 10px 12px; border-radius: var(--m-radius-sm);
+  border: 1px solid var(--line-2); background: var(--m-panel, var(--surface));
+}
+.ex-stepn {
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid var(--t2c-cyan); color: var(--t2c-cyan);
+  font-family: var(--m-mono); font-size: 11.5px; font-weight: 700;
+}
+.ex-steptext { font-size: 13.5px; line-height: 1.55; color: var(--soft); }
+
+/* ---- inputs / outputs ---- */
+.ex-io { display: grid; gap: var(--s2); margin: 0; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .ex-io { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ex-io > div {
+  min-width: 0; padding: var(--s2); border-radius: var(--m-radius-sm);
+  border: 1px solid var(--line-2); background: var(--m-panel, var(--surface));
+}
+.ex-io dt {
+  font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim); margin-bottom: 6px;
+}
+.ex-io dd { margin: 0; font-size: 13px; line-height: 1.55; color: var(--soft); }
+
+/* ---- component cards ---- */
+.ex-parts {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--s2); grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 720px) { .ex-parts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1180px) { .ex-parts { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.ex-parts > * { min-width: 0; }
+.ex-partlink {
+  display: grid; justify-items: center; text-align: center; gap: 6px; min-width: 0;
+  padding: var(--s2) 10px; height: 100%; text-decoration: none; color: inherit;
+  border: 1px solid var(--line-2); border-radius: var(--m-radius);
+  background: var(--m-panel, var(--surface));
+  transition: border-color var(--t2c-fast) var(--t2c-ease),
+              transform var(--t2c-fast) var(--t2c-ease);
+}
+.ex-partlink:hover, .ex-partlink:focus-visible {
+  border-color: var(--t2c-cyan); transform: translateY(-3px);
+}
+.ex-partart { display: grid; place-items: center; width: 100%; aspect-ratio: 1; max-width: 132px; }
+.ex-partimg {
+  width: 82%; height: 82%; object-fit: contain; object-position: 50% 50%;
+  transform: translate(var(--asset-x, 0%), var(--asset-y, 0%)) scale(var(--asset-scale, 1));
+  filter: brightness(1.08) contrast(1.06) drop-shadow(0 0 10px rgb(66 217 255 / 26%));
+}
+.ex-partname { font-size: 13.5px; font-weight: 800; color: var(--ink); }
+.ex-partsimple { font-size: 11.5px; line-height: 1.45; color: var(--dim); }
+.ex-partcta {
+  margin-top: auto; padding-top: 6px;
+  font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--t2c-cyan);
+}
+
+/* ---- chain strip ---- */
+.ex-chain {
+  list-style: none; margin: 0 0 var(--s2); padding: 0 0 8px;
+  display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin;
+}
+.ex-chainnode { flex: 1 0 84px; min-width: 84px; }
+.ex-chainlink {
+  display: grid; justify-items: center; gap: 5px; padding: 8px 4px; min-height: 44px;
+  text-decoration: none; color: var(--dim); border-radius: var(--m-radius-sm);
+  border: 1px solid transparent;
+}
+a.ex-chainlink:hover, a.ex-chainlink:focus-visible {
+  border-color: var(--line); color: var(--soft);
+}
+.ex-chainart { display: grid; place-items: center; width: 52px; height: 52px; }
+.ex-chainimg {
+  width: 100%; height: 100%; object-fit: contain; object-position: 50% 50%;
+  transform: translate(var(--asset-x, 0%), var(--asset-y, 0%)) scale(var(--asset-scale, 1));
+}
+.ex-chainlabel {
+  font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .06em;
+  text-transform: uppercase; text-align: center; line-height: 1.3;
+}
+/* Implied stages stay legible; only the current one is emphasised. */
+.ex-chainnode.is-implied .ex-chainimg { opacity: .86; }
+.ex-chainnode.is-evidenced .ex-chainlabel { color: var(--soft); }
+.ex-chainnode.is-here .ex-chainlink {
+  border-color: var(--t2c-cyan); background: var(--t2c-cyan-soft);
+}
+.ex-chainnode.is-here .ex-chainlabel { color: var(--t2c-cyan); font-weight: 700; }
+
+/* ---- supplier table ---- */
+.ex-caveat {
+  font-size: 12.5px; line-height: 1.6; color: var(--soft);
+  margin: 0 0 var(--s2); padding: 10px 12px; max-width: 92ch;
+  border-left: 2px solid var(--warn); background: var(--m-panel, var(--surface));
+  border-radius: 0 var(--m-radius-sm) var(--m-radius-sm) 0;
+}
+.ex-suppliers { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ex-suppliers th, .ex-suppliers td {
+  padding: 12px 10px; border-bottom: 1px solid var(--line-2);
+  text-align: left; vertical-align: top;
+}
+.ex-suppliers thead th {
+  font-family: var(--m-mono); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim); font-weight: 700;
+}
+.ex-supname { display: block; font-size: 14px; font-weight: 800; color: var(--ink); }
+.ex-supticker {
+  display: block; font-family: var(--m-mono); font-size: 10.5px; color: var(--dim); margin-top: 2px;
+}
+.ex-supcovers {
+  display: block; font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--t2c-cyan); margin-top: 5px;
+}
+.ex-suprole {
+  display: inline-block; font-family: var(--m-mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--soft);
+  border: 1px solid var(--line); border-radius: 3px; padding: 2px 6px; cursor: help;
+}
+.ex-supwhat { display: block; font-size: 12px; line-height: 1.5; color: var(--dim); margin-top: 6px; }
+
+/* THE COLUMN THAT DOES THE WORK. A capability row must never carry the marks of
+   a confirmed award, so tone is set by the evidence grade and nothing else. */
+.ex-grade {
+  display: inline-block; font-family: var(--m-mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  border-radius: 3px; padding: 3px 7px; cursor: help;
+}
+.ex-grade[data-grade="ok"] { color: var(--brand); border: 1px solid var(--brand); }
+.ex-grade[data-grade="warn"] { color: var(--warn); border: 1px dashed var(--warn); }
+.ex-grade[data-grade="info"] { color: var(--dim); border: 1px dotted var(--line-strong, var(--line)); }
+.ex-supev { display: block; font-size: 12px; line-height: 1.5; color: var(--soft); margin-top: 6px; }
+.ex-supparty {
+  display: block; font-family: var(--m-mono); font-size: 10px; color: var(--soft); margin-top: 5px;
+}
+.ex-supparty.is-none { color: var(--dim); font-style: italic; }
+.ex-supasof {
+  display: block; font-family: var(--m-mono); font-size: 9.5px; color: var(--dim); margin-top: 4px;
+}
+.ex-supsrc {
+  display: inline-block; font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--dim); overflow-wrap: anywhere;
+}
+.ex-supsrc:hover { color: var(--brand); }
+
+/* ---- quote state ----
+   No provider is configured, so every cell is the unavailable state. It is a
+   real state with a stated reason, never a blank that reads as "no price". */
+.ex-quote { display: block; min-width: 0; }
+.ex-quotedot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--dim); margin-right: 6px; vertical-align: middle;
+}
+.ex-quote[data-quote-state="unavailable"] .ex-quotedot { background: var(--warn); opacity: .7; }
+.ex-quoteval {
+  font-family: var(--m-mono); font-size: 11.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--warn);
+}
+.ex-quotenote { display: block; font-size: 10.5px; line-height: 1.45; color: var(--dim); margin-top: 4px; }
+
+/* ---- glossary ---- */
+.ex-gloss {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 10px; grid-template-columns: 1fr;
+}
+@media (min-width: 720px) { .ex-gloss { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1180px) { .ex-gloss { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ex-glossitem {
+  min-width: 0; padding: var(--s2); border-radius: var(--m-radius-sm);
+  border: 1px solid var(--line-2); background: var(--m-panel, var(--surface));
+}
+.ex-glosstrigger {
+  background: none; border: 0; padding: 0; font: inherit; cursor: pointer;
+  font-size: 13.5px; font-weight: 800; color: var(--ink);
+  border-bottom: 1.5px dotted var(--t2c-cyan); min-height: 24px;
+}
+.ex-glosstrigger:hover { color: var(--t2c-cyan); }
+.ex-glossshort { display: block; font-size: 12px; line-height: 1.5; color: var(--dim); margin-top: 6px; }
+
+.ex-glosspop {
+  max-width: min(46ch, 92vw); padding: var(--s3);
+  border: 1px solid var(--t2c-cyan); border-radius: var(--m-radius);
+  background: var(--surface); color: var(--soft);
+}
+.ex-glosspop::backdrop { background: rgb(0 0 0 / 55%); }
+.ex-glossh { font-size: 15px; font-weight: 800; color: var(--ink); margin: 0 0 8px; }
+.ex-glossbody { font-size: 13px; line-height: 1.6; margin: 0 0 var(--s2); }
+.ex-glossclose {
+  font-family: var(--m-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  background: none; color: var(--t2c-cyan); border: 1px solid var(--t2c-cyan);
+  border-radius: 3px; padding: 6px 12px; cursor: pointer; min-height: 32px;
+}
+
+/* ---- signals ---- */
+.ex-signals { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ex-signallink {
+  display: grid; gap: 3px; padding: 10px 12px; text-decoration: none; color: inherit;
+  border: 1px solid var(--line-2); border-radius: var(--m-radius-sm);
+  border-left: 2px solid var(--brand); background: var(--m-panel, var(--surface));
+}
+.ex-signallink:hover { border-color: var(--brand); }
+.ex-signaldate { font-family: var(--m-mono); font-size: 10px; color: var(--dim); }
+.ex-signaltitle { font-size: 13px; line-height: 1.5; color: var(--soft); }
+.ex-signalmeta { font-family: var(--m-mono); font-size: 10px; color: var(--dim); }
+
+/* ---- footer ---- */
+.ex-foot { margin-top: var(--s5); padding-top: var(--s3); border-top: 1px solid var(--line); }
+.ex-footrow {
+  display: grid; gap: var(--s2); grid-template-columns: 1fr; margin-bottom: var(--s3);
+}
+@media (min-width: 720px) { .ex-footrow { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ex-footitem { min-width: 0; }
+.ex-footk {
+  display: block; font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim); margin-bottom: 4px;
+}
+.ex-footv { display: block; font-size: 13px; color: var(--soft); }
+a.ex-footv { color: var(--brand); text-decoration: none; }
+a.ex-footv:hover { text-decoration: underline; }
+
+.ex-prevnext { display: flex; justify-content: space-between; gap: var(--s2); flex-wrap: wrap; }
+.ex-prev, .ex-next {
+  display: inline-flex; align-items: center; gap: 10px; min-width: 0;
+  padding: 10px 14px; text-decoration: none; color: var(--soft);
+  border: 1px solid var(--line-2); border-radius: var(--m-radius-sm);
+}
+.ex-prev:hover, .ex-next:hover { border-color: var(--brand); color: var(--ink); }
+.ex-prev small, .ex-next small {
+  display: block; font-family: var(--m-mono); font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim);
+}
+.ex-next { margin-left: auto; text-align: right; }
+
+/* ============================================================
+   The explainer hub, on /explainers/
+   ============================================================ */
+.ex-hub {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--s2); grid-template-columns: 1fr;
+}
+@media (min-width: 700px) { .ex-hub { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .ex-hub { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ex-hub > * { min-width: 0; }
+.ex-hublink {
+  display: grid; grid-template-columns: auto 72px minmax(0, 1fr); gap: 12px; align-items: center;
+  height: 100%; padding: var(--s2); text-decoration: none; color: inherit;
+  border: 1px solid var(--line-2); border-radius: var(--m-radius);
+  background: var(--m-panel, var(--surface));
+  transition: border-color var(--t2c-fast) var(--t2c-ease),
+              transform var(--t2c-fast) var(--t2c-ease);
+}
+.ex-hublink:hover, .ex-hublink:focus-visible {
+  border-color: var(--brand); transform: translateY(-3px);
+}
+.ex-hubn { font-family: var(--m-mono); font-size: 11px; font-weight: 700; color: var(--dim); }
+.ex-hubart { display: grid; place-items: center; width: 72px; height: 72px; }
+.ex-hubimg {
+  width: 100%; height: 100%; object-fit: contain; object-position: 50% 50%;
+  filter: brightness(1.08) contrast(1.06) drop-shadow(0 0 10px rgb(214 255 0 / 22%));
+}
+.ex-hubbody { display: grid; gap: 3px; min-width: 0; }
+.ex-hubname { font-size: 15px; font-weight: 800; color: var(--ink); }
+.ex-hubsimple { font-size: 12px; line-height: 1.45; color: var(--dim); }
+.ex-hubcta {
+  font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--brand); margin-top: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ex-partlink, .ex-hublink { transition: none; }
+  .ex-partlink:hover, .ex-hublink:hover { transform: none; }
+}

@@ -24,10 +24,10 @@ const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites
   'catalysts/index.html', 'lab/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/chain/', '/companies/', '/sites/', '/catalysts/', '/explainers/'];
+const NAV_HREFS = ['/', '/chain/', '/companies/', '/sites/', '/news/', '/catalysts/', '/explainers/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
-const SECONDARY = ['/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/'];
+const SECONDARY = ['/intelligence/', '/lab/', '/compare/', '/research/', '/methodology/'];
 
 /* ================= routes ================= */
 
@@ -42,7 +42,7 @@ test('every navigation route is a real page, not a hash', () => {
 
 /* ================= the shared shell ================= */
 
-test('the shell offers exactly the five primary destinations, in order', () => {
+test('the shell offers exactly the primary destinations, in order', () => {
   for (const r of ROUTES) {
     const html = read(r);
     const hrefs = [...html.matchAll(/class="navlink[^"]*"\s+href="([^"]+)"/g)].map(m => m[1]);
@@ -93,7 +93,7 @@ test('a demoted route still tells the reader where they are', () => {
   // current somewhere, or the reader lands on a page the shell does not admit to.
   for (const [file, href] of [['research/index.html', '/research/'],
     ['compare/index.html', '/compare/'], ['lab/index.html', '/lab/'],
-    ['intelligence/index.html', '/intelligence/'], ['news/index.html', '/news/'],
+    ['intelligence/index.html', '/intelligence/'],
     ['methodology/index.html', '/methodology/']]) {
     const html = read(file);
     const link = html.match(new RegExp(`<a class="umenubtn[^"]*"[^>]*href="${href}"[^>]*>`));
@@ -242,15 +242,27 @@ test('an implied stage never borrows the evidence of the stage that implies it',
   }
 });
 
-test('an untracked stage links nowhere, because there is nowhere honest to go', () => {
+test('every stage is a real link to a real explainer', () => {
   const html = read('index.html');
-  const blocks = html.split(/class="cn-node is-(?:implied|gap)"/).slice(1);
-  assert.equal(blocks.length, 4);
-  for (const b of blocks) {
-    const upToClose = b.slice(0, b.indexOf('</li>'));
-    assert.ok(!/<a\s/.test(upToClose), 'an untracked stage offers a link');
-    assert.ok(/<button/.test(upToClose), 'an untracked stage offers no way to learn why');
+  const hrefs = [...html.matchAll(/class="cn-hit press" href="([^"]+)"/g)].map(m => m[1]);
+  assert.equal(hrefs.length, 7, `expected all 7 stages to link, found ${hrefs.length}`);
+  for (const h of hrefs) {
+    assert.match(h, /^\/explainers\//, `a stage links to ${h} rather than its explainer`);
+    assert.ok(exists(h.replace(/^\//, '') + 'index.html'), `a stage links to ${h}, which was not built`);
   }
+  // An untracked stage leads to an explanation, never to records it does not have.
+  assert.ok(!/class="cn-node is-(?:implied|gap)"[\s\S]{0,400}?class="cn-records"/.test(html),
+    'an untracked stage offers a records link it cannot honour');
+});
+
+test('every stage states what it is in plain English, on the node itself', () => {
+  const html = read('index.html');
+  for (const s of chainState()) {
+    assert.ok(html.includes(s.simple.replace(/&/g, '&amp;')),
+      `the ${s.label} node does not carry its plain-English line`);
+  }
+  assert.equal((html.match(/class="cn-what"/g) || []).length, 7,
+    'not every node offers the "What is this?" affordance');
 });
 
 test('the front page explains what happens at every stage, not only the gaps', () => {
@@ -265,10 +277,10 @@ test('the front page explains what happens at every stage, not only the gaps', (
   }
 });
 
-test('a tracked stage leads to its real records', () => {
+test('a tracked stage offers its records as a second, separate action', () => {
   const html = read('index.html');
-  const hrefs = [...html.matchAll(/class="cn-hit press" href="([^"]+)"/g)].map(m => m[1]);
-  assert.equal(hrefs.length, 3, `expected 3 tracked stages to link out, found ${hrefs.length}`);
+  const hrefs = [...html.matchAll(/class="cn-records press" href="([^"]+)"/g)].map(m => m[1]);
+  assert.equal(hrefs.length, 3, `expected 3 tracked stages to offer records, found ${hrefs.length}`);
   for (const h of hrefs) {
     const file = h.split('?')[0].replace(/^\//, '') + 'index.html';
     assert.ok(exists(file), `a chain stage links to ${h}, which was not built`);

@@ -402,6 +402,87 @@ export const SOURCES = [
     supportingExcerpt:
       'NVIDIA\'s own product page for Nemotron, described as a family of open models with open weights, ' +
       'training data and recipes for building AI agents.'
+  }),
+
+  /* ---------------- Photonics component suppliers ----------------
+     The asset pack ships an editorial seed naming seven companies and marking
+     most of them "direct supplier". Each document below was opened and read on
+     ingestion, and the excerpts record what it ACTUALLY establishes — which in
+     six of seven cases is that the company makes a class of component, not that
+     it has been awarded anything by anyone. Exactly one is a named, dated
+     company-to-company supply agreement. The distinction is preserved in
+     data/suppliers.js and shown to the reader. */
+  S('axt-lumentum-inp-agreement', {
+    accessedAt: '2026-08-16',
+    title: 'AXT, Inc. Announces Long-Term Supplier Agreement with Lumentum',
+    url: 'https://investors.axt.com/Investors/news/news-details/2026/AXT-Inc--Announces-Long-Term-Supplier-Agreement-with-Lumentum/default.aspx',
+    publisher: 'AXT, Inc.', sourceType: 'company-ir',
+    publishedAt: '2026-07-29', effectiveAt: '2026-07-29', isPrimary: true,
+    supportingExcerpt:
+      'Definitive supplier agreement under which AXT reserves a minimum annual commitment of indium ' +
+      'phosphide wafer substrates for Lumentum through 31 December 2031, with two deposits of ' +
+      '$43.5m each applied as shipment credits.'
+  }),
+  S('lumentum-eml-product', {
+    accessedAt: '2026-08-16',
+    title: 'Lumentum — EML 200G PAM4 CWDM laser',
+    url: 'https://www.lumentum.com/en/products/eml-200g-pam4-cwdm-laser',
+    publisher: 'Lumentum Holdings Inc.', sourceType: 'company-profile',
+    publishedAt: '2026-08-16', isPrimary: true,
+    supportingExcerpt:
+      'Lumentum\'s own product page for a 200G electro-absorption modulated laser for high-density ' +
+      'data-centre optics. Establishes that Lumentum makes EMLs; names no customer.'
+  }),
+  S('coherent-1-6t-demonstration', {
+    accessedAt: '2026-08-16',
+    title: 'Coherent Demonstrates 1.6T Optical Transceivers Based on 200G VCSELs',
+    url: 'https://www.coherent.com/news/press-releases/optical-transceivers-based-on-200g-vcsels',
+    publisher: 'Coherent Corp.', sourceType: 'company-ir',
+    publishedAt: '2025-04-01', effectiveAt: '2025-04-01', isPrimary: true,
+    supportingExcerpt:
+      'A demonstration of 1.6T optical transceivers built on 200G VCSELs. A demonstration is not a ' +
+      'qualification, an order or a shipment, and no customer is named.'
+  }),
+  S('aaoi-1-6t-volume-order', {
+    accessedAt: '2026-08-16',
+    title: 'AOI Receives First Volume Order of 1.6T Data Center Transceivers from Major Hyperscale Customer',
+    url: 'https://investors.ao-inc.com/news-releases/news-release-details/aoi-receives-first-volume-order-16t-data-center-transceivers',
+    publisher: 'Applied Optoelectronics, Inc.', sourceType: 'company-ir',
+    publishedAt: '2026-03-09', effectiveAt: '2026-03-09', isPrimary: true,
+    supportingExcerpt:
+      'First volume order for 1.6T data-centre transceivers from a long-standing "major hyperscale ' +
+      'customer" the release does not name. A volume order is not a shipment and not revenue.'
+  }),
+  S('marvell-pam4-dsp', {
+    accessedAt: '2026-08-16',
+    title: 'Marvell — PAM4 optical DSPs',
+    url: 'https://www.marvell.com/products/pam-dsp.html',
+    publisher: 'Marvell Technology, Inc.', sourceType: 'company-profile',
+    publishedAt: '2026-08-16', isPrimary: true,
+    supportingExcerpt:
+      'Marvell\'s own product page for PAM4 optical DSPs, including the Ara and Nova families ' +
+      'described as enabling 1.6T optical transceiver modules. Establishes capability; names no customer.'
+  }),
+  S('corning-glassworks-ai', {
+    accessedAt: '2026-08-16',
+    title: 'Corning launches GlassWorks AI Solutions for AI data-centre infrastructure',
+    url: 'https://www.corning.com/worldwide/en/about-us/news-events/news-releases/2025/03/corning-launches-GlassWorks-AI-solutions-a-one-stop-shop-for-AI-data-center-infrastructure-needs.html',
+    publisher: 'Corning Incorporated', sourceType: 'company-ir',
+    publishedAt: '2025-03-27', effectiveAt: '2025-03-27', isPrimary: true,
+    supportingExcerpt:
+      'Launch of a portfolio of cable and connectivity products for the dense fibre infrastructure ' +
+      'generative AI requires. A product launch, not an award from a named operator.'
+  }),
+  S('fabrinet-fy2025-results', {
+    accessedAt: '2026-08-16',
+    title: 'Fabrinet Announces Fourth Quarter and Fiscal Year 2025 Financial Results',
+    url: 'https://investor.fabrinet.com/news-releases/news-release-details/fabrinet-announces-fourth-quarter-and-fiscal-year-2025-financial',
+    publisher: 'Fabrinet', sourceType: 'company-ir',
+    publishedAt: '2025-08-18', effectiveAt: '2025-06-27', isPrimary: true,
+    supportingExcerpt:
+      'Describes Fabrinet as a provider of advanced optical packaging and precision optical, ' +
+      'electro-mechanical and electronic manufacturing services to OEMs. Establishes the business ' +
+      'model; names no optical customer.'
   })
 ];
 

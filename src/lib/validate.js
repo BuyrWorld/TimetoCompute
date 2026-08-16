@@ -10,7 +10,9 @@ import { EVENTS, CORRECTIONS } from '../../data/events.js';
 import { CATALYSTS, CATALYST_STATUS, CATALYST_CATEGORIES } from '../../data/catalysts.js';
 import { PROFILES } from '../../data/profiles.js';
 import { CUSTOMERS, CUSTOMER_KINDS, CUSTOMER_BY_NAME, isUndisclosedCustomer } from '../../data/customers.js';
-import { ART } from '../../data/artpack.js';
+import { ART, ART_BY_ID } from '../../data/artpack.js';
+import { EXPLAINERS, EXPLAINER_BY_SLUG, STAGE_BY_ID } from '../../data/explainers.js';
+import { PHOTONICS_SUPPLIERS, SUPPLIER_ROLES, EVIDENCE_GRADES } from '../../data/suppliers.js';
 import { allRecords, getMeasure, isKnown, aggregate, headlineKpis } from './compute.js';
 import { MAX_TICKERS, normaliseSelection } from './compare.js';
 
@@ -337,6 +339,67 @@ export function runChecks() {
     }
   }
 
+  /* ---------- explainers and suppliers ----------
+     The supplier table is the surface on this site most likely to mislead by
+     accident: a reader scanning "public companies in this area" assumes somebody
+     bought something. These rules keep the two axes apart — what a company DOES
+     (role) and what its document actually PROVES (grade) — and stop a capability
+     row from ever acquiring the marks of a confirmed award. */
+  const slugs = new Set();
+  for (const e of EXPLAINERS) {
+    if (slugs.has(e.slug)) fail(`Duplicate explainer slug ${e.slug}`);
+    slugs.add(e.slug);
+    for (const k of ['definition', 'simple', 'whyAi', 'madeOf', 'inputs', 'outputs', 'bottleneck']) {
+      if (!e[k] || e[k].length < 20) fail(`Explainer ${e.slug} has no usable ${k}`);
+    }
+    if (!ART_BY_ID[e.asset]) fail(`Explainer ${e.slug} references unknown art asset ${e.asset}`);
+    if (!(e.howItWorks?.length >= 3)) fail(`Explainer ${e.slug} explains fewer than three steps`);
+    // The bracketed translation is used once, in the hero. A `simple` that is
+    // itself full of jargon defeats the point.
+    if (/\b(epitax|modulat|substrate|interconnect|photonic)/i.test(e.simple)) {
+      fail(`Explainer ${e.slug}: the plain-English translation is not plain`);
+    }
+    if (e.kind === 'stage') {
+      if (!STAGE_BY_ID[e.stageId]) fail(`Explainer ${e.slug} claims unknown stage ${e.stageId}`);
+      for (const c of e.components || []) {
+        if (!EXPLAINER_BY_SLUG[c]) fail(`Explainer ${e.slug} lists unknown component ${c}`);
+      }
+    } else if (!EXPLAINER_BY_SLUG[e.parent]) {
+      fail(`Component ${e.slug} claims unknown parent ${e.parent}`);
+    }
+  }
+
+  const supplierIds = new Set();
+  for (const s of PHOTONICS_SUPPLIERS) {
+    if (supplierIds.has(s.id)) fail(`Duplicate supplier id ${s.id}`);
+    supplierIds.add(s.id);
+    if (!SUPPLIER_ROLES[s.role]) fail(`Supplier ${s.id}: unknown role ${s.role}`);
+    if (!EVIDENCE_GRADES[s.grade]) fail(`Supplier ${s.id}: unknown evidence grade ${s.grade}`);
+    if (!s.sourceIds?.length) fail(`Supplier ${s.id} cites no document`);
+    for (const id of s.sourceIds || []) {
+      if (!known(id)) fail(`Supplier ${s.id}: cites unknown source ${id}`);
+      else if (!SOURCE_BY_ID[id].isPrimary) {
+        fail(`Supplier ${s.id}: a relationship must rest on a primary document`);
+      }
+    }
+    if (!s.components?.length) fail(`Supplier ${s.id} covers no component`);
+    for (const c of s.components || []) {
+      if (!EXPLAINER_BY_SLUG[c]) fail(`Supplier ${s.id} covers unknown component ${c}`);
+    }
+    if (!ISO.test(s.asOf)) fail(`Supplier ${s.id}: asOf must be YYYY-MM-DD`);
+    if (!s.evidence || s.evidence.length < 40) {
+      fail(`Supplier ${s.id} does not state what its document establishes`);
+    }
+    /* The rule the ingested seed broke. A grade that claims a counterparty must
+       name one; a capability row must not, because its document names nobody. */
+    if (s.grade === 'supply-agreement' && !s.counterparty) {
+      fail(`Supplier ${s.id} claims a named agreement but names no counterparty`);
+    }
+    if (s.grade === 'capability' && s.counterparty) {
+      fail(`Supplier ${s.id} is a capability row yet names a counterparty — grade it higher or drop it`);
+    }
+  }
+
   /* ---------- art pack ----------
      Two failure modes worth failing the build over. A declared asset whose file
      is missing ships as a hole in the page, and the reader sees an alt string
@@ -390,7 +453,8 @@ export function runChecks() {
         ...(p.leadership || []).flatMap(e => e.sourceIds || []),
         ...(p.socials || []).map(x => x.sourceId)
       ]),
-      ...CUSTOMERS.flatMap(c => (c.models || []).map(m => m.sourceId))
+      ...CUSTOMERS.flatMap(c => (c.models || []).map(m => m.sourceId)),
+      ...PHOTONICS_SUPPLIERS.flatMap(s => s.sourceIds || [])
     ];
     return !used.includes(s.id);
   });

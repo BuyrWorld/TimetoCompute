@@ -67,6 +67,40 @@
   scroll-snap-align: center;
 }
 
+/* The pack's three layouts.
+
+   >= 1280px  seven equal nodes, no scroller. `min-width: max-content` is
+              dropped so the row divides the available width evenly instead of
+              overflowing by a few pixels and producing a scrollbar nobody needs.
+   768–1279   the scroll-snap rail, with a fade at the right edge so it is
+              obvious there is an eighth screenful of chain to the side.
+   < 768px    the same rail at full node size. Seven nodes are never shrunk into
+              miniatures — the pack is explicit, and a 40px hexagon communicates
+              nothing at all. */
+@media (min-width: 1280px) {
+  .cn-wrap { overflow-x: visible; padding-inline: 0; margin-inline: 0; }
+  .cn-track {
+    min-width: 0;
+    display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+    /* art, label, plain line, count, sub, affordance, records */
+    grid-template-rows: repeat(7, auto);
+  }
+  .cn-node { width: 100%; }
+  /* The subgrid that aligns the seven nodes' text rows lives at the end of this
+     file, after .cn-hit sets its own display — otherwise source order wins and
+     the override silently does nothing. */
+}
+
+@media (max-width: 1279px) {
+  /* A next-item cue: the rail must not look like it ends at the viewport. */
+  .cn-wrap {
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 44px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 44px), transparent 100%);
+  }
+  .cn-wrap:has(.cn-node:last-child:target),
+  .cn-wrap.is-end { -webkit-mask-image: none; mask-image: none; }
+}
+
 /* The connector between nodes carries direction. It is drawn on the node rather
    than between them so it cannot desync when the track scrolls. */
 .cn-node + .cn-node::before {
@@ -89,12 +123,38 @@
 
 .cn-hit {
   display: block; width: 100%; text-align: center;
-  background: none; border: 0; padding: 0; color: inherit; font: inherit;
-  cursor: pointer; border-radius: var(--m-radius-sm);
-  transition: transform var(--t2c-fast, 140ms) var(--t2c-ease, ease);
+  background: none; border: 0; padding: 0 0 4px; color: inherit; font: inherit;
+  cursor: pointer; border-radius: var(--m-radius-sm); text-decoration: none;
+  transition: transform var(--t2c-fast) var(--t2c-ease);
 }
 .cn-hit:hover { transform: translateY(-5px); }   /* the pack caps the lift at 5px */
 @media (prefers-reduced-motion: reduce) { .cn-hit { transition: none; } .cn-hit:hover { transform: none; } }
+
+/* The plain-English line, and the affordance that says the node opens something.
+   Both are what turn seven labelled icons into seven doors. */
+.cn-simple {
+  display: block; margin-top: 3px;
+  font-size: 11px; line-height: 1.35; color: var(--dim);
+  max-width: 20ch; margin-inline: auto;
+}
+.cn-what {
+  display: inline-block; margin-top: 7px;
+  font-family: var(--m-mono); font-size: 9px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--t2c-cyan);
+  opacity: .8; transition: opacity var(--t2c-fast) var(--t2c-ease);
+}
+.cn-hit:hover .cn-what, .cn-hit:focus-visible .cn-what { opacity: 1; }
+
+/* The records link, on the three stages that have records. A second action, so
+   "explain this" and "show me the sites" are not the same click. */
+.cn-records {
+  display: inline-block; margin-top: 6px;
+  font-family: var(--m-mono); font-size: 9px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--brand);
+  text-decoration: none; border-bottom: 1px solid rgb(214 255 0 / 35%);
+  min-height: 22px;
+}
+.cn-records:hover { border-bottom-color: var(--brand); }
 
 /* ---- the frame + cutout ---- */
 
@@ -494,4 +554,30 @@ button.bnav {
 .cu-withheldlist li {
   font-family: var(--m-mono); font-size: 10.5px; color: var(--dim);
   border: 1px solid var(--line-2); border-radius: 3px; padding: 3px 7px;
+}
+
+/* ============================================================
+   Row alignment across the seven desktop nodes.
+
+   Deliberately last in this file. `.cn-hit` sets `display: block` above, and a
+   media query adds no specificity — so an override placed earlier loses on
+   source order and does nothing at all, which is exactly what happened on the
+   first attempt.
+
+   Without this each node stacks to its own height, the plain-English lines wrap
+   to one, two or three lines, and the "What is this?" affordances land on four
+   different baselines. That reads as seven cards rather than one chain, and the
+   pack's QA list asks for labels that wrap consistently.
+   ============================================================ */
+@media (min-width: 1280px) {
+  @supports (grid-template-rows: subgrid) {
+    .cn-node { display: grid; grid-row: span 7; grid-template-rows: subgrid; }
+    .cn-hit {
+      display: grid; grid-row: span 6; grid-template-rows: subgrid;
+      align-content: start; justify-items: center;
+    }
+    .cn-records { grid-row: 7; align-self: start; justify-self: center; }
+    /* The art keeps its own square; only the text rows share tracks. */
+    .cn-art { width: 100%; }
+  }
 }

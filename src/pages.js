@@ -42,6 +42,8 @@ import {
 import { chainState, chainCoverage, STAGES } from './lib/chain.js';
 import { CORRIDORS, RELATIONSHIP_TYPES, aiFactoryGraph, relationshipRows } from './lib/corridor.js';
 import { customerMap, undisclosedCustomers, MODEL_ATTRIBUTION_CAVEAT } from './lib/customers.js';
+import { explainerIndexCards } from './explainer-page.js';
+import { STAGE_EXPLAINERS } from '../data/explainers.js';
 import { flagshipHero, chainTrack, chainCoverageNote, stageAsset } from './chain-ui.js';
 import { ASSET } from './lib/assets.js';
 
@@ -931,6 +933,16 @@ export function explainersBody() {
     meta: `<span class="pill-lite">For newcomers</span>
            <span class="pill-lite">Definitions from the data model</span>`
   })}
+
+  <section class="ed-section" aria-labelledby="hub-h">
+    <div class="ed-sectionhead">
+      <h2 class="ed-sectionh" id="hub-h">The seven stages, explained</h2>
+      <span class="ed-morelink">Atoms &rarr; revenue</span>
+    </div>
+    <p class="ed-note">Each stage has its own page: what happens there, how it works, where it gets
+      stuck, and which public companies make the parts. No prior knowledge assumed.</p>
+    ${explainerIndexCards(STAGE_EXPLAINERS)}
+  </section>
 
   <section class="ed-section" id="lifecycle" aria-labelledby="expl-h">
     ${explainer(EXPLAINER_STEPS, ASSET['explainer-ai-datacentre-cutaway'])}

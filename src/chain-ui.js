@@ -79,9 +79,16 @@ const FRAME = `<svg class="cn-frame" viewBox="0 0 220 240" aria-hidden="true" fo
 /**
  * One node in the chain.
  *
- * A tracked stage is a link to real records. An untracked stage is a button that
- * explains the gap — it is not inert, but it does not pretend to lead anywhere
- * either, because there is nowhere honest for it to go.
+ * ALL SEVEN ARE NOW LINKS. They previously split: three linked to records, and
+ * four were buttons opening an inline panel, on the reasoning that an untracked
+ * stage had nowhere honest to lead. That reasoning was right about RECORDS and
+ * wrong about the reader. There is always somewhere honest to lead — an
+ * explanation of what the stage is — and a newcomer meeting this chain wants
+ * that far more than a list of sites.
+ *
+ * So every node routes to its explainer, and the records link moves into the
+ * node as a second, explicit action on the stages that have them. Keyboard order
+ * still matches visual order, and no node leads to a page that does not exist.
  */
 export function chainNode(stage) {
   /* Three states, not two. A stage is evidenced (T2C holds records), implied
@@ -105,31 +112,23 @@ export function chainNode(stage) {
       ${mark}
     </span>
     <span class="cn-label">${esc(stage.label)}</span>
+    <span class="cn-simple">${esc(stage.simple)}</span>
     <span class="cn-count">${esc(stage.count.primary)}</span>
-    <span class="cn-sub">${esc(stage.count.secondary)}</span>`;
+    <span class="cn-sub">${esc(stage.count.secondary)}</span>
+    <span class="cn-what">What is this? <span aria-hidden="true">&rarr;</span></span>`;
 
   const aria = stage.happened === 'implied'
-    ? `${stage.label}. This stage must have happened, because ${stage.impliedBy} is evidenced. ` +
-      `T2C does not track who supplies it. ${stage.role}`
-    : `${stage.label}. ${stage.count.primary}, ${stage.count.secondary}. ${stage.role}`;
+    ? `${stage.label}. ${stage.simple}. This stage must have happened, because ${stage.impliedBy} ` +
+      `is evidenced, but T2C does not track who supplies it. Read the explainer.`
+    : `${stage.label}. ${stage.simple}. ${stage.count.primary}, ${stage.count.secondary}. ` +
+      `Read the explainer.`;
 
   return `<li class="cn-node ${cls}" data-stage="${esc(stage.id)}"
     style="${esc(opticsStyle(STEM_TO_ID[stage.asset] || stage.asset))}">
-    ${stage.tracked
-      ? `<a class="cn-hit press" href="${esc(stage.href)}" aria-label="${esc(aria)} Open the records.">${inner}</a>`
-      : `<button type="button" class="cn-hit press" aria-expanded="false"
-           aria-controls="cn-why-${esc(stage.id)}" aria-label="${esc(aria)} Explain this stage.">${inner}</button>`}
-    <div class="cn-why" id="cn-why-${esc(stage.id)}" hidden>
-      <p class="cn-plain">${esc(stage.plain)}</p>
-      <p class="cn-role"><b>Who sells to whom.</b> ${esc(stage.role)}</p>
-      ${stage.happened === 'implied'
-        ? `<p class="cn-implied"><b>This happened.</b> Capacity cannot be billing unless this stage was
-             completed — ${esc(stage.impliedBy)} is evidenced, so this is certain.
-             <b>T2C does not track it:</b> ${esc(stage.needs)}</p>`
-        : stage.needs
-          ? `<p class="cn-needs"><b>Not tracked.</b> ${esc(stage.needs)}</p>`
-          : `<p class="cn-tracked"><b>${esc(stage.count.primary)}</b> — ${esc(stage.count.secondary)}.</p>`}
-    </div>
+    <a class="cn-hit press" href="${esc(stage.explainerHref)}"
+       aria-label="${esc(aria)}">${inner}</a>
+    ${stage.tracked ? `<a class="cn-records press" href="${esc(stage.href)}">
+      ${esc(stage.count.primary)} on file <span aria-hidden="true">&rarr;</span></a>` : ''}
   </li>`;
 }
 

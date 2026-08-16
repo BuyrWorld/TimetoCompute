@@ -198,6 +198,10 @@ const run = async () => {
     count: (e.querySelector('.cn-count') || {}).textContent,
     sub: (e.querySelector('.cn-sub') || {}).textContent,
     link: !!e.querySelector('a.cn-hit'),
+    href: (e.querySelector('a.cn-hit') || {}).getAttribute
+      ? e.querySelector('a.cn-hit').getAttribute('href') : null,
+    records: !!e.querySelector('a.cn-records'),
+    what: !!e.querySelector('.cn-what'),
     // An implied stage must READ as lit, not merely be classed as such.
     dim: parseFloat(getComputedStyle(e.querySelector('.cn-asset')).opacity)
   })));
@@ -217,19 +221,27 @@ const run = async () => {
     chain.filter(c => c.implied).every(c =>
       /happened/i.test(c.count || '') && /not tracked/i.test(c.sub || '')),
     chain.filter(c => c.implied).map(c => `${c.count}/${c.sub}`).join(' | '));
-  check('an untracked stage offers no link to nowhere', untracked.every(c => !c.link));
-  check('a tracked stage links to its records',
-    chain.filter(c => c.evidenced).every(c => c.link));
+  /* Every stage now leads somewhere real: its explainer. An untracked stage
+     still offers no RECORDS link, because it has none — but "nowhere honest to
+     go" was only ever true of records, never of an explanation. */
+  check('every stage is a real link to its explainer',
+    chain.length === 7 && chain.every(c => c.link && /^\/explainers\//.test(c.href || '')),
+    chain.map(c => c.href).join(' '));
+  check('every stage offers a "What is this?" affordance', chain.every(c => c.what));
+  check('an untracked stage offers no records link it cannot honour',
+    untracked.every(c => !c.records));
+  check('a tracked stage offers its records as a separate action',
+    chain.filter(c => c.evidenced).every(c => c.records));
 
-  // Opening an implied stage explains it; only one panel opens at a time.
-  const impliedBtn = await page.$('.cn-node.is-implied .cn-hit');
-  await impliedBtn.click();
-  await new Promise(r => setTimeout(r, 200));
-  const openPanels = await page.$$eval('.cn-why', els => els.filter(e => !e.hidden).length);
-  const impliedText = await page.$eval('.cn-why:not([hidden])', el => el.textContent);
-  check('an implied stage explains what proves it and why it is still empty',
-    openPanels === 1 && /this happened/i.test(impliedText)
-      && /does not track it/i.test(impliedText), impliedText.slice(0, 90).replace(/\s+/g, ' '));
+  // The explainer a node opens actually loads, and names the stage.
+  const target = chain[0].href;
+  await page.goto(new URL(target, page.url()).href, { waitUntil: 'networkidle0' });
+  const landed = await page.$eval('.ex-h1', el => el.textContent.trim()).catch(() => null);
+  const simple = await page.$$eval('.ex-simple', els => els.length);
+  check('a chain node opens a real explainer with one plain-English translation',
+    !!landed && simple === 1, `${landed} · ${simple} translation(s)`);
+  await page.goBack({ waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 300));
 
   const guide = await page.$$eval('.cn-guideitem', els => els.map(e => ({
     name: (e.querySelector('.cn-guidename') || {}).textContent,
@@ -805,7 +817,7 @@ const run = async () => {
   }
 
   // A route demoted to the utility menu still says where you are.
-  for (const route of ['/intelligence/', '/news/', '/lab/']) {
+  for (const route of ['/intelligence/', '/lab/', '/compare/']) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const marked = await page.$$eval('.umenubtn[aria-current="page"]', els =>
       els.map(e => e.getAttribute('href')));
