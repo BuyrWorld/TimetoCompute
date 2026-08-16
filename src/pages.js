@@ -654,7 +654,11 @@ export function siteBody(site) {
     <div>
       ${section('view', 'Site view', 'Illustrative — not a photograph of this site',
         `<div class="campus">
-          <img class="campusimg" src="/assets/campus.png" alt="" loading="lazy" width="1536" height="1024" />
+          <picture>
+            <source srcset="/assets/campus.webp" type="image/webp" />
+            <img class="campusimg" src="/assets/campus.png" alt="" loading="lazy"
+              decoding="async" width="1200" height="800" />
+          </picture>
           <p class="campusnote">A generic campus illustration, shown to orient the layout of a site of this
             kind. It is not imagery of ${esc(site.name)}, carries no live telemetry, and no element of it is
             positioned from data. Every factual claim on this page is in the panels around it.</p>

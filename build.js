@@ -1524,16 +1524,65 @@ fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
 fs.cpSync(path.join(ROOT, 'src', 'lab-ui.js'), path.join(OUT, 'lab-ui.js'));
 fs.cpSync(path.join(ROOT, 'Logo'), path.join(OUT, 'Logo'), { recursive: true });
 
-/* Illustrative campus artwork. Copied under a name that says what it is: a
-   generic illustration, not imagery of any tracked site. */
+/* Illustrative campus artwork, copied under a name that says what it is: a
+   generic illustration, not imagery of any tracked site.
+
+   The source renders are far larger than anything the page displays — the
+   campus is 1536px wide for a slot that never exceeds ~940px, and the vehicle
+   sprite is 384px wide for a 26px marker. Shipping them untouched put 2.2 MB of
+   images on the homepage. Each is resized to twice its largest display size (so
+   it stays sharp on a 2× screen) and written as both WebP and PNG.
+
+   If sharp cannot load — a native module on a build image we do not control —
+   the originals are copied unchanged and the build carries on. The markup uses
+   <picture>, so a missing WebP silently falls back to the PNG. A slow homepage
+   is a worse outcome than a fast one; a failed deploy is worse than both. */
 fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
-// The "black" variant is the one with a near-black surround; the other has a
-// checkerboard baked into its pixels (it carries no alpha channel).
-fs.cpSync(path.join(ROOT, 'Sprites', 'datecenter', 'datacenterdrivableblack.png'),
-  path.join(OUT, 'assets', 'campus.png'));
-// One delivery-vehicle sprite. It moves only in Live mode and only inside the map.
-fs.cpSync(path.join(ROOT, 'Sprites', 'teslasprite', 'T2C_EV_Vehicle_Pack_v1', 'sprites', 'ev-east.png'),
-  path.join(OUT, 'assets', 'vehicle.png'));
+
+const IMAGES = [
+  {
+    // The "black" variant has a near-black surround; the other has a
+    // checkerboard baked into its pixels and carries no alpha channel.
+    from: path.join(ROOT, 'Sprites', 'datecenter', 'datacenterdrivableblack.png'),
+    name: 'campus', width: 1200, quality: 78
+  },
+  {
+    // One delivery-vehicle sprite. It moves only in Live mode, inside the map.
+    from: path.join(ROOT, 'Sprites', 'teslasprite', 'T2C_EV_Vehicle_Pack_v1', 'sprites', 'ev-east.png'),
+    name: 'vehicle', width: 128, quality: 82
+  }
+];
+
+let sharp = null;
+try {
+  ({ default: sharp } = await import('sharp'));
+} catch {
+  console.warn('  warn: sharp unavailable — shipping full-size images. Run `npm install` to fix.');
+}
+
+let imageBytes = 0;
+for (const img of IMAGES) {
+  const png = path.join(OUT, 'assets', `${img.name}.png`);
+  const webp = path.join(OUT, 'assets', `${img.name}.webp`);
+
+  if (!sharp) {
+    fs.cpSync(img.from, png);
+    imageBytes += fs.statSync(png).size;
+    continue;
+  }
+
+  // `withoutEnlargement` keeps a source smaller than the target untouched rather
+  // than upscaling it into a blurrier, larger file.
+  const resized = sharp(img.from).resize({ width: img.width, withoutEnlargement: true });
+  await resized.clone().webp({ quality: img.quality }).toFile(webp);
+  await resized.clone().png({ compressionLevel: 9, palette: true }).toFile(png);
+  imageBytes += fs.statSync(webp).size + fs.statSync(png).size;
+
+  const before = fs.statSync(img.from).size;
+  console.log(`  ${img.name}: ${(before / 1024).toFixed(0)} KB → ` +
+    `${(fs.statSync(webp).size / 1024).toFixed(0)} KB webp, ` +
+    `${(fs.statSync(png).size / 1024).toFixed(0)} KB png`);
+}
 
 const pageCount = fs.readdirSync(OUT, { recursive: true }).filter(f => String(f).endsWith('index.html')).length;
 console.log(`✓ built ${pageCount} pages + robots.txt + sitemap.xml (${(bytes / 1024).toFixed(0)} KB) → dist/`);

@@ -214,6 +214,51 @@ test('the contract x-ray never adds a conditional maximum to committed value', (
   assert.ok(!/\$27bn committed/.test(html), 'a conditional ceiling is described as committed');
 });
 
+/* ================= asset budget ================= */
+
+test('no shipped image exceeds its budget', () => {
+  // The source renders are 2 MB and 176 KB, for slots ~940px and 26px wide.
+  // Shipping them untouched put 2.2 MB of images on the homepage.
+  const budgets = {
+    'assets/campus.webp': 200,
+    'assets/campus.png': 700,
+    'assets/vehicle.webp': 20,
+    'assets/vehicle.png': 30
+  };
+  for (const [rel, maxKb] of Object.entries(budgets)) {
+    assert.ok(exists(rel), `${rel} was not built`);
+    const kb = fs.statSync(path.join(DIST, rel)).size / 1024;
+    assert.ok(kb <= maxKb, `${rel} is ${kb.toFixed(0)} KB, over its ${maxKb} KB budget`);
+  }
+});
+
+test('every raster image offers a WebP with a PNG fallback', () => {
+  // <picture> in markup, image-set in CSS — a browser without WebP still gets
+  // an image, and a build without sharp still gets a page.
+  for (const r of ['index.html', 'sites/iren-horizon-1/index.html']) {
+    const html = read(r);
+    assert.ok(/<source srcset="\/assets\/campus\.webp" type="image\/webp"/.test(html),
+      `${r} offers no WebP for the campus image`);
+    assert.ok(/<img[^>]+src="\/assets\/campus\.png"/.test(html),
+      `${r} has no PNG fallback for the campus image`);
+  }
+  const css = fs.readFileSync(path.join(DIST, 'styles.css'), 'utf8');
+  assert.ok(/image-set\(/.test(css), 'the vehicle sprite has no image-set');
+  assert.ok(/vehicle\.png/.test(css), 'the vehicle sprite has no PNG fallback');
+});
+
+test('images declare their dimensions so the layout cannot shift', () => {
+  for (const r of ['index.html', 'sites/iren-horizon-1/index.html']) {
+    const html = read(r);
+    const imgs = [...html.matchAll(/<img[^>]+src="\/assets\/[^"]+"[^>]*>/g)].map(m => m[0]);
+    assert.ok(imgs.length > 0, `${r} renders no asset image`);
+    for (const img of imgs) {
+      assert.ok(/width="\d+"/.test(img) && /height="\d+"/.test(img),
+        `an image in ${r} declares no dimensions: ${img}`);
+    }
+  }
+});
+
 test('the map is schematic and says so', () => {
   const html = read('index.html');
   assert.ok(/class="mapnote"/.test(html), 'the map carries no explanation');

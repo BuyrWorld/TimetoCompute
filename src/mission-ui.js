@@ -435,7 +435,11 @@ export function infrastructureMap(sites) {
 
   return `<div class="map" id="infraMap">
     <div class="mapview" id="mapView">
-      <img class="mapimg" id="mapImg" src="/assets/campus.png" alt="" width="1536" height="1024" />
+      <picture>
+        <source srcset="/assets/campus.webp" type="image/webp" />
+        <img class="mapimg" id="mapImg" src="/assets/campus.png" alt=""
+          width="1200" height="800" decoding="async" fetchpriority="low" />
+      </picture>
       <a class="mapsurface" href="/sites/" aria-label="Open the Sites explorer"></a>
       ${hotspots}
       <span class="vehicle" id="mapVehicle" hidden aria-hidden="true"></span>

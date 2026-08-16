@@ -706,9 +706,13 @@ html[data-mode="focus"] .secondary { display: none; }
   text-transform: uppercase; color: var(--dim);
 }
 
+/* image-set gives the WebP to browsers that take it and the PNG to the rest;
+   CSS has no <picture>, so this is the equivalent fallback. */
 .vehicle {
   position: absolute; z-index: 2; width: 26px; height: 34px;
   background: url('/assets/vehicle.png') center/contain no-repeat;
+  background-image: image-set(url('/assets/vehicle.webp') type('image/webp'),
+                              url('/assets/vehicle.png') type('image/png'));
   filter: drop-shadow(0 0 6px rgba(214, 255, 0, .5));
   pointer-events: none;
 }
