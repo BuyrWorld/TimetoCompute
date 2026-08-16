@@ -114,6 +114,32 @@
     try { localStorage.setItem(WATCH_KEY, JSON.stringify(v)); return true; } catch (e) { return false; }
   };
 
+  /* ============ estimates on/off ============
+     Estimates are T2C's derivations, not company disclosures, so the reader can
+     switch them off and see only what was published. The preference persists.
+     Default is on: a column of blanks tells a reader nothing about scale. */
+  (function estimatesToggle() {
+    var KEY = 't2c-estimates';
+    var btn = $('estBtn');
+    var apply = function (on, persist) {
+      document.documentElement.setAttribute('data-estimates', on ? 'on' : 'off');
+      if (btn) {
+        btn.setAttribute('aria-pressed', String(on));
+        btn.textContent = 'Estimates: ' + (on ? 'shown' : 'hidden');
+      }
+      if (persist) { try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch (e) {} }
+    };
+    var saved = null;
+    try { saved = localStorage.getItem(KEY); } catch (e) {}
+    apply(saved !== 'off', false);
+    if (btn) {
+      btn.addEventListener('click', function () {
+        apply(document.documentElement.getAttribute('data-estimates') !== 'on', true);
+        track('estimates_toggled', {});
+      });
+    }
+  })();
+
   /* ============ click-glow ============
      One primitive for every pressable thing. Three rules it exists to keep:
 
@@ -1023,6 +1049,117 @@
         });
       })
       .catch(function () { /* the build-time catalyst stands */ });
+  })();
+
+  /* ============ revenue calculator ============
+     The maths mirrors src/lib/revenue.js, which is unit-tested. Kept in full
+     precision throughout and rounded only where it is printed. */
+  (function revenueCalc() {
+    var root = document.querySelector('.revcalc');
+    if (!root) return;
+
+    var id = root.id.replace(/-root$/, '');
+    var get = function (s) { return $(id + '-' + s); };
+    var mwEl = get('mw'), rateEl = get('rate'), multEl = get('mult'), sharesEl = get('shares');
+    var out = get('out'), sens = get('sens');
+    if (!mwEl || !rateEl || !multEl || !sharesEl) return;
+
+    // Deliberately NOT data-price: the quote renderer claims every [data-price]
+    // element on the page and replaces its contents.
+    var priceAttr = root.getAttribute('data-live-price');
+    var PRICE = priceAttr ? Number(priceAttr) : null;
+
+    var money = function (m) {
+      if (!isFinite(m)) return '—';
+      return m >= 1000 ? '$' + (m / 1000).toFixed(2) + 'bn' : '$' + Math.round(m) + 'm';
+    };
+    var slot = function (k) { return root.querySelector('[data-out="' + k + '"]'); };
+
+    var compute = function () {
+      var mw = parseFloat(mwEl.value);
+      var rate = parseFloat(rateEl.value);
+      var mult = parseFloat(multEl.value);
+      var shares = parseFloat(sharesEl.value);
+
+      var ok = isFinite(mw) && mw > 0 && isFinite(rate) && rate > 0;
+      var rev = ok ? mw * rate : null;
+      var ev = ok && isFinite(mult) && mult > 0 ? rev * mult : null;
+      var ps = ev !== null && isFinite(shares) && shares > 0 ? ev / shares : null;
+      var up = ps !== null && PRICE ? (ps / PRICE) - 1 : null;
+
+      slot('revenue').textContent = rev === null ? '—' : money(rev) + ' / yr';
+      slot('ev').textContent = ev === null ? '—' : money(ev);
+      slot('pershare').textContent = ps === null ? '—' : '$' + ps.toFixed(2);
+
+      var upEl = slot('upside');
+      if (up === null) {
+        upEl.textContent = ps === null
+          ? 'Add a share count'
+          : (PRICE ? '—' : 'Live price unavailable');
+        upEl.className = 'rvval';
+      } else {
+        upEl.textContent = (up >= 0 ? '+' : '') + (up * 100).toFixed(1) + '% vs $' + PRICE.toFixed(2);
+        upEl.className = 'rvval ' + (up >= 0 ? 'up' : 'down');
+      }
+
+      slot('caveat').textContent = ps === null ? '' :
+        'This is enterprise value per share, not equity value per share. It does not subtract net debt, ' +
+        'which T2C does not carry for any tracked company. The multiple is an opinion; nothing here is ' +
+        'a price target or a recommendation.';
+
+      // Sensitivity: the same revenue at a range of multiples.
+      var body = sens.querySelector('tbody');
+      if (!ok) { body.innerHTML = ''; sens.hidden = true; return; }
+      sens.hidden = false;
+      body.innerHTML = [3, 4, 6, 8, 10, 12].map(function (m) {
+        var e = rev * m;
+        var p = isFinite(shares) && shares > 0 ? e / shares : null;
+        var u = p !== null && PRICE ? (p / PRICE) - 1 : null;
+        return '<tr' + (m === mult ? ' class="is-base"' : '') + '>' +
+          '<td>' + m + '×</td>' +
+          '<td>' + money(e) + '</td>' +
+          '<td>' + (p === null ? '—' : '$' + p.toFixed(2)) + '</td>' +
+          '<td class="' + (u === null ? '' : (u >= 0 ? 'up' : 'down')) + '">' +
+            (u === null ? '—' : (u >= 0 ? '+' : '') + (u * 100).toFixed(0) + '%') + '</td>' +
+        '</tr>';
+      }).join('');
+    };
+
+    [mwEl, rateEl, multEl, sharesEl].forEach(function (el) {
+      el.addEventListener('input', compute);
+    });
+
+    // Share count and live price arrive asynchronously; the calculator is usable
+    // before either lands, and simply gains a per-share line when they do.
+    var ticker = root.getAttribute('data-ticker');
+    var sharesBasis = sharesEl.closest('.rvrow').querySelector('.rvbasis');
+
+    api('/api/shares?symbols=' + ticker)
+      .then(function (d) {
+        var row = d && d.shares && d.shares[ticker];
+        if (!row) throw new Error(d && d.reason || 'no-data');
+        sharesEl.value = row.sharesOutstandingM;
+        sharesBasis.textContent = 'Supplied by the market data provider — you can override it';
+        sharesBasis.className = 'rvbasis ok';
+        compute();
+      })
+      .catch(function () {
+        sharesBasis.textContent = 'Not available from the provider — enter a share count for a per-share figure';
+        sharesBasis.className = 'rvbasis pending';
+        compute();
+      });
+
+    if (PRICE === null) {
+      api('/api/quote?symbols=' + ticker)
+        .then(function (d) {
+          var q = d && d.quotes && d.quotes[ticker];
+          var p = q && (q.price != null ? q.price : q.c);
+          if (isFinite(p) && p > 0) { PRICE = Number(p); compute(); }
+        })
+        .catch(function () { /* the model still runs without a comparison */ });
+    }
+
+    compute();
   })();
 
   /* ============ watch control on a company page ============ */

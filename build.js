@@ -35,7 +35,13 @@ import { allSites, companyPath } from './src/lib/sites.js';
 import { signals, todaySet } from './src/lib/signals.js';
 import { signalIndex } from './src/lib/today.js';
 import { realityScore, FACTORS, MIN_WEIGHT_COVERAGE, THIN_SAMPLE } from './src/lib/score.js';
-import { scorePanel, capacityTruth, contractXray, pathTrack } from './src/mission-ui.js';
+import {
+  scorePanel, capacityTruth, contractXray, pathTrack, estimateBlock, revenueCalculator
+} from './src/mission-ui.js';
+import {
+  companyEstimates, estimateCoverage, estimateRevenueRate,
+  RULES as ESTIMATE_RULES, GROSS_TO_CRITICAL_IT
+} from './src/lib/estimate.js';
 import { LAB_COVERAGE, CONTRACT_ECONOMICS, CAPEX_REFERENCE, MODEL_DEFAULTS, ASSUMPTION_PROVENANCE } from './data/economics.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -175,6 +181,9 @@ function appHeader(active = 'today') {
           <div class="umenugroup">
             <div class="umenuhead">Display</div>
             <button class="umenubtn press" id="themeBtn" type="button" aria-label="Switch to light theme">Light theme</button>
+            <button class="umenubtn press" id="estBtn" type="button" aria-pressed="true">Estimates: shown</button>
+            <div class="umenurow">Estimates are derived by T2C from disclosed figures. Switch them off
+              to see only what companies have published.</div>
           </div>
           <div class="umenugroup">
             <div class="umenuhead">More of T2C</div>
@@ -986,6 +995,7 @@ function companyPage(c) {
   const sections = [
     ['score', 'Reality Score'],
     ['path', 'Path to billing'],
+    ['revenue', 'Revenue'],
     ['story', 'The story'],
     ['record', 'Capacity record'],
     ...(targetRows ? [['targets', 'Targets']] : []),
@@ -1003,12 +1013,15 @@ function companyPage(c) {
 
   /* Capacity truth: four figures, each stating its own basis. They are stages of
      different measurements, not one funnel, and are never subtracted. */
+  const estimates = companyEstimates(c);
   const truthCell = (metricKey, label, glyph) => {
     const m = v.measures[metricKey];
     return {
       glyph, label,
       value: isKnown(m) ? mw(m.valueMw) : null,
-      basis: POWER_BASIS[m.powerBasis]?.short || '—'
+      basis: POWER_BASIS[m.powerBasis]?.short || '—',
+      // Only ever offered where the company published nothing.
+      estimate: isKnown(m) ? null : (estimates[metricKey] || null)
     };
   };
   const truth = [
@@ -1062,8 +1075,28 @@ function companyPage(c) {
     ${capacityTruth(truth)}
     <p class="mnote">These are four separate disclosures on different bases, not four stages of one
       funnel. Secured power is measured at the utility connection; the rest are critical IT. They are
-      never subtracted from one another, and a figure the company has not published shows as
-      <b>${NOT_DISCLOSED}</b> rather than zero.</p>
+      never subtracted from one another.</p>
+    ${truth.some(t => t.estimate) ? `<div class="estdetail">${truth.filter(t => t.estimate)
+      .map(t => estimateBlock(t.estimate, { label: t.label })).join('')}</div>` : ''}
+  </section>
+
+  <section class="mpanel" id="revenue">
+    <div class="mhead">
+      <span class="mkicker">Revenue calculator</span>
+      <span class="mnote secondary">What billing capacity implies, and what it would be worth</span>
+    </div>
+    <p class="mnote">The megawatts and the revenue rate come from what ${esc(c.name)} has published.
+      The multiple does not — it is an opinion, and it is the input that moves the answer most.
+      Nothing here is a price target.</p>
+    ${revenueCalculator(c, {
+      billing: (() => {
+        const live = v.measures.revenueLiveMw;
+        if (isKnown(live)) return { valueMw: live.valueMw, isEstimate: false };
+        const e = estimates.revenueLiveMw;
+        return e ? { valueMw: e.valueMw, isEstimate: true } : null;
+      })(),
+      rate: estimateRevenueRate(c.id)
+    })}
   </section>
 
   <div id="story">${storybook(v)}</div>
@@ -1352,6 +1385,37 @@ function methodologyPage() {
     <p>T2C is an information tool. Nothing here is a recommendation to buy or sell anything, and no
       financial outcome described on this site is guaranteed or certain. Figures are compiled from public
       filings, may lag, and may contain errors — the corrections log below exists because they sometimes do.</p>
+
+    <h2 id="estimates">Estimates, and what makes one allowable</h2>
+    <p>T2C's default is to print <b>${NOT_DISCLOSED}</b> and stop. That is correct, and it is also —
+      across the tracked set — unhelpful: nobody can judge scale from a column of blanks. So where a
+      figure can be <b>derived from figures the company itself published</b>, it is derived, and marked
+      as an assumption rather than a disclosure.</p>
+    <p>Four rules make that safe rather than sloppy:</p>
+    <ul>
+      <li><b>Named rules over sourced inputs only.</b> Nothing is hand-typed and nothing comes from a
+        peer average. A sector comparable would describe a different business; where a company has
+        published nothing to derive from, the figure stays blank.</li>
+      <li><b>An estimate can never enter a confirmed total.</b> It carries <code>estimated</code>
+        confidence, which every aggregate on this site already excludes.</li>
+      <li><b>An estimate never replaces a disclosure.</b> It only fills a gap.</li>
+      <li><b>You can switch them off.</b> Use <i>Estimates: shown</i> in the ⋯ menu to see only what
+        companies have actually published.</li>
+    </ul>
+    <p>Estimates are drawn in amber and labelled. Lime is reserved for evidenced progress; an estimate
+      does not get to borrow the colour that means confirmed. Today
+      ${estimateCoverage().filled} figures across the site are derived this way.</p>
+    <div class="tw"><table class="rectable">
+      <thead><tr><th scope="col">Rule</th><th scope="col">What is assumed</th></tr></thead>
+      <tbody>${Object.values(ESTIMATE_RULES).map(r => `<tr>
+        <td><b>${esc(r.label)}</b></td>
+        <td class="tleft dim">${esc(r.assumption)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <p>The gross-to-critical-IT divisor of <b>${GROSS_TO_CRITICAL_IT}</b> is the single assumption that
+      moves the most numbers. It is a T2C judgement about typical modern data-centre overheads, not a
+      company disclosure, and it is defined in one place — <code>src/lib/estimate.js</code> — so
+      changing it moves every derived figure on the site together.</p>
 
     <h2 id="reality-score">The T2C Reality Score</h2>
     <p>Every other figure on this site is disclosed by a company and cited to a document. The Reality

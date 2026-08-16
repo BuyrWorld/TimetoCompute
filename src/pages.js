@@ -30,6 +30,7 @@ import {
   infrastructureMap, watchlistPanel, signalProgress
 } from './mission-ui.js';
 import { todaySignal, sinceCategories, watchCandidates } from './lib/today.js';
+import { GROSS_TO_CRITICAL_IT } from './lib/estimate.js';
 
 /* ================= shared bits ================= */
 
@@ -591,9 +592,13 @@ export function sitesBody() {
 
   <div class="sitegrid" id="siteGrid">${sites.map(siteCard).join('')}</div>
 
-  <p class="blocknote">Capacity figures state what they measure. A site showing
-    <b>${NOT_DISCLOSED}</b> has not published a comparable megawatt figure — it is never shown as zero,
-    and never estimated to fill the gap.</p>
+  <p class="blocknote">Capacity figures state what they measure, and half this estate quotes gross
+    power at the fence while the other half quotes critical IT in the hall. Where a site publishes only
+    a gross figure, the comparable critical IT load is shown beneath it in amber as a
+    <b>T2C estimate</b> — gross ÷ ${GROSS_TO_CRITICAL_IT} — so the list can be read down one column.
+    A site showing <b>${NOT_DISCLOSED}</b> has published nothing to derive from: it is never shown as
+    zero and never filled with a peer average.
+    <a class="press" href="/methodology/#estimates">How estimates work</a>.</p>
 </div>`;
 }
 

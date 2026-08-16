@@ -577,6 +577,130 @@ html[data-mode="focus"] .focusbar { display: flex; }
 .newshead a::after { content: ' ↗'; color: var(--dim); font-size: 12px; }
 
 /* ============================================================
+   8c. Estimates — the weakest claim on the site, and it looks it
+   ============================================================
+   Amber, never lime. Lime is reserved for evidenced progress; an estimate is
+   T2C's arithmetic over someone else's figures and must not borrow the colour
+   that means "confirmed". */
+
+html[data-estimates="off"] [data-estimate] { display: none !important; }
+
+.est {
+  display: grid; gap: 4px 10px; align-items: baseline;
+  grid-template-columns: auto auto 1fr;
+  padding: var(--s2); margin-top: var(--s2);
+  border-left: 3px solid var(--warn); background: var(--warn-bg);
+  border-radius: 0 var(--m-radius-sm) var(--m-radius-sm) 0;
+}
+.estval {
+  font-family: var(--m-mono); font-size: 21px; font-weight: 700; color: var(--warn);
+  letter-spacing: -.02em;
+}
+.esttag {
+  font-family: var(--m-mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--warn);
+  border: 1px solid var(--warn); border-radius: 3px; padding: 2px 6px;
+}
+.estlabel { font-size: 13px; font-weight: 700; color: var(--soft); }
+.estderiv {
+  grid-column: 1 / -1; font-family: var(--m-mono); font-size: 11.5px; color: var(--soft);
+}
+.estwhy { grid-column: 1 / -1; }
+.estwhy > summary {
+  cursor: pointer; font-size: 12px; color: var(--dim); padding: 4px 0; min-height: 32px;
+  display: flex; align-items: center;
+}
+.estwhy p { font-size: 12.5px; line-height: 1.6; color: var(--dim); margin: 0 0 6px; max-width: 74ch; }
+.estrule { color: var(--soft); }
+.estdetail { margin-top: var(--s2); }
+
+/* Inline forms, for cards and metric cells. */
+.ctest { color: var(--warn); }
+.ctesttag {
+  display: block; font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--warn); margin-top: 3px; cursor: help;
+}
+.ctesttag.ctnone { color: var(--faint); cursor: default; }
+.estchip {
+  font-family: var(--m-mono); font-size: 12px; color: var(--warn); cursor: help;
+}
+.estchip i { font-style: normal; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
+.sitecardit {
+  display: block; font-family: var(--m-mono); font-size: 10px; font-weight: 500;
+  letter-spacing: .04em; color: var(--warn); cursor: help; margin-top: 2px;
+}
+
+/* ============================================================
+   8d. Revenue calculator
+   ============================================================ */
+
+.revcalc { display: grid; gap: var(--s3); }
+@media (min-width: 900px) {
+  .revcalc { grid-template-columns: minmax(0, 1fr) minmax(260px, .8fr); align-items: start; }
+  .revcalc > .tw, .revcalc > .mnote { grid-column: 1 / -1; }
+}
+
+.rvinputs { display: grid; gap: var(--s2); }
+.rvrow { display: grid; gap: 4px; }
+.rvrow label {
+  font-family: var(--m-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+}
+.rvfield {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--m-radius-sm);
+  padding: 0 12px; min-height: 46px;
+}
+.rvfield:focus-within { border-color: var(--brand); box-shadow: var(--m-glow-hover); }
+.rvfield input {
+  flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--ink);
+  font-family: var(--m-mono); font-size: 19px; font-weight: 700; padding: 10px 0;
+}
+.rvunit { font-family: var(--m-mono); font-size: 13px; color: var(--dim); flex: none; }
+.rvunit.pre { order: -1; }
+
+.rvbasis {
+  font-size: 11.5px; line-height: 1.45;
+}
+.rvbasis.ok { color: var(--ok); }
+.rvbasis.est { color: var(--warn); }
+.rvbasis.opinion { color: var(--bad); }
+.rvbasis.pending { color: var(--dim); }
+.rvderiv { font-family: var(--m-mono); font-size: 11px; color: var(--dim); margin: 2px 0 0; }
+
+.rvout {
+  background: var(--m-panel-2); border: 1px solid var(--line-2);
+  border-radius: var(--m-radius); padding: var(--s2);
+}
+.rvline {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2);
+  padding: 10px 0; border-bottom: 1px solid var(--line-2);
+}
+.rvline:last-child { border-bottom: 0; }
+.rvlabel { font-size: 12.5px; color: var(--dim); }
+.rvval { font-family: var(--m-mono); font-size: 17px; font-weight: 700; color: var(--ink); text-align: right; }
+.rvbig .rvval { font-size: 27px; color: var(--brand); letter-spacing: -.02em; }
+.rvval.up { color: var(--up); }
+.rvval.down { color: var(--down); }
+
+.rvsens { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rvsens caption {
+  text-align: left; font-family: var(--m-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--dim); padding-bottom: 8px;
+}
+.rvsens th, .rvsens td {
+  text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--line-2);
+  font-family: var(--m-mono);
+}
+.rvsens th:first-child, .rvsens td:first-child { text-align: left; }
+.rvsens th { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.rvsens tr.is-base { background: var(--m-lime-soft); }
+.rvsens tr.is-base td { color: var(--ink); font-weight: 700; }
+.rvsens td.up { color: var(--up); }
+.rvsens td.down { color: var(--down); }
+.rvsens[hidden] { display: none; }
+
+/* ============================================================
    9. Reality Score
    ============================================================ */
 

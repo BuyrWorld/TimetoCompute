@@ -203,6 +203,77 @@ const run = async () => {
   const coEvidence = await page.$eval('#path .pstepev', el => !el.hidden);
   check('a company path stage opens its evidence', coEvidence);
 
+  /* The calculator once rendered as an empty strip because the quote renderer
+     claims every [data-price] element on the page and replaced its contents.
+     Assert it actually has its controls, not just its markup. */
+  const calc = await page.evaluate(() => {
+    const r = document.querySelector('.revcalc');
+    if (!r) return null;
+    return {
+      height: Math.round(r.getBoundingClientRect().height),
+      inputs: r.querySelectorAll('input').length,
+      revenue: (r.querySelector('[data-out="revenue"]') || {}).textContent
+    };
+  });
+  check('the revenue calculator renders its controls, not an empty strip',
+    calc && calc.height > 300 && calc.inputs === 4, JSON.stringify(calc));
+  check('the calculator computes a run-rate from the page defaults',
+    calc && /\$[\d.]+(m|bn)/.test(calc.revenue || ''), calc && calc.revenue);
+
+  // Changing the multiple must move enterprise value and nothing above it.
+  const beforeMult = await page.evaluate(() => ({
+    rev: document.querySelector('[data-out="revenue"]').textContent,
+    ev: document.querySelector('[data-out="ev"]').textContent
+  }));
+  await page.evaluate(() => {
+    const m = document.querySelector('.revcalc input[id$="-mult"]');
+    m.value = '12';
+    m.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await new Promise(r => setTimeout(r, 150));
+  const afterMult = await page.evaluate(() => ({
+    rev: document.querySelector('[data-out="revenue"]').textContent,
+    ev: document.querySelector('[data-out="ev"]').textContent
+  }));
+  check('the multiple moves enterprise value but not revenue',
+    afterMult.rev === beforeMult.rev && afterMult.ev !== beforeMult.ev,
+    `${beforeMult.ev} → ${afterMult.ev}`);
+
+  // A share count turns the per-share line on.
+  await page.evaluate(() => {
+    const s = document.querySelector('.revcalc input[id$="-shares"]');
+    s.value = '250';
+    s.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await new Promise(r => setTimeout(r, 150));
+  const perShare = await page.$eval('[data-out="pershare"]', el => el.textContent);
+  check('supplying a share count produces a per-share figure', /^\$[\d.]+$/.test(perShare), perShare);
+
+  const caveat = await page.$eval('[data-out="caveat"]', el => el.textContent);
+  check('the per-share figure is qualified as enterprise, not equity, value',
+    /net debt/i.test(caveat), caveat.slice(0, 60));
+
+  /* ---- estimates are marked, and can be switched off ---- */
+  const estOn = await page.$$eval('[data-estimate]', els =>
+    els.filter(e => getComputedStyle(e).display !== 'none').length);
+  check('estimates are visible by default', estOn > 0, `${estOn}`);
+
+  // The control lives in the utility menu, so open it first — as a reader would.
+  await page.evaluate(() => { document.querySelector('details.umenu').open = true; });
+  await page.click('#estBtn');
+  await new Promise(r => setTimeout(r, 150));
+  const estOff = await page.$$eval('[data-estimate]', els =>
+    els.filter(e => getComputedStyle(e).display !== 'none').length);
+  check('estimates can be switched off entirely', estOff === 0, `${estOff} still shown`);
+
+  await page.reload({ waitUntil: 'networkidle0' });
+  const estStill = await page.evaluate(() => document.documentElement.getAttribute('data-estimates'));
+  check('the estimates preference persists', estStill === 'off', String(estStill));
+  // The control lives in the utility menu, so open it first — as a reader would.
+  await page.evaluate(() => { document.querySelector('details.umenu').open = true; });
+  await page.click('#estBtn');
+  await new Promise(r => setTimeout(r, 120));
+
   await page.goto(base + '/companies/coreweave/', { waitUntil: 'networkidle0' });
   const unscored = await page.$eval('#score', el => el.textContent);
   check('an unscored company explains itself rather than showing a blank panel',

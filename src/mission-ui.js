@@ -11,6 +11,7 @@ import { GATE_STATUS } from '../data/schema.js';
 import { esc, mw, date, usdBn, NOT_DISCLOSED, windowLabel, firstSentence } from './lib/format.js';
 import { CATEGORIES } from './lib/signals.js';
 import { furthestStage } from './lib/sites.js';
+import { siteEstimates } from './lib/estimate.js';
 import { FACTOR_BY_ID } from './lib/score.js';
 import { sourceChips, evidenceChip, pill } from './ui.js';
 
@@ -119,8 +120,11 @@ export function pathTrack(stages, { idPrefix = 'path' } = {}) {
 
 export function siteCard(site) {
   const stage = furthestStage(site);
+  const ests = siteEstimates(site.project);
   const cap = site.capacityMw === null
-    ? `<span class="nd">${NOT_DISCLOSED}</span>`
+    ? (ests.capacityMw
+      ? `<span class="ctest" data-estimate>~${esc(mw(ests.capacityMw.valueMw))}</span>`
+      : `<span class="nd">${NOT_DISCLOSED}</span>`)
     : esc(mw(site.capacityMw));
 
   return `<a class="sitecard press" href="/sites/${esc(site.slug)}/"
@@ -135,7 +139,11 @@ export function siteCard(site) {
         <h3 class="sitecardname">${esc(site.name)}</h3>
         <span class="sitecardloc">${esc(site.flag)} ${esc(site.countryName)}</span>
       </div>
-      <span class="sitecardcap">${cap}</span>
+      <span class="sitecardcap">${cap}
+        ${ests.criticalItMw
+          ? `<span class="sitecardit" data-estimate
+               title="${esc(ests.criticalItMw.derivation + ' — ' + ests.criticalItMw.assumption)}">~${esc(mw(ests.criticalItMw.valueMw))} critical IT (est)</span>`
+          : ''}</span>
     </div>
     ${site.note ? `<p class="mnote secondary">${esc(firstSentence(site.note))}</p>` : ''}
     <div class="sitecardfoot">
@@ -272,6 +280,38 @@ export function siteContracts(contracts) {
     </div>`).join('') + `</div>`;
 }
 
+/* ================= estimates ================= */
+
+/**
+ * An estimate, rendered so it can never be mistaken for a disclosure.
+ *
+ * It sits inside a `.est` block that the reader can switch off wholesale, it
+ * leads with the tilde and the word ESTIMATED, and the derivation is on the page
+ * rather than behind a tooltip. The assumption is one expand away.
+ */
+export function estimateBlock(e, { label = null } = {}) {
+  if (!e) return '';
+  return `<div class="est" data-estimate>
+    <span class="estval">~${esc(mw(e.valueMw))}</span>
+    <span class="esttag">Estimated</span>
+    ${label ? `<span class="estlabel">${esc(label)}</span>` : ''}
+    <span class="estderiv">${esc(e.derivation)}</span>
+    <details class="estwhy">
+      <summary>What is assumed</summary>
+      <p>${esc(e.assumption)}</p>
+      <p class="estrule">Rule: <b>${esc(e.ruleLabel)}</b>. Inputs are sourced;
+        the assumption is T2C's. ${sourceChips(e.sourceIds)}</p>
+    </details>
+  </div>`;
+}
+
+/** A compact estimate for a card, where there is no room for the derivation. */
+export function estimateChip(e, { suffix = '' } = {}) {
+  if (!e) return '';
+  return `<span class="estchip" data-estimate title="${esc(e.derivation + ' — ' + e.assumption)}">
+    ~${esc(mw(e.valueMw))}${esc(suffix)} <i>est</i></span>`;
+}
+
 /* ================= Reality Score ================= */
 
 /**
@@ -336,10 +376,18 @@ export function capacityTruth(cells) {
     <div class="ctcell">
       <span class="ctglyph" aria-hidden="true">${esc(c.glyph)}</span>
       <span class="ctval">${c.value === null
-        ? `<span class="nd">${NOT_DISCLOSED}</span>`
+        ? (c.estimate
+          ? `<span class="ctest" data-estimate>~${esc(mw(c.estimate.valueMw))}</span>`
+          : `<span class="nd">${NOT_DISCLOSED}</span>`)
         : esc(c.value)}</span>
       <span class="ctlabel">${esc(c.label)}</span>
       <span class="ctbasis">${esc(c.basis)}</span>
+      ${c.value === null && c.estimate
+        ? `<span class="ctesttag" data-estimate title="${esc(c.estimate.derivation + ' — ' + c.estimate.assumption)}">Estimated · not disclosed</span>`
+        : ''}
+      ${c.value === null && !c.estimate
+        ? `<span class="ctesttag ctnone">Nothing published to derive from</span>`
+        : ''}
     </div>`).join('') + `</div>`;
 }
 
@@ -388,6 +436,108 @@ export function contractXray(contracts) {
       <div class="xsrc">${sourceChips(c.sourceIds)}</div>
     </article>`;
   }).join('') + `</div>`;
+}
+
+/* ================= revenue calculator ================= */
+
+/**
+ * The revenue calculator.
+ *
+ * Server-rendered with the company's own defaults so it says something useful
+ * before the reader touches it, then recomputed in the browser as inputs change.
+ * Every input row states what it rests on, because the difference between a
+ * derived rate and an assumed multiple is the whole point.
+ */
+export function revenueCalculator(c, { billing, rate, price = null }) {
+  const id = s => `rev-${c.slug}-${s}`;
+
+  if (!billing || !rate) {
+    const missing = [];
+    if (!billing) missing.push('no capacity is disclosed or derivable as billing');
+    if (!rate) missing.push('no contract discloses value, megawatts and term together, so no revenue rate can be derived');
+    return `<p class="mnote">This company cannot be modelled: ${esc(missing.join('; '))}.
+      A sector average would describe a different business, so none is substituted.
+      <a class="press" href="/methodology/#estimates">How estimates work</a>.</p>`;
+  }
+
+  const basisTag = (text, tone) =>
+    `<span class="rvbasis ${esc(tone)}">${esc(text)}</span>`;
+
+  return `<div class="revcalc" id="${id('root')}"
+      data-rate="${rate.perMwYearM}" data-shares=""
+      data-ticker="${esc(c.ticker)}" data-live-price="${price === null ? '' : price}">
+
+    <div class="rvinputs">
+      <div class="rvrow">
+        <label for="${id('mw')}">Billing capacity</label>
+        <div class="rvfield">
+          <input type="number" id="${id('mw')}" value="${billing.valueMw}" min="0" step="1" inputmode="decimal" />
+          <span class="rvunit">MW</span>
+        </div>
+        ${basisTag(billing.isEstimate ? 'Estimated by T2C from accepted capacity' : 'Disclosed by the company',
+          billing.isEstimate ? 'est' : 'ok')}
+      </div>
+
+      <div class="rvrow">
+        <label for="${id('rate')}">Revenue per MW / year</label>
+        <div class="rvfield">
+          <span class="rvunit pre">$</span>
+          <input type="number" id="${id('rate')}" value="${rate.displayPerMwYearM}" min="0" step="0.01" inputmode="decimal" />
+          <span class="rvunit">m</span>
+        </div>
+        ${basisTag('Derived from ' + c.ticker + '’s own contracts', 'ok')}
+        <p class="rvderiv">${esc(rate.derivation)}</p>
+      </div>
+
+      <div class="rvrow">
+        <label for="${id('mult')}">EV / revenue multiple</label>
+        <div class="rvfield">
+          <input type="number" id="${id('mult')}" value="6" min="0.5" max="30" step="0.5" inputmode="decimal" />
+          <span class="rvunit">×</span>
+        </div>
+        ${basisTag('An opinion — not a disclosure', 'opinion')}
+      </div>
+
+      <div class="rvrow">
+        <label for="${id('shares')}">Shares outstanding</label>
+        <div class="rvfield">
+          <input type="number" id="${id('shares')}" placeholder="—" min="0" step="0.1" inputmode="decimal" />
+          <span class="rvunit">m</span>
+        </div>
+        ${basisTag('Fetching from the provider…', 'pending')}
+      </div>
+    </div>
+
+    <div class="rvout" id="${id('out')}" aria-live="polite">
+      <div class="rvline">
+        <span class="rvlabel">Run-rate revenue</span>
+        <span class="rvval" data-out="revenue">—</span>
+      </div>
+      <div class="rvline">
+        <span class="rvlabel">Implied enterprise value</span>
+        <span class="rvval" data-out="ev">—</span>
+      </div>
+      <div class="rvline rvbig">
+        <span class="rvlabel">Enterprise value per share</span>
+        <span class="rvval" data-out="pershare">—</span>
+      </div>
+      <div class="rvline">
+        <span class="rvlabel">Against the live price</span>
+        <span class="rvval" data-out="upside">—</span>
+      </div>
+    </div>
+
+    <div class="tw">
+      <table class="rvsens" id="${id('sens')}">
+        <caption>How much of that is the multiple</caption>
+        <thead><tr><th scope="col">EV / revenue</th><th scope="col">Enterprise value</th>
+          <th scope="col">Per share</th><th scope="col">vs price</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <p class="mnote warnnote" data-out="caveat"></p>
+  </div>`;
 }
 
 /* ================= Mission Control homepage ================= */
