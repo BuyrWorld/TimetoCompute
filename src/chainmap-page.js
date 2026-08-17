@@ -16,7 +16,7 @@ import {
   nodeDrawer, drawerPayload, commercialTimelineView, boundaryPanel
 } from './chainmap-ui.js';
 import {
-  chainMap, commercialTimeline, chainGeometry, singleMakerNodes
+  chainMap, commercialTimeline, chainGeometry, singleMakerNodes, adjacency
 } from './lib/chainmap.js';
 import {
   ARCHITECTURES, PILLARS, TRACE_MODES, REACH_BANDS,
@@ -59,11 +59,18 @@ export function chainMappingBody() {
         ${chainMapList(next)}
       </div>
 
+      <!-- These figures must agree with the readout on the map. They are both
+           derived from the same graph for exactly that reason: two counts of
+           the same thing that disagree would undermine every other number on
+           the page. -->
       <p class="cm-coverage">
-        This map draws <b>${deployed.counts.evidenced} of ${deployed.counts.nodes}</b> nodes from a
-        sourced record, and exactly <b>${deployed.counts.direct}</b> edge from a named
-        company-to-company agreement. Everything else is either T2C's own framing of how the thing is
-        built, marked inferred, or a company's own statement of what it makes.
+        This map draws the whole chain, and labels every node with how well T2C can stand behind it.
+        <b>${deployed.counts.evidencedNodes} of ${deployed.counts.nodes}</b> nodes come from a T2C
+        record; the other <b>${deployed.counts.referenceNodes}</b> are industry structure with
+        example companies, marked <b>REFERENCE</b>, and naming a company there is not a claim that it
+        supplies anyone tracked here. Of the links, exactly
+        <b>${deployed.counts.direct}</b> is a named, dated agreement between two named companies —
+        the rest describe how the technology fits together, not who sells to whom.
         <a class="press" href="/methodology/#chain">What it would take to track more</a>
       </p>
     </div>
@@ -98,20 +105,22 @@ export function chainMappingConfig() {
   const byId = {};
   for (const n of [...drawerPayload(deployed), ...drawerPayload(next)]) byId[n.id] = n;
 
-  /* Adjacency for chain tracing, built from DIRECT edges only. Structural
-     bands are excluded: following one would let the interface report that a
-     substrate "reaches" a customer on the strength of T2C's own framing of how
-     a data centre is built, rather than on any document. */
-  const adjacency = { up: {}, down: {} };
-  for (const e of [...deployed.edges, ...next.edges]) {
-    if (e.columnLevel || !e.from || !e.to) continue;
-    (adjacency.down[e.from] = adjacency.down[e.from] || []).push(e.to);
-    (adjacency.up[e.to] = adjacency.up[e.to] || []).push(e.from);
+  /* Adjacency for chain tracing. Derived by the same function the server uses,
+     rather than rebuilt here — two implementations of "what connects to what"
+     would eventually disagree, and the one in the browser would be the one the
+     reader sees. */
+  const adj = adjacency(deployed);
+  const adjNext = adjacency(next);
+  const merged = { up: { ...adj.up }, down: { ...adj.down } };
+  for (const dir of ['up', 'down']) {
+    for (const [k, v] of Object.entries(adjNext[dir])) {
+      merged[dir][k] = [...new Set([...(merged[dir][k] || []), ...v])];
+    }
   }
 
   return {
+    adjacency: merged,
     nodes: byId,
-    adjacency,
     modes: {
       deployed: deployed.nodes.map(n => n.id),
       next: next.nodes.map(n => n.id)

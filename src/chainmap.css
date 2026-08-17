@@ -141,6 +141,17 @@
 .cm-line--direct { border-top-style: solid; border-color: var(--brand); }
 .cm-line--ecosystem { border-top-style: dotted; border-color: var(--soft); }
 .cm-line--inferred { border-top-style: dashed; border-color: var(--warn); }
+.cm-line--structural { border-top-style: dashed; border-color: rgb(43 217 245 / 60%); }
+/* The swatches mirror the hex bodies exactly, so the legend teaches the drawing
+   rather than describing something adjacent to it. */
+.cm-swatch {
+  display: block; width: 22px; height: 13px; border: 1.4px solid;
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 50%, calc(100% - 4px) 100%, 4px 100%, 0 50%);
+}
+.cm-swatch--evidenced { border-color: rgb(214 255 0 / 55%); background: rgb(13 20 24 / 95%); }
+.cm-swatch--reference {
+  border-color: rgb(43 217 245 / 38%); border-style: dashed; background: rgb(9 17 21 / 92%);
+}
 
 .cm-reset {
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -222,12 +233,45 @@
 .cm-bandhead { fill: rgb(70 92 104 / 70%); }
 .cm-bandhead.is-broken { fill: rgb(196 132 0 / 55%); }
 
-/* An EDGE is node-to-node: a named, dated agreement between two companies. Thin,
-   solid and bright, because it is the strongest claim on the page. */
-.cm-edgeline { fill: none; stroke: var(--brand); stroke-width: 1.6; }
+/* An EDGE is node-to-node. Two kinds, and the difference is deliberately
+   obvious: an EVIDENCED edge is a named, dated agreement between two named
+   companies, so it is solid and bright — the strongest claim on the page, and
+   there is exactly one. A STRUCTURAL edge says "this class of thing feeds that
+   class of thing", so it is thin, dashed and cool: true about the technology,
+   silent about who sells to whom. */
+.cm-edgeline { fill: none; stroke: var(--brand); stroke-width: 1.7; }
 .cm-edgedot { fill: var(--brand); }
-.cm-edge.is-dim .cm-edgeline, .cm-edge.is-dim .cm-edgedot { opacity: .25; }
-.cm-edge.is-hot .cm-edgeline { stroke-width: 2.6; filter: drop-shadow(0 0 5px rgb(214 255 0 / 55%)); }
+.cm-edge.is-structural .cm-edgeline {
+  stroke: rgb(43 217 245 / 34%); stroke-width: 1.1; stroke-dasharray: 3 4;
+}
+.cm-edge.is-structural .cm-edgedot { fill: rgb(43 217 245 / 45%); r: 2; }
+.cm-edge.is-dim .cm-edgeline, .cm-edge.is-dim .cm-edgedot { opacity: .18; }
+
+/* A HIGHLIGHTED LINK BRIGHTENS. IT DOES NOT CHANGE KIND.
+   Tracing used to repaint every hop solid lime, which made a structural
+   dependency look identical to the one signed agreement for as long as the
+   reader hovered — the exact moment they are studying the path most closely.
+   So each kind keeps its own colour and its own dash, and only gains weight. */
+.cm-edge.is-hot .cm-edgeline {
+  stroke-width: 2.6; filter: drop-shadow(0 0 5px rgb(214 255 0 / 50%));
+}
+.cm-edge.is-hot.is-structural .cm-edgeline {
+  stroke: rgb(43 217 245 / 95%); stroke-width: 1.9;
+  filter: drop-shadow(0 0 5px rgb(43 217 245 / 55%));
+}
+.cm-edge.is-hot .cm-edgedot { fill: var(--brand); }
+.cm-edge.is-hot.is-structural .cm-edgedot { fill: var(--t2c-cyan); }
+.cm-edge.is-hot.is-structural .cm-flow { opacity: .95; }
+
+/* THE FLOW. The one piece of ambient motion on this page — a dot travelling the
+   edge's own path, so direction is visible without reading the arrowheads.
+   Switched off wholesale under reduced motion and by the flow toggle. */
+.cm-flow { fill: var(--brand); opacity: .9; }
+.cm-flow.is-structural { fill: var(--t2c-cyan); opacity: .55; r: 2; }
+.cm-edge.is-dim .cm-flow { opacity: .1; }
+.cm-mode.hide-flow .cm-flow,
+.cm-mode.hide-flow .cm-flow animateMotion { display: none; }
+@media (prefers-reduced-motion: reduce) { .cm-flow { display: none; } }
 
 /* ---- empty column ---- */
 .cm-emptyplate rect {
@@ -278,6 +322,22 @@
 .cm-hexrel[data-rel="direct"], .cm-hexrel[data-rel="reported"] { fill: var(--brand); }
 .cm-hexrel[data-rel="inferred"], .cm-hexrel[data-rel="unknown"] { fill: var(--warn); }
 
+/* THE TWO TIERS. An evidenced node is solid and lit; an industry-reference node
+   is drawn cooler, with a dashed body, so it reads as scaffolding rather than as
+   a record. It is never faded below the readability floor — the reference chain
+   is the point of the page now, not decoration behind it. */
+.cm-hextier {
+  font-family: var(--m-mono); font-size: 7.5px; font-weight: 700;
+  letter-spacing: .09em; fill: var(--t2c-cyan); opacity: .8;
+}
+.cm-hexg[data-tier="reference"] .cm-hexbody {
+  stroke: rgb(43 217 245 / 38%); stroke-dasharray: 5 3;
+  fill: rgb(9 17 21 / 92%);
+}
+.cm-hexg[data-tier="reference"] .cm-hexlabel { fill: var(--soft); }
+.cm-hexg[data-tier="reference"] .cm-hexorg { fill: var(--dim); }
+.cm-hexg[data-tier="reference"]:hover .cm-hexbody { stroke: rgb(43 217 245 / 75%); }
+
 /* Context stays READABLE. The pack's floor is 55–70% — a filtered-out node the
    reader cannot see is a filter that hides its own effect. */
 .cm-hexg.is-context { opacity: .62; }
@@ -302,6 +362,33 @@
 .cm-hudchip b { color: var(--ink); }
 .cm-hudchip.is-brand b { color: var(--brand); }
 .cm-hudchip.is-warn b { color: var(--warn); }
+.cm-hudchip.is-cyan b { color: var(--t2c-cyan); }
+
+
+/* ---- the drawer's tier banner ---- */
+.cm-dtier {
+  display: grid; gap: 4px; margin: 0 0 var(--s2);
+  padding: 10px 12px; border-radius: var(--m-radius-sm);
+  border: 1px solid var(--line-2); background: var(--surface-2);
+}
+.cm-dtier b {
+  font-family: var(--m-mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--brand);
+}
+.cm-dtier span { font-size: 11.5px; line-height: 1.5; color: var(--dim); }
+.cm-dtier[data-tier=reference] {
+  border-color: rgb(43 217 245 / 40%); background: var(--t2c-cyan-soft);
+}
+.cm-dtier[data-tier=reference] b { color: var(--t2c-cyan); }
+.cm-dexamples {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: 5px;
+}
+.cm-dexamples li {
+  font-size: 12.5px; font-weight: 700; color: var(--ink);
+  padding: 7px 10px; border-left: 2px solid rgb(43 217 245 / 45%);
+  background: var(--surface-2);
+}
+.cm-dcaveat { font-size: 11px; line-height: 1.55; color: var(--dim); margin: 9px 0 0; }
 
 /* ---- controls ---- */
 /* Positioned against the mode wrapper rather than the canvas, so the controls

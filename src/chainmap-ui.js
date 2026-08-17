@@ -16,6 +16,7 @@
 import { esc, date } from './lib/format.js';
 import { RELATIONSHIPS, CONFIDENCES, MATURITIES } from '../data/chainmap.js';
 import { STAGE_BY_ID } from '../data/chainmap.js';
+import { TIERS } from '../data/chainreference.js';
 import { sourcesFor, hexPoints } from './lib/chainmap.js';
 
 const ICON = '/assets/t2c/chain-mapping/chain-mapping-icons.svg';
@@ -91,19 +92,30 @@ export function filterRail({ traceModes, traceMode, pillars, pillar, showInferre
     </section>
 
     <section class="cm-railblock" aria-labelledby="cm-inf-h">
-      <h2 class="cm-railh" id="cm-inf-h">Inferred links</h2>
+      <h2 class="cm-railh" id="cm-inf-h">Display</h2>
       <label class="cm-switch">
         <input type="checkbox" id="cmInferred"${showInferred ? ' checked' : ''} />
         <span class="cm-switchtrack" aria-hidden="true"></span>
-        <span class="cm-switchlabel">Show inferred links</span>
+        <span class="cm-switchlabel">Structural links</span>
       </label>
+      <label class="cm-switch">
+        <input type="checkbox" id="cmFlow" checked />
+        <span class="cm-switchtrack" aria-hidden="true"></span>
+        <span class="cm-switchlabel">Animate flow</span>
+      </label>
+
+      <!-- The legend is the contract between the drawing and the reader. It
+           names the two TIERS a node can have and the two kinds of link, because
+           those four things are the only vocabulary the map uses. -->
       <ul class="cm-legend" role="list">
+        <li><i class="cm-swatch cm-swatch--evidenced" aria-hidden="true"></i>
+          <b>T2C record</b><span>A sourced maker, with its document</span></li>
+        <li><i class="cm-swatch cm-swatch--reference" aria-hidden="true"></i>
+          <b>Reference</b><span>Industry structure, example companies</span></li>
         <li><i class="cm-line cm-line--direct" aria-hidden="true"></i>
-          <b>Direct</b><span>A named, dated agreement</span></li>
-        <li><i class="cm-line cm-line--ecosystem" aria-hidden="true"></i>
-          <b>Ecosystem</b><span>Operates here. No award evidenced</span></li>
-        <li><i class="cm-line cm-line--inferred" aria-hidden="true"></i>
-          <b>Inferred</b><span>T2C's framing, not a disclosure</span></li>
+          <b>Agreement</b><span>Two named companies, named and dated</span></li>
+        <li><i class="cm-line cm-line--structural" aria-hidden="true"></i>
+          <b>Dependency</b><span>This feeds that. Not who sells to whom</span></li>
       </ul>
     </section>
 
@@ -133,6 +145,7 @@ export function chainMapCanvas(graph, geo, flags = {}) {
   const ns = `cm-${mode}`;
 
   const bands = geo.links.filter(l => l.kind === 'band');
+  const fans = geo.links.filter(l => l.kind === 'fan');
   const edges = geo.links.filter(l => l.kind === 'edge');
 
   /* The column headings live INSIDE the scroller, beside the map they label.
@@ -174,11 +187,23 @@ export function chainMapCanvas(graph, geo, flags = {}) {
             <title>${esc(b.label)}</title></path>`).join('')}
         </g>
 
+        <g class="cm-fans" aria-hidden="true">
+          ${fans.map((f, i) => `<g class="cm-edge is-structural is-fan"
+            data-edge="${esc(f.id)}" data-a="${esc(f.from)}" data-to-col="${esc(f.toColumn)}">
+            <path id="${ns}-${esc(f.id)}" class="cm-edgeline" d="${f.d}"
+              marker-end="url(#${ns}-flow)" />
+            ${flowDot(`${ns}-${esc(f.id)}`, i + 40, true)}
+            <title>${esc(f.label)}</title>
+          </g>`).join('')}
+        </g>
+
         <g class="cm-edges">
-          ${edges.map(e => `<g class="cm-edge" data-edge="${esc(e.id)}"
-            data-a="${esc(e.from)}" data-b="${esc(e.to)}" data-rel="${esc(e.relationship)}">
+          ${edges.map((e, i) => `<g class="cm-edge${e.structural ? ' is-structural' : ''}"
+            data-edge="${esc(e.id)}" data-a="${esc(e.from)}" data-b="${esc(e.to)}"
+            data-rel="${esc(e.relationship)}">
             <path id="${ns}-${esc(e.id)}" class="cm-edgeline" d="${e.d}" />
             <circle class="cm-edgedot" cx="${e.x2}" cy="${e.y2}" r="2.6" />
+            ${flowDot(`${ns}-${esc(e.id)}`, i, e.structural)}
             <title>${esc(e.label)}</title>
           </g>`).join('')}
         </g>
@@ -196,6 +221,28 @@ export function chainMapCanvas(graph, geo, flags = {}) {
 
     <div class="cm-hud" data-hud aria-live="off"></div>
   </div>`;
+}
+
+/**
+ * The travelling dot that shows which way a dependency runs.
+ *
+ * `animateMotion` along the edge's own path, so the dot follows the curve
+ * exactly rather than approximating it, and the duration is derived from the
+ * edge's index so the whole map does not pulse in lockstep.
+ *
+ * This is the ONE piece of ambient motion on the page and it is switched off
+ * entirely under `prefers-reduced-motion` and by the flow toggle — the animation
+ * conveys direction, which the arrowheads and the drawer also state, so nothing
+ * is lost when it stops.
+ */
+function flowDot(pathId, index, structural) {
+  const dur = (2.8 + (index % 5) * 0.42).toFixed(2);
+  const begin = ((index % 7) * 0.38).toFixed(2);
+  return `<circle class="cm-flow${structural ? ' is-structural' : ''}" r="2.6">
+    <animateMotion dur="${dur}s" repeatCount="indefinite" begin="${begin}s">
+      <mpath href="#${pathId}" />
+    </animateMotion>
+  </circle>`;
 }
 
 /** An empty column, drawn as a dashed plate that states why it is empty. */
@@ -259,7 +306,13 @@ function hexNode(n, p, index, mode, isSingle) {
     rows.push({ cls: 'cm-hexlabel', text: n.title, h: 12 });
   }
   if (org) rows.push({ cls: 'cm-hexorg', text: org, h: 11 });
-  rows.push({ cls: 'cm-hexrel', text: rel.label.toUpperCase(), h: 11, rel: n.relationship });
+  /* A reference node says REFERENCE, not its relationship grade. Showing
+     "ECOSYSTEM" there would put it in the same vocabulary as a node T2C actually
+     holds a record for, and the whole point of the tier is that they are not
+     the same kind of claim. */
+  rows.push(n.tier === 'reference'
+    ? { cls: 'cm-hextier', text: TIERS.reference.short, h: 11 }
+    : { cls: 'cm-hexrel', text: rel.label.toUpperCase(), h: 11, rel: n.relationship });
 
   const stackH = rows.reduce((a, r) => a + r.h, 0);
   let cursor = p.y - stackH / 2;
@@ -272,7 +325,7 @@ function hexNode(n, p, index, mode, isSingle) {
   return `<g class="cm-hexg" data-node="${esc(n.id)}" data-column="${esc(n.column)}"
       data-pillar="${esc(n.pillar)}" data-rel="${esc(n.relationship)}"
       data-maturity="${esc(n.maturity)}" data-single="${isSingle}"
-      data-org="${n.org ? 'yes' : 'no'}"
+      data-org="${n.org ? 'yes' : 'no'}" data-tier="${esc(n.tier)}"
       tabindex="0" role="button" aria-describedby="${descId}"
       aria-label="${esc(n.title)}${n.org ? ', ' + esc(n.org) : ''}"
       style="--cm-hex-delay:${index * 26}ms">
@@ -282,10 +335,12 @@ function hexNode(n, p, index, mode, isSingle) {
     <polygon class="cm-hexhalo" points="${hexPoints(p.x, p.y, 157, 67)}" />
     <polygon class="cm-hexbody" points="${hexPoints(p.x, p.y)}" />
     ${label}
-    <desc id="${descId}">${esc(n.simple || n.technical)}. Relationship ${esc(rel.label)},
-      evidence ${esc(conf.label)}, maturity ${esc(mat.label)}${
-        stage ? `, commercial stage ${esc(stage.label)}` : ', no commercial stage on record'}${
-        isSingle ? '. One maker on file' : ''}.</desc>
+    <desc id="${descId}">${esc(TIERS[n.tier].label)}. ${esc(n.simple || n.technical)}.${
+      n.tier === 'reference'
+        ? ` Example companies: ${esc((n.examples || []).join(', '))}. ${esc(TIERS.reference.definition)}`
+        : ` Relationship ${esc(rel.label)}, evidence ${esc(conf.label)}, maturity ${esc(mat.label)}${
+            stage ? `, commercial stage ${esc(stage.label)}` : ', no commercial stage on record'}${
+            isSingle ? '. One maker on file' : ''}.`}</desc>
   </g>`;
 }
 
@@ -376,6 +431,10 @@ export function drawerPayload(graph) {
     return {
       id: n.id, title: n.title, org: n.org, ticker: n.orgTicker, exchange: n.orgExchange,
       column: n.column, simple: n.simple, technical: n.technical,
+      /* The tier travels with the payload so the drawer cannot render an
+         industry-reference node with an evidenced node's authority. */
+      tier: n.tier, tierLabel: TIERS[n.tier].label, tierNote: TIERS[n.tier].definition,
+      examples: n.examples || null,
       why: n.whyItMatters, inputs: n.inputs, outputs: n.outputs,
       relationship: n.relationship, relationshipLabel: rel.label, relationshipDef: rel.definition,
       confidence: n.confidence, confidenceLabel: conf.label,

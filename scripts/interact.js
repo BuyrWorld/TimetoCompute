@@ -920,21 +920,38 @@ const run = async () => {
   const cmCols = await page.$$eval('.cm-mode:not([hidden]) .cm-ch', els => els.length);
   check('the map shows all five columns', cmCols === 5, String(cmCols));
 
-  const cmEmpty = await page.$$eval('.cm-mode:not([hidden]) .cm-emptyplate',
-    els => els.map(e => e.textContent.replace(/\s+/g, ' ').trim()));
-  check('an empty column explains itself rather than being hidden',
-    cmEmpty.length === 1 && /no accelerator, switch or server/.test(cmEmpty[0]),
-    cmEmpty.length + ' explanation(s)');
+  /* The whole chain is drawn now, so no column should render empty. The
+     empty-column plate still exists for the filtered case and is proven below. */
+  const cmEmpty = await page.$$eval('.cm-mode:not([hidden]) .cm-emptyplate', els => els.length);
+  check('no column is left empty', cmEmpty === 0, cmEmpty + ' empty');
+
+  const cmTiers = await page.evaluate(() => ({
+    ev: document.querySelectorAll('.cm-mode:not([hidden]) .cm-hexg[data-tier="evidenced"]').length,
+    ref: document.querySelectorAll('.cm-mode:not([hidden]) .cm-hexg[data-tier="reference"]').length
+  }));
+  check('both tiers are drawn', cmTiers.ev > 0 && cmTiers.ref > 0, JSON.stringify(cmTiers));
+  /* A reference node must never be styled as an evidenced one. If the two ever
+     converged the map would present industry structure as a T2C finding, which
+     is the single failure this whole design exists to prevent. */
+  const tierStyles = await page.evaluate(() => {
+    const g = s => getComputedStyle(document.querySelector(
+      '.cm-mode:not([hidden]) .cm-hexg[data-tier="' + s + '"] .cm-hexbody'));
+    const a = g('evidenced'), b = g('reference');
+    return { same: a.stroke === b.stroke && a.strokeDasharray === b.strokeDasharray,
+      refDashed: b.strokeDasharray !== 'none' && b.strokeDasharray !== '' };
+  });
+  check('a reference node is visibly not an evidenced one', !tierStyles.same);
+  check('reference nodes are drawn dashed', tierStyles.refDashed);
 
   /* THE TWO LINK SHAPES. A thin curve is a named agreement between two named
      companies; a wide band is T2C's own framing of how a deployment is built.
      They must be countable separately, or the page would present one as the
      other. */
   const cmEdges = await page.$$eval('.cm-mode:not([hidden]) .cm-edge', e => e.length);
-  const cmBands = await page.$$eval('.cm-mode:not([hidden]) .cm-band', e => e.length);
-  check('node-to-node links are only the evidenced ones', cmEdges === 1, String(cmEdges));
-  check('structural flow is drawn column-to-column, not node-to-node',
-    cmBands > 0 && cmBands < cmEdges + 5, cmBands + ' bands');
+  const cmStruct = await page.$$eval('.cm-mode:not([hidden]) .cm-edge.is-structural', e => e.length);
+  check('the whole dependency chain is drawn', cmEdges > 10, cmEdges + ' links');
+  check('exactly one link is an evidenced agreement',
+    cmEdges - cmStruct === 1, (cmEdges - cmStruct) + ' evidenced');
   const bandGap = await page.evaluate(() => {
     const band = document.querySelector('.cm-mode:not([hidden]) .cm-band');
     const hexes = [...document.querySelectorAll('.cm-mode:not([hidden]) .cm-hexbody')];
@@ -949,16 +966,37 @@ const run = async () => {
 
   const hud = await page.$eval('.cm-mode:not([hidden]) [data-hud]',
     e => e.textContent.replace(/\s+/g, ' ').trim());
-  check('the readout counts direct links and bands separately',
-    /1 direct link/i.test(hud) && /structural band/i.test(hud), hud);
+  check('the readout counts evidenced and structural links apart',
+    /1 evidenced agreement/i.test(hud) && /structural dependenc/i.test(hud), hud);
+  check('the readout says how many nodes carry a T2C record',
+    /with a T2C record/i.test(hud), hud);
 
   // Hovering a node lights the chain that actually runs through it.
   await page.hover('.cm-mode:not([hidden]) .cm-hexg[data-node="input-axt"]');
   await new Promise(r => setTimeout(r, 300));
   const cmChain = await page.$$eval('.cm-hexg.is-inchain', e => e.map(x => x.dataset.node));
-  check('hovering a node traces its evidenced chain',
+  check('hovering a node traces its chain',
     cmChain.length === 2 && cmChain.indexOf('input-axt') !== -1 &&
     cmChain.indexOf('component-cw-laser') !== -1, cmChain.join(','));
+
+  /* Tracing must reach across the whole chain — that is what the map is for —
+     while a highlighted structural hop must stay visibly structural. Repainting
+     every hop the same colour would erase the distinction at exactly the moment
+     the reader is studying the path. */
+  await page.hover('.cm-mode:not([hidden]) .cm-hexg[data-node="ref-silicon-wafer"]');
+  await new Promise(r => setTimeout(r, 350));
+  const deep = await page.$$eval('.cm-hexg.is-inchain', e => e.map(x => x.dataset.node));
+  check('a wafer traces all the way to the operators',
+    deep.length > 10 && deep.some(x => x.indexOf('operator-') === 0), deep.length + ' nodes');
+  const hotStyles = await page.evaluate(() => {
+    const s = document.querySelector('.cm-edge.is-hot.is-structural .cm-edgeline');
+    if (!s) return null;
+    const c = getComputedStyle(s);
+    return { stroke: c.stroke, dashed: c.strokeDasharray !== 'none' && c.strokeDasharray !== '' };
+  });
+  check('a highlighted structural link stays structural',
+    hotStyles && hotStyles.dashed && /43,\s*217,\s*245/.test(hotStyles.stroke),
+    JSON.stringify(hotStyles));
 
   // Architecture toggle swaps exactly the interconnect node.
   const cmBefore = await page.$$eval('.cm-mode:not([hidden]) .cm-hexg', e => e.map(n => n.dataset.node));
@@ -996,6 +1034,36 @@ const run = async () => {
 
   const drawerFocus = await page.evaluate(() => document.activeElement.id);
   check('focus moves into the drawer', drawerFocus === 'cm-drawer-h', drawerFocus);
+
+  /* THE SENTENCE THAT KEEPS THE REFERENCE LAYER HONEST. Opening a reference
+     node must say what it is BEFORE any of its content, and must state that
+     naming a company is not a supply claim. Without this the panel reads
+     exactly like an evidenced one. */
+  await page.click('.cm-mode:not([hidden]) .cm-hexg[data-tier="reference"]');
+  await new Promise(r => setTimeout(r, 350));
+  const refPanel = await page.evaluate(() => {
+    const t = document.querySelector('.cm-dtier');
+    const body = document.getElementById('cmDrawerBody');
+    return {
+      tier: t ? t.getAttribute('data-tier') : null,
+      leads: body && body.firstElementChild && body.firstElementChild.classList.contains('cm-dtier'),
+      caveat: (document.querySelector('.cm-dcaveat') || {}).textContent || '',
+      examples: document.querySelectorAll('.cm-dexamples li').length,
+      sources: document.querySelectorAll('.cm-dsrc a').length
+    };
+  });
+  check('a reference node declares its tier first', refPanel.tier === 'reference' && refPanel.leads,
+    JSON.stringify(refPanel));
+  check('a reference node lists example companies', refPanel.examples > 0, String(refPanel.examples));
+  check('and says naming one is not a supply claim',
+    /not a claim that it supplies/i.test(refPanel.caveat) && /not a complete list/i.test(refPanel.caveat),
+    refPanel.caveat.slice(0, 70));
+  check('a reference node cites no sources of its own', refPanel.sources === 0, String(refPanel.sources));
+
+  await page.keyboard.press('Escape');
+  await new Promise(r => setTimeout(r, 250));
+  await page.click('.cm-mode:not([hidden]) .cm-hexg[data-node="interconnect-deployed"]');
+  await new Promise(r => setTimeout(r, 350));
 
   const cmSources = await page.$$eval('.cm-dsrc a', a => a.map(x => ({ t: x.target, r: x.rel })));
   check('every drawer source opens safely',

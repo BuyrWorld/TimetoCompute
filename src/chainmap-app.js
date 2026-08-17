@@ -15,17 +15,21 @@
  *   2. FOCUS RETURNS. Closing the drawer puts focus back on the node that opened
  *      it. Without that, a keyboard user is dumped at the top of the document
  *      every time they read a source.
- *   3. NOTHING ANIMATES FOREVER. Playback runs once and stops. There is no
- *      ambient motion on this canvas at all.
+ *   3. PLAYBACK RUNS ONCE. The timeline steps through and stops; it never loops.
+ *      The only continuous motion on the page is the flow dot on each link,
+ *      which conveys direction, is toggleable, and is off entirely under
+ *      `prefers-reduced-motion`.
  *
- * The fourth is this map's own, and is the reason tracing exists at all:
+ * The fourth is this map's own, and it is what tracing is for:
  *
- *   4. TRACING FOLLOWS EVIDENCE, NEVER STRUCTURE. Highlighting a chain walks
- *      only the direct, node-to-node edges — the ones where a document names
- *      both companies. Walking the structural bands would let a hover report
- *      that a substrate "reaches" a hyperscaler on the strength of T2C's own
- *      framing of how a data centre is built. T2C holds one direct edge, so a
- *      traced chain is short, and the readout says so rather than padding it.
+ *   4. A TRACED PATH SHOWS ITS OWN STRENGTH. Tracing walks the whole dependency
+ *      graph, so hovering a silicon wafer really does light the path up to the
+ *      operators — that is the point of the map. But the hops are not equal, and
+ *      the drawing says so: an evidenced agreement stays solid lime, a
+ *      structural dependency stays dashed cyan, and the readout counts them
+ *      separately. The reader can follow the whole chain AND see exactly which
+ *      links T2C can document. Flattening the two into one style would be the
+ *      one change that makes this map dishonest.
  */
 (function () {
   'use strict';
@@ -50,6 +54,7 @@
     inferred: true,
     selected: null,
     listView: false,
+    flow: true,
     zoom: 1
   };
   var lastFocus = null;
@@ -192,6 +197,11 @@
 
   function drawerHtml(n) {
     var h = '';
+    /* The tier leads. A reader who opens a reference node must be told what it
+       is before they read anything else in the panel, not after — by then they
+       have already taken the content as a T2C finding. */
+    h += '<p class="cm-dtier" data-tier="' + esc(n.tier) + '"><b>' + esc(n.tierLabel) + '</b>' +
+      '<span>' + esc(n.tierNote) + '</span></p>';
     h += '<p class="cm-dsimple">' + esc(n.simple || '') + '</p>';
     h += '<section class="cm-dsec"><h3>What is this?</h3><p>' + esc(n.technical) + '</p>';
     if (n.explainerHref) {
@@ -207,6 +217,19 @@
       if (n.inputs) h += '<div><dt>Takes in</dt><dd>' + esc(n.inputs) + '</dd></div>';
       if (n.outputs) h += '<div><dt>Produces</dt><dd>' + esc(n.outputs) + '</dd></div>';
       h += '</dl></section>';
+    }
+
+    /* A reference node lists its example companies and states, in the same
+       breath, the three things they are not: exhaustive, ranked, or connected to
+       any tracked operator. Listing them without that sentence is how a
+       reference panel quietly becomes a supplier claim. */
+    if (n.tier === 'reference' && n.examples && n.examples.length) {
+      h += '<section class="cm-dsec"><h3>Who operates at this stage</h3>' +
+        '<ul class="cm-dexamples">' +
+        n.examples.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') +
+        '</ul><p class="cm-dcaveat">Examples, not a complete list and not a ranking. T2C holds no ' +
+        'supplier record for this stage, and naming a company here is not a claim that it supplies ' +
+        'any operator tracked on this site.</p></section>';
     }
 
     /* Three separate axes, never merged into one badge. */
@@ -398,10 +421,12 @@
   /**
    * The counters under the map.
    *
-   * "Links" counts only the direct, node-to-node edges. The structural bands are
-   * reported separately as "bands", because a single number covering both would
-   * present T2C's own framing as if it were the same kind of fact as a signed
-   * agreement.
+   * FOUR SEPARATE NUMBERS, and they must stay separate. Nodes T2C holds a record
+   * for, nodes drawn from industry structure, links that are named agreements
+   * between named companies, and links that are product-class dependencies. A
+   * single "links" figure covering the last two would present T2C's framing of
+   * how a data centre is built as though it were a signed contract — which is
+   * precisely the confusion the whole page is built to prevent.
    */
   function drawHud() {
     var m = activeMode();
@@ -410,13 +435,18 @@
     if (!hud) return;
     var nodes = qsa('.cm-hexg', m);
     var shown = nodes.filter(function (n) { return !n.classList.contains('is-context'); });
-    var direct = qsa('.cm-edge', m).length;
-    var bands = qsa('.cm-band', m).length;
+    var evidencedNodes = nodes.filter(function (n) { return n.getAttribute('data-tier') === 'evidenced'; });
+    var allEdges = qsa('.cm-edge', m);
+    var structural = allEdges.filter(function (e) { return e.classList.contains('is-structural'); });
+    var evidencedEdges = allEdges.length - structural.length;
     var single = nodes.filter(function (n) { return n.getAttribute('data-single') === 'true'; }).length;
     hud.innerHTML =
       '<span class="cm-hudchip"><b>' + shown.length + '</b> of ' + nodes.length + ' nodes</span>' +
-      '<span class="cm-hudchip is-brand"><b>' + direct + '</b> direct link' + (direct === 1 ? '' : 's') + '</span>' +
-      '<span class="cm-hudchip"><b>' + bands + '</b> structural band' + (bands === 1 ? '' : 's') + '</span>' +
+      '<span class="cm-hudchip is-brand"><b>' + evidencedNodes.length + '</b> with a T2C record</span>' +
+      '<span class="cm-hudchip is-brand"><b>' + evidencedEdges + '</b> evidenced ' +
+        (evidencedEdges === 1 ? 'agreement' : 'agreements') + '</span>' +
+      '<span class="cm-hudchip is-cyan"><b>' + structural.length + '</b> structural ' +
+        (structural.length === 1 ? 'dependency' : 'dependencies') + '</span>' +
       '<span class="cm-hudchip is-warn"><b>' + single + '</b> single maker on file</span>' +
       '<span class="cm-hudchip"><b>' + Math.round(state.zoom * 100) + '%</b> zoom</span>';
   }
@@ -490,8 +520,10 @@
 
     if (e.target.closest('#cmReset')) {
       state.trace = 'product'; state.pillar = null; state.inferred = true;
-      state.zoom = 1; state.listView = false;
+      state.zoom = 1; state.listView = false; state.flow = !reduced();
       closeDrawer(); highlightChain(null); applyFilters(); applyZoom(); applyListView();
+      if (flow) flow.checked = state.flow;
+      applyFlow();
       say('View reset.');
       return;
     }
@@ -578,6 +610,28 @@
     });
   }
 
+  /**
+   * The flow animation, and the one honest thing about switching it off.
+   *
+   * The dots only ever conveyed direction, which the arrowheads and the drawer
+   * already state — so turning them off costs the reader nothing. It defaults on
+   * because a static dependency graph reads as a diagram, and a moving one reads
+   * as a chain, which is what it is.
+   */
+  var flow = $('cmFlow');
+  function applyFlow() {
+    qsa('.cm-mode').forEach(function (m) { m.classList.toggle('hide-flow', !state.flow); });
+  }
+  if (flow) {
+    /* Reduced motion wins over the stored preference — the CSS hides the dots
+       regardless, so the control must not claim they are running. */
+    if (reduced()) { state.flow = false; flow.checked = false; flow.disabled = true; }
+    flow.addEventListener('change', function () {
+      state.flow = flow.checked; applyFlow();
+      say(state.flow ? 'Flow animation on.' : 'Flow animation off.');
+    });
+  }
+
   var proj = $('cmProject');
   if (proj) {
     proj.addEventListener('change', function () {
@@ -620,5 +674,6 @@
   applyFilters();
   applyZoom();
   applyListView();
+  applyFlow();
   track('chain_mapping_opened', { architecture: state.architecture });
 })();

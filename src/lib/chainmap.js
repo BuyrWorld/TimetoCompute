@@ -1,35 +1,43 @@
 /**
  * Chain Mapping — the graph, derived.
  *
- * Every node and edge here is built from a record that already exists elsewhere
- * in this repository, carrying the evidence grade that record already has. There
- * is no second store of supplier facts to drift from the first, and nothing in
- * the pack's demo fixtures reaches production — the pack's `sample-chain.ts` and
- * `preview/chain-mapping.js` are interaction fixtures and are never imported.
+ * The map draws TWO TIERS, and the whole design turns on keeping them apart.
  *
- * WHAT THE MAP CAN AND CANNOT SHOW, stated once because the honest answer is
- * unusual and a reader deserves it up front:
+ *   EVIDENCED  Built from records that already exist in this repository, each
+ *              carrying the evidence grade that record already has. There is no
+ *              second store of supplier facts to drift from the first, and none
+ *              of the pack's demo fixtures reaches production.
+ *   REFERENCE  The structure of the industry, from data/chainreference.js:
+ *              product-class nodes naming example companies. It exists because
+ *              an evidence-only map rendered a workspace with an empty Systems
+ *              column and three links — a true picture of T2C's records and a
+ *              useless picture of the chain, where the emptiness read as a bug.
  *
- *   INPUTS          One node. AXT supplies indium phosphide to Lumentum under a
- *                   named, dated agreement — the only company-to-company supply
- *                   relationship T2C holds anywhere.
- *   COMPONENTS      Six photonics components with their makers, each carrying
- *                   the evidence grade from data/suppliers.js. Most are
- *                   "makes the component" — capability, not an award.
- *   SYSTEMS         Empty. T2C holds no accelerator, switch or server supplier
- *                   record. The column is declared, not hidden.
- *   INFRASTRUCTURE  Six operators and their sites, from the real project records.
- *   MONETISATION    Named customers and withheld counterparties, from contracts.
+ * A reference node is a PRODUCT CLASS, never a company; the companies on it are
+ * examples of who operates at that stage. A structural edge joins two product
+ * classes and is a claim about the technology, true whoever is doing it. Neither
+ * asserts that any company sells to any other — the rule still stands:
  *
- * A column with nothing in it says so. That is the same treatment the chain page
- * already gives its four untracked stages, and for the same reason: an empty
- * column that is drawn is a finding, and one that is hidden is a lie of omission.
+ *   "Do not infer that a company is a direct supplier merely because it operates
+ *    in the same market."
+ *
+ * T2C holds exactly ONE company-to-company supply agreement anywhere: AXT to
+ * Lumentum, from data/suppliers.js, with its document. It is drawn as the only
+ * link of its kind, and the readout counts it separately from the 44 structural
+ * dependencies so no reader can mistake the two.
+ *
+ * A column with nothing in it still says so — the plate and its reason remain
+ * for when a filter empties one.
  */
 import {
   COLUMNS, PILLARS, ARCHITECTURES, INTERCONNECT, COMMERCIAL_STAGES,
   RELATIONSHIPS, CONFIDENCES, MATURITIES
 } from '../../data/chainmap.js';
 import { PHOTONICS_SUPPLIERS, EVIDENCE_GRADES, SUPPLIER_ROLES } from '../../data/suppliers.js';
+import {
+  TIERS, REFERENCE_NODES, REFERENCE_EDGES, REFERENCE_HANDOFFS,
+  EVIDENCED_TO_REFERENCE, SUPERSEDED_BY_EVIDENCE
+} from '../../data/chainreference.js';
 import { EXPLAINER_BY_SLUG, explainerHref } from '../../data/explainers.js';
 import { SOURCE_BY_ID } from '../../data/sources.js';
 import { COMPANIES } from '../../data/companies.js';
@@ -71,8 +79,39 @@ const node = o => ({
   architectureModes: ['deployed', 'next'],
   maturity: 'unknown', relationship: 'unknown', confidence: 'unverified',
   commercialStage: null, evidenceIds: [], explainerHref: null, inputs: null, outputs: null,
+  /* Every node declares which tier it belongs to. Defaulting to `evidenced` is
+     safe because a reference node has to opt in explicitly — the failure mode
+     that matters is a reference node quietly inheriting an evidenced node's
+     authority, never the other way round. */
+  tier: 'evidenced', examples: null,
   ...o
 });
+
+/* --------------------------------------------------- the reference chain ---- */
+
+/**
+ * The industry structure, as product-class nodes.
+ *
+ * These carry `tier: 'reference'` and name example companies rather than sourced
+ * makers. Everything downstream — the badge, the drawer, the list view, the
+ * readout — keys off that one field, so a reference node cannot be rendered as
+ * though T2C held a record for it.
+ */
+function referenceNodes() {
+  return REFERENCE_NODES.map(r => node({
+    ...r,
+    tier: 'reference',
+    org: r.examples.length === 1 ? r.examples[0] : `${r.examples.length} example makers`,
+    maturity: 'deployed',
+    /* `ecosystem` is the correct relationship for "operates in this area, no
+       award evidenced" — the same grade a capability record gets, because that
+       is exactly the strength of what is being asserted. */
+    relationship: 'ecosystem',
+    confidence: 'unverified',
+    commercialStage: null,
+    evidenceIds: []
+  }));
+}
 
 /* ------------------------------------------------------------- the nodes ---- */
 
@@ -319,44 +358,65 @@ function buildEdges(nodes) {
     }
   }
 
-  /* Structural flow is COLUMN to COLUMN, not node to node.
-     Joining every node to every node in the next column produced 41 lines that
-     asserted 41 relationships nobody had disclosed — visually a hairball, and
-     factually a claim that each input feeds each component. What is actually
-     true is weaker and simpler: this column feeds the next one. That is one
-     edge per adjacent pair, drawn as a band, marked inferred. */
-  const chain = ['inputs', 'components', 'systems', 'infrastructure', 'monetisation'];
-  for (let i = 0; i < chain.length - 1; i++) {
-    const from = inCol(chain[i]), to = inCol(chain[i + 1]);
-    if (!from.length) continue;
+  /* STRUCTURAL DEPENDENCIES, node to node.
+     These say "this class of thing feeds that class of thing" — a fact about
+     the technology, true whoever is doing it. They are drawn dimmer and dashed,
+     and the drawer states the mechanism, so they can never be read as the one
+     evidenced company-to-company agreement above.
 
-    if (to.length) {
-      edges.push({
-        id: `flow-${chain[i]}-${chain[i + 1]}`,
-        fromColumn: chain[i], toColumn: chain[i + 1],
-        from: null, to: null, columnLevel: true, broken: false,
-        relationship: 'inferred', confidence: 'unverified', inferred: true,
-        pillar: null, architectureModes: ['deployed', 'next'],
-        label: 'Structural dependency — how the thing is built, not a disclosed relationship',
-        evidenceIds: []
-      });
-      continue;
-    }
-
-    /* The next column is empty, so the chain visibly breaks here. That break is
-       a finding and is drawn as one: without it, Components and Infrastructure
-       would simply appear unconnected and read as a rendering bug rather than as
-       "T2C cannot evidence this link". */
-    const nextFilled = chain.slice(i + 1).find(c => inCol(c).length);
-    if (!nextFilled) continue;
+     This is NOT the fan-out that was rejected before. Joining every node to
+     every node in the next column asserted dozens of relationships nobody had
+     disclosed; these are individually authored dependencies, each carrying the
+     reason it exists, and each checkable. */
+  const structural = (id, from, to, via) => {
+    if (!byId[from] || !byId[to]) return;
     edges.push({
-      id: `break-${chain[i]}-${nextFilled}`,
-      fromColumn: chain[i], toColumn: nextFilled,
-      from: null, to: null, columnLevel: true, broken: true,
-      skipped: chain.slice(i + 1, chain.indexOf(nextFilled)),
-      relationship: 'unknown', confidence: 'unverified', inferred: true,
+      id, from, to,
+      relationship: 'inferred', confidence: 'unverified', inferred: true, structural: true,
+      pillar: byId[to].pillar || byId[from].pillar || null,
+      architectureModes: ['deployed', 'next'],
+      label: via, evidenceIds: []
+    });
+  };
+
+  for (const [from, to, via] of REFERENCE_EDGES) {
+    structural(`struct-${from}-${to}`, from, to, via);
+  }
+  for (const h of EVIDENCED_TO_REFERENCE) {
+    structural(`struct-${h.fromNodeId}-${h.to}`, h.fromNodeId, h.to, h.via);
+  }
+
+  /* Handoffs address a whole COLUMN, not a node. "Operators install racks" is
+     true of every operator, and singling one out would be an invention.
+
+     Drawn as one link fanning to the column rather than one link per operator:
+     six identical lines to six identical destinations is eighteen crossing
+     curves that say exactly what one curve says, and the hairball obscures the
+     evidenced agreement it crosses. */
+  for (const h of REFERENCE_HANDOFFS) {
+    if (!byId[h.from] || !inCol(h.toColumn).length) continue;
+    edges.push({
+      id: `fan-${h.from}-${h.toColumn}`,
+      from: h.from, to: null, toColumn: h.toColumn, fan: true,
+      relationship: 'inferred', confidence: 'unverified', inferred: true, structural: true,
+      pillar: byId[h.from].pillar || null,
+      architectureModes: ['deployed', 'next'],
+      label: h.via, evidenceIds: []
+    });
+  }
+
+  /* The one place a column-level band still earns its keep. Which operator bills
+     which customer IS disclosed, per contract, and already sits on the customer
+     records — redrawing it as thirty crossing lines here would be a hairball
+     that says less than the drawer already does. */
+  if (inCol('infrastructure').length && inCol('monetisation').length) {
+    edges.push({
+      id: 'flow-infrastructure-monetisation',
+      fromColumn: 'infrastructure', toColumn: 'monetisation',
+      from: null, to: null, columnLevel: true, broken: false,
+      relationship: 'inferred', confidence: 'unverified', inferred: true,
       pillar: null, architectureModes: ['deployed', 'next'],
-      label: 'The chain continues, but T2C holds no record of what sits between these columns',
+      label: 'Operators bill customers. Which operator bills which customer is on each contract record.',
       evidenceIds: []
     });
   }
@@ -371,11 +431,26 @@ function buildEdges(nodes) {
  * `columns` always contains all five, each carrying its own nodes and — when it
  * has none — the reason. A column that would render empty is not dropped.
  */
-export function chainMap({ architecture = 'deployed', pillar = null, showInferred = true } = {}) {
-  const all = [
+export function chainMap({
+  architecture = 'deployed', pillar = null, showInferred = true, reference = true
+} = {}) {
+  const evidenced = [
     ...inputNodes(), ...componentNodes(), ...interconnectNodes(),
     ...infrastructureNodes(), ...monetisationNodes()
   ];
+  const evidencedIds = new Set(evidenced.map(n => n.id));
+
+  /* A reference node whose stage T2C actually holds a record for is dropped, not
+     drawn beside it. Two nodes for one product class would ask the reader to
+     work out which is authoritative, and they should never have to. */
+  const refs = reference
+    ? referenceNodes().filter(r => {
+        const covered = SUPERSEDED_BY_EVIDENCE[r.id];
+        return !covered || !evidencedIds.has(covered);
+      })
+    : [];
+
+  const all = [...evidenced, ...refs];
 
   const visible = all.filter(n => n.architectureModes.includes(architecture))
     .filter(n => !pillar || n.pillar === pillar);
@@ -407,7 +482,14 @@ export function chainMap({ architecture = 'deployed', pillar = null, showInferre
       nodes: visible.length,
       direct: edges.filter(e => e.relationship === 'direct').length,
       inferred: edges.filter(e => e.inferred).length,
-      evidenced: visible.filter(n => n.evidenceIds.length).length
+      structural: edges.filter(e => e.structural).length,
+      /* `evidenced` counts nodes carrying a source id; `evidencedNodes` counts
+         nodes in the evidenced TIER. They differ — an operator is a T2C record
+         but its sources hang off its projects rather than the node — and the
+         page must not use one where it means the other. */
+      evidenced: visible.filter(n => n.evidenceIds.length).length,
+      evidencedNodes: visible.filter(n => n.tier === 'evidenced').length,
+      referenceNodes: visible.filter(n => n.tier === 'reference').length
     }
   };
 }
@@ -479,6 +561,7 @@ export function chainGeometry(graph) {
   });
 
   const links = [];
+  const fanSeats = {};
   for (const e of graph.edges) {
     if (e.columnLevel) {
       const from = columnBox.find(c => c.id === e.fromColumn);
@@ -496,6 +579,30 @@ export function chainGeometry(graph) {
       });
       continue;
     }
+    /* A FAN runs from one node to a whole column. It stops in the gutter before
+       the column, because it addresses every node there and must not appear to
+       arrive at the one it happens to line up with. */
+    if (e.fan) {
+      const a = pos[e.from];
+      const to = columnBox.find(c => c.id === e.toColumn);
+      if (!a || !to) continue;
+      /* Several fans can address the same column. Landing them all on its exact
+         centroid stacked three arrowheads on one point and read as a glitch, so
+         they are spread around it — still clearly aimed at the column, and
+         still nowhere near any individual node. */
+      const seat = fanSeats[e.toColumn] = (fanSeats[e.toColumn] || 0) + 1;
+      const spread = ((seat - 1) - 1) * 26;
+      const x1 = a.x + G.nodeW / 2, x2 = to.cx - G.nodeW / 2 - 16;
+      const y2 = to.cy + spread;
+      const mx = (x1 + x2) / 2;
+      links.push({
+        ...e, kind: 'fan',
+        d: `M ${x1} ${a.y} C ${mx} ${a.y}, ${mx} ${y2}, ${x2} ${y2}`,
+        x1, y1: a.y, x2, y2
+      });
+      continue;
+    }
+
     const a = pos[e.from], b = pos[e.to];
     if (!a || !b) continue;
     const x1 = a.x + G.nodeW / 2, x2 = b.x - G.nodeW / 2;
@@ -511,26 +618,58 @@ export function chainGeometry(graph) {
 }
 
 /**
- * Every node reachable from one node, following real edges in both directions.
+ * Every node reachable from one node, in both directions.
  *
- * Bands are excluded on purpose. Tracing through a structural band would report
- * "this substrate reaches that customer" on the strength of T2C's own framing of
- * how a data centre is built, which is precisely the leap the two link types
- * exist to keep apart. With one direct edge on file the traced chain is short,
- * and the interface says so rather than padding it.
+ * This walks the WHOLE dependency graph — evidenced agreements and structural
+ * product-class dependencies alike — because tracing the full chain is the point
+ * of the map: hovering a silicon wafer should reach the operators, and it does.
+ *
+ * What keeps that honest is not excluding hops, it is labelling them. Every edge
+ * carries `structural`, the renderer draws the two kinds differently, and the
+ * readout counts them apart, so a reader following a 17-node path can still see
+ * at a glance that exactly one hop on this entire map is a signed agreement.
+ *
+ * Column-level bands are still excluded: they join columns rather than nodes, so
+ * there is no defined path through one.
  */
 export function traceChain(graph, id) {
+  return walkChain(adjacency(graph), id);
+}
+
+/**
+ * The traversable graph, with fans expanded.
+ *
+ * A fan addresses a whole column, so following it means reaching every node in
+ * that column. Skipping fans would leave the trace stranded at rack integration
+ * and never reach an operator — which would defeat the point of drawing the
+ * whole chain in the first place.
+ *
+ * Column-level bands stay excluded: they join two columns with no node at either
+ * end, so there is no path through one to follow.
+ */
+export function adjacency(graph) {
   const up = {}, down = {};
+  const link = (a, b) => {
+    (down[a] = down[a] || []).push(b);
+    (up[b] = up[b] || []).push(a);
+  };
   for (const e of graph.edges) {
-    if (e.columnLevel || !e.from || !e.to) continue;
-    (down[e.from] = down[e.from] || []).push(e.to);
-    (up[e.to] = up[e.to] || []).push(e.from);
+    if (e.columnLevel || !e.from) continue;
+    if (e.fan) {
+      for (const n of graph.nodes) if (n.column === e.toColumn) link(e.from, n.id);
+      continue;
+    }
+    if (e.to) link(e.from, e.to);
   }
+  return { up, down };
+}
+
+function walkChain(adj, id) {
   const seen = new Set([id]);
   const walk = (n, dir) => {
     for (const m of (dir[n] || [])) if (!seen.has(m)) { seen.add(m); walk(m, dir); }
   };
-  walk(id, up); walk(id, down);
+  walk(id, adj.up); walk(id, adj.down);
   return seen;
 }
 

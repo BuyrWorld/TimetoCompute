@@ -133,11 +133,23 @@ test('exactly one edge rests on a named company-to-company agreement', () => {
   assert.ok(direct[0].evidenceIds.length, 'the direct edge cites nothing');
 });
 
-test('structural flow is column-level and marked inferred', () => {
-  for (const e of chainMap({}).edges.filter(x => x.inferred)) {
-    assert.ok(e.columnLevel, 'an inferred edge asserts a node-to-node relationship');
-    assert.equal(e.confidence, 'unverified');
-    assert.equal(e.evidenceIds.length, 0, 'an inferred edge cites evidence it does not have');
+/**
+ * The invariant that matters most now the map draws the whole chain.
+ *
+ * Structural edges are numerous and cross the entire graph. Every one of them
+ * must be flagged inferred, cite nothing, and state its mechanism — a single
+ * structural edge that slipped through unflagged would be indistinguishable
+ * from the one signed agreement on the page.
+ */
+test('every structural link is flagged, cites nothing, and states its mechanism', () => {
+  const edges = chainMap({}).edges.filter(x => x.inferred);
+  assert.ok(edges.length > 10, 'the structural chain is not being drawn');
+  for (const e of edges) {
+    assert.equal(e.confidence, 'unverified', e.id);
+    assert.equal(e.evidenceIds.length, 0, `${e.id} cites evidence it does not have`);
+    assert.equal(e.relationship, 'inferred', e.id);
+    assert.ok(e.columnLevel || e.structural, `${e.id} is inferred but claims to be evidenced`);
+    assert.ok(e.label && e.label.length > 20, `${e.id} asserts a dependency without saying why`);
   }
 });
 
@@ -147,13 +159,21 @@ test('turning off inferred links leaves only evidenced edges', () => {
   for (const e of edges) assert.equal(e.inferred, false);
 });
 
-test('a break in the chain is drawn, not papered over', () => {
-  // Systems is empty, so the flow from Components must be marked broken rather
-  // than silently bridged — otherwise the gap reads as a rendering bug.
-  const broken = chainMap({}).edges.filter(e => e.broken);
-  assert.equal(broken.length, 1);
-  assert.ok(broken[0].skipped.includes('systems'));
-  assert.match(broken[0].label, /T2C holds no record/);
+/**
+ * A fan addresses a column, never a node.
+ *
+ * "Operators install racks" is true of every operator. An edge from rack
+ * integration to one named operator would invent a relationship, so a fan must
+ * carry a column and no `to`.
+ */
+test('a fan addresses a whole column and never a single node', () => {
+  const fans = chainMap({}).edges.filter(e => e.fan);
+  assert.ok(fans.length > 0);
+  for (const f of fans) {
+    assert.equal(f.to, null, `${f.id} singles out one node`);
+    assert.ok(f.toColumn, `${f.id} names no column`);
+    assert.equal(f.structural, true);
+  }
 });
 
 /* ================= columns ================= */
@@ -166,14 +186,34 @@ test('all five columns are always present, empty or not', () => {
   }
 });
 
-test('an empty column states why it is empty', () => {
-  const empty = chainMap({}).columns.filter(c => c.empty);
-  assert.ok(empty.length > 0, 'the systems column should be empty on current data');
+test('no column renders empty now the reference chain is drawn', () => {
+  for (const a of ['deployed', 'next']) {
+    for (const c of chainMap({ architecture: a }).columns) {
+      assert.ok(c.nodes.length > 0, `${c.id} is empty in ${a} — the chain has a hole in it`);
+    }
+  }
+});
+
+/* A filter can still empty a column, and that case must still explain itself. */
+test('a column emptied by a filter still states why', () => {
+  const g = chainMap({ pillar: 'photonics' });
+  const empty = g.columns.filter(c => c.empty);
+  assert.ok(empty.length > 0, 'filtering to one pillar should empty at least one column');
   for (const c of empty) {
     assert.ok(c.emptyReason && c.emptyReason.length > 40, `${c.id} is empty with no explanation`);
   }
-  assert.ok(page().includes('T2C holds no accelerator, switch or server supplier record'),
-    'the empty column is not declared on the page');
+});
+
+/* Turning the reference layer off returns the map to T2C's records alone —
+   the evidence-only view is still reachable, it is simply no longer the
+   default, because on its own it taught nobody how the chain works. */
+test('the reference layer can be switched off entirely', () => {
+  const g = chainMap({ reference: false });
+  assert.ok(g.nodes.every(n => n.tier === 'evidenced'));
+  assert.ok(g.columns.find(c => c.id === 'systems').empty,
+    'without the reference layer, Systems is empty — that was the original finding');
+  assert.match(g.columns.find(c => c.id === 'systems').emptyReason,
+    /no accelerator, switch or server supplier record/);
 });
 
 test('a node appears in exactly one column', () => {
@@ -363,22 +403,43 @@ test('a structural band stops short of every node it passes', () => {
   }
 });
 
-test('only evidenced links are drawn node to node', () => {
-  const g = chainMap({ architecture: 'deployed' });
-  const geo = chainGeometry(g);
-  const edges = geo.links.filter(l => l.kind === 'edge');
-  assert.equal(edges.length, 1, 'T2C holds exactly one company-to-company agreement');
-  assert.equal(edges[0].relationship, 'direct');
-  assert.ok(edges[0].evidenceIds.length > 0, 'the one direct edge cites no source');
+/**
+ * However many links the map grows, exactly one of them is a signed agreement.
+ *
+ * This is the number a reader would be most misled by if it drifted, so it is
+ * asserted against the drawn geometry rather than the source data — a rendering
+ * change that promoted a structural edge to an evidenced one would fail here.
+ */
+test('exactly one drawn link is a company-to-company agreement', () => {
+  for (const architecture of ['deployed', 'next']) {
+    const geo = chainGeometry(chainMap({ architecture }));
+    const drawn = geo.links.filter(l => l.kind === 'edge' || l.kind === 'fan');
+    const evidenced = drawn.filter(l => !l.structural);
+    assert.equal(evidenced.length, 1, `${architecture}: ${evidenced.length} evidenced links drawn`);
+    assert.equal(evidenced[0].relationship, 'direct');
+    assert.ok(evidenced[0].evidenceIds.length > 0, 'the one direct link cites no source');
+    assert.ok(drawn.length > 10, 'the structural chain is not being drawn');
+  }
 });
 
-test('tracing follows evidence, never structure', () => {
+/**
+ * Tracing now walks the whole chain — that is the point of the map. What keeps
+ * it honest is that the hops stay individually labelled, so a reader following a
+ * long path can still see that one hop is evidenced and the rest are structure.
+ */
+test('tracing reaches across the whole chain and every hop stays labelled', () => {
   const g = chainMap({ architecture: 'deployed' });
-  const chain = traceChain(g, 'input-axt');
-  assert.deepEqual([...chain].sort(), ['component-cw-laser', 'input-axt']);
-  /* If tracing walked the structural bands it would reach the customers, which
-     no document supports. */
-  assert.ok(![...chain].some(id => id.startsWith('customer-')));
+  const chain = traceChain(g, 'ref-silicon-wafer');
+  assert.ok(chain.size > 10, `tracing reached only ${chain.size} nodes`);
+  assert.ok([...chain].some(id => id.startsWith('operator-')),
+    'a wafer should reach the operators — that is the interdependency being shown');
+
+  const inChain = g.edges.filter(e => e.from && e.to && chain.has(e.from) && chain.has(e.to));
+  assert.ok(inChain.length > 5);
+  for (const e of inChain) {
+    assert.ok(e.structural === true || e.relationship === 'direct',
+      `${e.id} is neither flagged structural nor an evidenced agreement`);
+  }
 });
 
 test('a single maker on file is flagged only where it can be counted', () => {
