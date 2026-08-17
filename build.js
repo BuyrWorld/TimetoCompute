@@ -62,6 +62,15 @@ import { LAB_COVERAGE, CONTRACT_ECONOMICS, CAPEX_REFERENCE, MODEL_DEFAULTS, ASSU
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(ROOT, 'dist');
 const SITE = 'https://timetocompute.com';
+
+/* The social card, declared once.
+   Its dimensions are stated in the metadata below, so the path and the numbers
+   have to agree — a card whose declared size does not match the file is one
+   scrapers crop or reject outright. The file is 1200×630, the size every major
+   platform expects for a large summary card. */
+const SOCIAL_CARD = '/assets/social/t2c-social-card.png';
+const SOCIAL_CARD_ALT =
+  'T2C — Time to Compute. Which AI infrastructure companies are actually delivering.';
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
 const BUILD_STAMP = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
 
@@ -178,11 +187,15 @@ function head({ title, description, canonical, structured = null }) {
 <meta property="og:title" content="${esc(title)}" />
 <meta property="og:description" content="${esc(description)}" />
 <meta property="og:url" content="${esc(canonical)}" />
-<meta property="og:image" content="${esc(SITE)}/Logo/logo-header.png" />
+<meta property="og:image" content="${esc(SITE)}${SOCIAL_CARD}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:alt" content="${esc(SOCIAL_CARD_ALT)}" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${esc(title)}" />
 <meta name="twitter:description" content="${esc(description)}" />
-<meta name="twitter:image" content="${esc(SITE)}/Logo/logo-header.png" />
+<meta name="twitter:image" content="${esc(SITE)}${SOCIAL_CARD}" />
 <meta name="theme-color" content="#0B0B0C" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="/Logo/logo-header.png" />
@@ -1973,6 +1986,13 @@ fs.cpSync(path.join(ROOT, 'assets', 't2c', 'chain-mapping'),
   path.join(OUT, 'assets', 't2c', 'chain-mapping'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'assets', 'time-machine'),
   path.join(OUT, 'assets', 'time-machine'), { recursive: true });
+/* Open Graph and Twitter card art. Copied like any other asset folder — the
+   build enumerates these explicitly rather than copying assets/ wholesale, so a
+   new subfolder ships only once it is named here. Without this line the social
+   card exists in the repository and 404s on the domain, which is the one
+   failure mode a card cannot survive: scrapers cache a miss. */
+fs.cpSync(path.join(ROOT, 'assets', 'social'),
+  path.join(OUT, 'assets', 'social'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'Logo'), path.join(OUT, 'Logo'), { recursive: true });
 
 /* Illustrative campus artwork, copied under a name that says what it is: a
