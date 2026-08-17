@@ -29,7 +29,7 @@ const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 
 const arg = (n, f) => { const i = process.argv.indexOf('--' + n); return i > -1 ? process.argv[i + 1] : f; };
 const WIDTHS = arg('widths', '390,430,768,1366,1440,1920,2560,3840').split(',').map(Number);
-const ROUTES = arg('routes', '/,/sites/,/sites/iren-horizon-1/,/companies/iren/,/explainers/,/news/').split(',');
+const ROUTES = arg('routes', '/,/sites/,/sites/iren-horizon-1/,/companies/iren/,/explainers/,/news/,/time-machine/').split(',');
 /** A 2x screen is the realistic worst case for upscaling. */
 const DPR = Number(arg('dpr', '2'));
 

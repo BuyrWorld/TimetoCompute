@@ -10,21 +10,23 @@
  * that the outcome fails closed when no price has been verified, and that no
  * source published after a chapter's cutoff appears before the player commits.
  */
+
 import puppeteer from 'puppeteer-core';
 import { createServer } from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(ROOT, 'dist');
 const CHROME = process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+
 const MIME = {
   '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png',
   '.webp': 'image/webp', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.json': 'application/json'
 };
 
 const missing = [];
+
 const srv = createServer((q, r) => {
   let p = decodeURIComponent(q.url.split('?')[0]);
   if (p.endsWith('/')) p += 'index.html';
@@ -126,7 +128,6 @@ const leak = await page.evaluate(() => {
 });
 ok('no reveal source is exposed before commitment', leak.revealShown === 0, String(leak.revealShown));
 ok('no briefing source postdates its own cutoff', leak.lateShown === 0, String(leak.lateShown));
-
 await page.keyboard.press('Escape');
 await wait(200);
 ok('Escape closes the drawer', (await page.$$('[data-sheet]')).length === 0);
@@ -159,7 +160,7 @@ ok('the time jump plays', /tm-screen--jump/.test(await cls()));
 /* ---- outcome ---- */
 await wait(1700);
 ok('the outcome screen arrives', /tm-screen--outcome/.test(await cls()), await cls());
-const pending = await page.$eval('.tm-price-pending strong', e => e.textContent).catch(() => null);
+const pending = await page.$eval('.tm-thesis-record strong', e => e.textContent).catch(() => null);
 ok('fail-closed: an unverified price shows the awaiting state',
   pending === 'Market result awaiting verification', String(pending));
 ok('no price was invented',
@@ -187,7 +188,6 @@ const saved = await page.evaluate(() => localStorage.getItem('t2c-ai-time-machin
 ok('progress is saved locally', !!saved && /photonics-shift/.test(saved));
 ok('an unverified chapter moves no capital',
   saved && JSON.parse(saved).campaigns['photonics-shift'].appliedEvents.length === 0);
-
 await page.reload({ waitUntil: 'networkidle0' });
 await wait(400);
 const resumeBtn = await page.$('[data-act="resume"]');
@@ -198,8 +198,130 @@ if (resumeBtn) {
   ok('resume returns to the campaign', /tm-screen--(briefing|recap)/.test(await cls()), await cls());
 }
 
+/* ---- the factory: a persistent world built only from decisions made ---- */
+await page.goto(B + '/time-machine/', { waitUntil: 'networkidle0' });
+await wait(350);
+await page.click('[data-act="campaigns"]');
+await wait(250);
+await page.click('.tm-factory-cta');
+await wait(300);
+ok('the factory opens from campaign selection', /tm-screen--factory/.test(await cls()));
+const nodes = await page.$$eval('.tm-factory-node', els => els.map(e => ({
+  id: e.dataset.id, online: e.classList.contains('is-online'), disabled: e.disabled
+})));
+ok('all six factory systems are drawn', nodes.length === 6, String(nodes.length));
+
+/* One chapter of Photonics Shift is complete, so exactly that module is online.
+   The rest must be locked AND unclickable — a locked module that opens would
+   hand the player a system they have not earned. */
+ok('only the earned system is online',
+  nodes.filter(n => n.online).map(n => n.id).join() === 'photonics',
+  nodes.filter(n => n.online).map(n => n.id).join());
+ok('locked systems cannot be opened',
+  nodes.filter(n => !n.online).every(n => n.disabled));
+ok('locked systems state what unlocks them',
+  (await page.$$eval('.tm-factory-node.is-locked small', e =>
+    e.filter(x => /UNLOCK \d+ SIGNAL/.test(x.textContent)).length)) === 5);
+await page.click('.tm-factory-node.is-online');
+await wait(300);
+ok('the module inspector opens', (await page.$$('.tm-module-inspector')).length === 1);
+ok('the inspector explains the system in plain English',
+  (await page.$eval('.tm-module-inspector h3', e => e.textContent.trim().length)) > 20);
+const tickers = await page.$$eval('.tm-ticker-list span b', e => e.map(x => x.textContent));
+ok('participants are named with their tickers', tickers.length > 0, tickers.join(' '));
+
+/* The line that keeps a list of tickers from reading as a tip sheet. */
+ok('the inspector disclaims any recommendation',
+  /identify participants only[\s\S]*no live price or/i.test(
+    await page.$eval('.tm-module-inspector__note', e => e.textContent)));
+await page.keyboard.press('Escape');
+await wait(200);
+ok('Escape closes the inspector', (await page.$$('[data-sheet]')).length === 0);
+ok('the thesis profile is derived from real decisions',
+  (await page.$eval('.tm-factory-profile h2', e => e.textContent)) !== 'Signal Scout');
+
+/* ---- the vault: where a live chapter ends, because its outcome does not exist ---- */
+const liveSeed = await page.evaluate(() => {
+  const data = JSON.parse(document.getElementById('tm-data').textContent);
+  const camp = data.campaigns.find(c => c.chapterIds.some(id => {
+    const e = data.events.find(x => x.id === id);
+    return e && e.truthMode === 'live_prediction';
+  }));
+  const idx = camp.chapterIds.findIndex(id => {
+    const e = data.events.find(x => x.id === id);
+    return e && e.truthMode === 'live_prediction';
+  });
+  const save = JSON.parse(localStorage.getItem('t2c-ai-time-machine-v1'));
+  save.lastCampaignId = camp.id;
+  save.campaigns[camp.id] = {
+    chapterIndex: idx, completed: camp.chapterIds.slice(0, idx), choices: {}, confidence: {},
+    sealed: [], evidenceOpened: [], appliedEvents: [], capitalUsd: camp.initialCapitalUsd,
+    finished: false, updatedAt: new Date().toISOString()
+  };
+  localStorage.setItem('t2c-ai-time-machine-v1', JSON.stringify(save));
+  return { campaignId: camp.id, chapter: idx + 1 };
+});
+await page.reload({ waitUntil: 'networkidle0' });
+await wait(400);
+await page.click('[data-act="resume"]');
+await wait(300);
+ok('a live chapter briefs like any other', /tm-screen--briefing/.test(await cls()), await cls());
+ok('a live chapter says its outcome has not happened yet',
+  (await page.$$('.tm-locked-banner')).length === 1);
+await page.click('[data-act="decide"]');
+await wait(250);
+
+/* Confidence is part of the sealed record, so it has to be selectable and it
+   has to survive the seal — a confidence that silently resets would make the
+   timestamped decision a slightly different decision. */
+const confBtns = await page.$$eval('[data-act="confidence"]', e => e.map(x => x.dataset.id));
+ok('four confidence levels are offered', confBtns.join() === '50,65,80,95', confBtns.join());
+ok('a default confidence is preselected',
+  (await page.$$eval('[data-act="confidence"][aria-checked="true"]', e => e.length)) === 1);
+await page.click('[data-act="confidence"][data-id="80"]');
+await wait(150);
+ok('confidence can be changed',
+  (await page.$eval('[data-act="confidence"][data-id="80"]', e => e.getAttribute('aria-checked'))) === 'true');
+await page.click('.tm-choice-card');
+await wait(150);
+await page.click('[data-act="review"]');
+await wait(250);
+ok('a live confirmation promises a seal, not a reveal',
+  /timestamped and sealed/.test(await page.$eval('.tm-confirm__warning', e => e.textContent)));
+await page.click('[data-act="lock"]');
+await wait(400);
+ok('a live decision lands in the vault, never the jump',
+  /tm-screen--vault/.test(await cls()), await cls());
+ok('the vault states no outcome exists yet',
+  /remains hidden/.test(await page.$eval('.tm-vault__lede', e => e.textContent)));
+ok('the vault records the chosen confidence',
+  /80%/.test(await page.$eval('.tm-vault-card', e => e.textContent)));
+const sealedSave = await page.evaluate(() => JSON.parse(localStorage.getItem('t2c-ai-time-machine-v1')));
+const sealedProg = sealedSave.campaigns[liveSeed.campaignId];
+ok('the sealed decision is persisted', sealedProg.sealed.length === 1, JSON.stringify(sealedProg.sealed));
+ok('sealing moves no capital',
+  sealedProg.appliedEvents.length === 0 && sealedProg.capitalUsd === 10000,
+  sealedProg.capitalUsd + ' / ' + sealedProg.appliedEvents.length);
+
+/* The seal is the point: reopening must show the sealed record, not a fresh
+   decision screen offering a second, different answer. */
+await page.click('[data-act="campaigns"]');
+await wait(250);
+await page.click('[data-act="open"][data-id="' + liveSeed.campaignId + '"]');
+await wait(250);
+await page.click('[data-act="decide"]');
+await wait(300);
+ok('a sealed decision reopens as sealed', /tm-screen--vault/.test(await cls()), await cls());
+
 /* ---- integration ---- */
-ok('a back-to-TimeToCompute control exists', (await page.$$('.tm-utility--exit')).length === 1);
+await page.goto(B + '/time-machine/', { waitUntil: 'networkidle0' });
+await wait(350);
+ok('a back-to-TimeToCompute control exists',
+  (await page.$$('[data-act="campaigns"]')).length > 0);
+await page.click('[data-act="campaigns"]');
+await wait(250);
+ok('the exit back to the site is always reachable',
+  (await page.$$('.tm-utility--exit')).length === 1);
 const full = await page.content();
 ok('the not-investment-advice disclaimer is present', /not investment advice/i.test(full));
 ok('the site shell is retained', /class="mainnav"/.test(full));
@@ -247,11 +369,12 @@ for (const [w, h] of [[1440, 900], [1024, 768], [430, 932], [390, 844]]) {
   ok(w + '\u00d7' + h + ': logo visible and uncropped',
     r.visible && Math.abs(r.ratio - LOGO_RATIO) < 0.15, r.ratio ? r.ratio.toFixed(2) : 'absent');
 }
-
 console.log('\n  console/page errors: ' + (errs.length ? errs.slice(0, 6).join(' | ') : 'none'));
 console.log('  404s during play: ' + (missing.length ? [...new Set(missing)].join(', ') : 'none'));
+
 /* The QA server stubs /api/ with 503 by design, so those are expected. A 404 is
    never expected: it means a shipped page references a file that does not exist. */
+
 const realErrs = errs.filter(e => !/503/.test(e));
 if (realErrs.length || missing.length) failures++;
 

@@ -13,4 +13,6 @@ shots/
 # Tracking them added ~60 MB per pack and GitHub started warning about size.
 # The folders stay on disk; they are simply not part of the repository.
 SCMAP/
-"1 - Not yet implementated/"
+Game/
+# Quotes are literal here, not grouping — a quoted path matches nothing.
+1 - Not yet implementated/
