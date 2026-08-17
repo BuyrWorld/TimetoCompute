@@ -15,7 +15,9 @@ import {
   workspaceHeader, filterRail, chainMapCanvas, chainMapList, mapControls,
   nodeDrawer, drawerPayload, commercialTimelineView, boundaryPanel
 } from './chainmap-ui.js';
-import { chainMap, commercialTimeline } from './lib/chainmap.js';
+import {
+  chainMap, commercialTimeline, chainGeometry, singleMakerNodes
+} from './lib/chainmap.js';
 import {
   ARCHITECTURES, PILLARS, TRACE_MODES, REACH_BANDS,
   BOUNDARY_STATEMENT, BOUNDARY_SUPPORT
@@ -44,12 +46,16 @@ export function chainMappingBody() {
            no JavaScript sees the deployed map, which is the honest default. -->
       <div class="cm-mode" data-mode="deployed">
         ${mapControls()}
-        ${chainMapCanvas(deployed)}
+        ${chainMapCanvas(deployed, chainGeometry(deployed), {
+          singleMakers: singleMakerNodes(deployed), mode: 'deployed'
+        })}
         ${chainMapList(deployed)}
       </div>
       <div class="cm-mode" data-mode="next" hidden>
         ${mapControls()}
-        ${chainMapCanvas(next)}
+        ${chainMapCanvas(next, chainGeometry(next), {
+          singleMakers: singleMakerNodes(next), mode: 'next'
+        })}
         ${chainMapList(next)}
       </div>
 
@@ -91,8 +97,21 @@ export function chainMappingConfig() {
   const next = chainMap({ architecture: 'next' });
   const byId = {};
   for (const n of [...drawerPayload(deployed), ...drawerPayload(next)]) byId[n.id] = n;
+
+  /* Adjacency for chain tracing, built from DIRECT edges only. Structural
+     bands are excluded: following one would let the interface report that a
+     substrate "reaches" a customer on the strength of T2C's own framing of how
+     a data centre is built, rather than on any document. */
+  const adjacency = { up: {}, down: {} };
+  for (const e of [...deployed.edges, ...next.edges]) {
+    if (e.columnLevel || !e.from || !e.to) continue;
+    (adjacency.down[e.from] = adjacency.down[e.from] || []).push(e.to);
+    (adjacency.up[e.to] = adjacency.up[e.to] || []).push(e.from);
+  }
+
   return {
     nodes: byId,
+    adjacency,
     modes: {
       deployed: deployed.nodes.map(n => n.id),
       next: next.nodes.map(n => n.id)

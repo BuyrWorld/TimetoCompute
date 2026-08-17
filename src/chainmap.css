@@ -153,103 +153,155 @@
 /* ---- canvas ---- */
 .cm-canvas {
   position: relative; min-width: 0;
-  padding: var(--s3) 0;
   background-color: #071012;
   background-image: url('/assets/t2c/chain-mapping/technical-grid.svg');
   background-size: 40px 40px;
   border: 1px solid var(--line-2); border-radius: var(--m-radius);
-  overflow-x: auto; overscroll-behavior-x: contain;
+  overflow: hidden;
 }
-.cm-zoomwrap {
-  transform: scale(var(--cm-zoom)); transform-origin: 0 0;
-  width: calc(100% / var(--cm-zoom));
-  transition: transform var(--t2c-med) var(--t2c-ease);
-}
-@media (prefers-reduced-motion: reduce) { .cm-zoomwrap { transition: none; } }
 
-.cm-columns {
-  list-style: none; margin: 0; padding: 0 var(--s3);
-  display: grid; grid-template-columns: repeat(5, minmax(190px, 1fr)); gap: var(--s2);
-  min-width: max-content;
+/* Column headings sit OUTSIDE the zoom wrapper so they stay legible at every
+   zoom level. Zooming the map is about seeing the graph, not about shrinking
+   the labels that say what its columns mean. */
+.cm-colhead {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  border-bottom: 1px solid var(--line-2); background: rgb(7 16 18 / 92%);
+  width: calc(var(--cm-zoom, 1) * 100%);
+  min-width: calc(var(--cm-zoom, 1) * 720px);
 }
-@media (min-width: 1280px) { .cm-columns { min-width: 0; } }
-
-.cm-column { min-width: 0; display: grid; gap: 10px; align-content: start; }
-.cm-columnh {
-  display: flex; align-items: center; gap: 8px; margin: 0;
-  font-family: var(--m-mono); font-size: 10px; font-weight: 700;
+.cm-ch {
+  padding: 9px 12px; min-width: 0;
+  border-left: 1px solid var(--line-2); text-align: center;
+}
+.cm-ch:first-child { border-left: 0; }
+.cm-ch span {
+  display: block; font-family: var(--m-mono); font-size: 10px; font-weight: 700;
   letter-spacing: .12em; text-transform: uppercase; color: var(--soft);
-  padding: 8px 10px; background: var(--surface-2); border-radius: 999px;
 }
-.cm-columnn { color: var(--t2c-cyan); }
-.cm-columncount { margin-left: auto; color: var(--dim); }
-.cm-columndef { font-size: 10.5px; line-height: 1.45; color: var(--dim); margin: 0 4px; }
+.cm-ch b {
+  display: block; margin-top: 3px; font-size: 9.5px; font-weight: 400;
+  line-height: 1.35; color: var(--dim);
+}
+.cm-ch.is-empty span { color: var(--warn); }
 
-.cm-nodes { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.cm-nodewrap { min-width: 0; }
+.cm-zoomwrap {
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  padding-bottom: var(--s2); cursor: grab;
+}
+.cm-zoomwrap.is-dragging { cursor: grabbing; scroll-behavior: auto; }
 
-/* THE NODE — three layers, fixed box. */
-.cm-node {
-  position: relative; display: block; width: 100%;
-  height: var(--cm-node-h); padding: 0; cursor: pointer;
-  background: none; border: 0; color: inherit; font: inherit;
-  transition: transform var(--t2c-fast) var(--t2c-ease);
+/* The map SCROLLS rather than shrinking.
+   An SVG set to width:100% obediently scales to whatever it is given — at 390px
+   that made every hexagon 38x15 CSS px, a map technically present and actually
+   unreadable. A minimum width plus a scrolling container keeps the nodes at a
+   legible size on a phone and lets zoom do something useful on a desktop. */
+.cm-svg {
+  display: block; height: auto;
+  width: calc(var(--cm-zoom, 1) * 100%);
+  min-width: calc(var(--cm-zoom, 1) * 720px);
+  transition: width var(--t2c-med) var(--t2c-ease);
 }
-.cm-node__hex {
-  position: absolute; inset: 0;
-  border: 1.5px solid var(--line-strong, var(--line));
-  background: rgb(13 20 24 / 82%);
-  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%);
-  transition: border-color var(--t2c-fast) var(--t2c-ease);
-}
-/* The content stage. Absolutely positioned across the whole node and centred —
-   never nudged with margins, and a badge cannot resize it. */
-.cm-node__content {
-  position: absolute; inset: 0;
-  display: grid; place-items: center; align-content: center; gap: 3px;
-  padding: 12px 26px; text-align: center;
-}
-.cm-node__title {
-  font-size: 12.5px; font-weight: 800; line-height: 1.2; color: var(--ink);
-  overflow-wrap: anywhere;
-}
-.cm-node__org { font-size: 10.5px; line-height: 1.3; color: var(--dim); }
-.cm-node__badge {
-  font-family: var(--m-mono); font-size: 8px; font-weight: 700;
-  letter-spacing: .1em; text-transform: uppercase;
-  padding: 2px 6px; border-radius: 3px; margin-top: 2px;
-}
-.cm-node__badge[data-rel="direct"] { color: var(--brand); border: 1px solid var(--brand); }
-.cm-node__badge[data-rel="reported"] { color: var(--brand); border: 1px solid rgb(214 255 0 / 45%); }
-.cm-node__badge[data-rel="ecosystem"] { color: var(--soft); border: 1px dotted var(--line-strong, var(--soft)); }
-.cm-node__badge[data-rel="inferred"],
-.cm-node__badge[data-rel="unknown"] { color: var(--warn); border: 1px dashed var(--warn); }
+@media (prefers-reduced-motion: reduce) { .cm-svg { transition: none; } }
 
-.cm-node:hover .cm-node__hex { border-color: var(--soft); }
-.cm-node:hover { transform: translateY(-3px); }
-.cm-node:focus-visible { outline: none; }
-.cm-node:focus-visible .cm-node__hex { border-color: var(--brand); box-shadow: 0 0 0 3px rgb(214 255 0 / 35%); }
-.cm-node.is-selected .cm-node__hex { border-color: var(--brand); border-width: 2px; background: rgb(20 30 12 / 88%); }
-.cm-node[data-rel="direct"] .cm-node__hex { border-color: rgb(214 255 0 / 55%); }
-.cm-node[data-maturity="sampling"] .cm-node__hex { border-style: dashed; border-color: var(--t2c-cyan); }
+.cm-guides line { stroke: #162028; stroke-width: 1; }
+
+/* ---- links ---- */
+
+/* A BAND is column-to-column: T2C's framing of how a deployment is built. It is
+   wide, faint and stops short of every node, so it can never be misread as a
+   line arriving at one particular company. */
+.cm-band {
+  fill: none; stroke: rgb(70 92 104 / 45%); stroke-width: 22;
+  stroke-linecap: round;
+}
+.cm-band.is-broken {
+  stroke: rgb(196 132 0 / 30%); stroke-width: 16; stroke-dasharray: 3 13;
+}
+
+/* The chevron is what turns a band from a floating pill into a direction. */
+.cm-bandhead { fill: rgb(70 92 104 / 70%); }
+.cm-bandhead.is-broken { fill: rgb(196 132 0 / 55%); }
+
+/* An EDGE is node-to-node: a named, dated agreement between two companies. Thin,
+   solid and bright, because it is the strongest claim on the page. */
+.cm-edgeline { fill: none; stroke: var(--brand); stroke-width: 1.6; }
+.cm-edgedot { fill: var(--brand); }
+.cm-edge.is-dim .cm-edgeline, .cm-edge.is-dim .cm-edgedot { opacity: .25; }
+.cm-edge.is-hot .cm-edgeline { stroke-width: 2.6; filter: drop-shadow(0 0 5px rgb(214 255 0 / 55%)); }
+
+/* ---- empty column ---- */
+.cm-emptyplate rect {
+  fill: rgb(196 132 0 / 5%); stroke: var(--warn);
+  stroke-width: 1; stroke-dasharray: 5 4;
+}
+.cm-emptymark { fill: var(--warn); font-size: 15px; font-weight: 700; }
+.cm-emptyline {
+  fill: var(--soft); font-size: 9.5px;
+  font-family: var(--m-sans, inherit);
+}
+
+/* ---- the hex node ---- */
+.cm-hexg { cursor: pointer; }
+.cm-hexbody {
+  fill: rgb(13 20 24 / 95%); stroke: var(--line-strong, var(--line));
+  stroke-width: 1.4;
+  transition: stroke var(--t2c-fast) var(--t2c-ease);
+}
+.cm-hexg[data-rel="direct"] .cm-hexbody { stroke: rgb(214 255 0 / 55%); }
+.cm-hexg[data-pillar="photonics"] .cm-hexbody { stroke: rgb(43 217 245 / 50%); }
+.cm-hexg[data-maturity="sampling"] .cm-hexbody { stroke: var(--t2c-cyan); stroke-dasharray: 6 4; }
+
+/* The single-maker ring is a SEPARATE, LARGER polygon. Changing the body's own
+   stroke would shift the node's optical weight and, at 1.4px, be invisible. */
+.cm-hexsingle {
+  fill: none; stroke: var(--warn); stroke-width: 1.4;
+  stroke-dasharray: 4 4; opacity: .8;
+}
+.cm-hexhalo {
+  fill: none; stroke: var(--t2c-cyan); stroke-width: 1.2; opacity: 0;
+  transition: opacity var(--t2c-fast) var(--t2c-ease);
+}
+.cm-hexg:hover .cm-hexhalo, .cm-hexg.is-selected .cm-hexhalo { opacity: .65; }
+.cm-hexg:focus { outline: none; }
+.cm-hexg:focus-visible .cm-hexhalo { opacity: 1; stroke: var(--brand); stroke-width: 2.4; }
+.cm-hexg.is-selected .cm-hexbody { stroke: var(--brand); stroke-width: 2.2; fill: rgb(20 30 12 / 92%); }
+
+.cm-hexlabel {
+  fill: var(--ink); font-size: 11.5px; font-weight: 800;
+  font-family: var(--m-sans, inherit);
+}
+.cm-hexorg { fill: var(--dim); font-size: 9.5px; font-family: var(--m-sans, inherit); }
+.cm-hexrel {
+  font-family: var(--m-mono); font-size: 7.5px; font-weight: 700;
+  letter-spacing: .09em; fill: var(--soft);
+}
+.cm-hexrel[data-rel="direct"], .cm-hexrel[data-rel="reported"] { fill: var(--brand); }
+.cm-hexrel[data-rel="inferred"], .cm-hexrel[data-rel="unknown"] { fill: var(--warn); }
 
 /* Context stays READABLE. The pack's floor is 55–70% — a filtered-out node the
    reader cannot see is a filter that hides its own effect. */
-.cm-node.is-context { opacity: .62; }
-.cm-node.is-context:hover, .cm-node.is-context:focus-visible { opacity: 1; }
-@media (prefers-reduced-motion: reduce) {
-  .cm-node { transition: none; } .cm-node:hover { transform: none; }
+.cm-hexg.is-context { opacity: .62; }
+.cm-hexg.is-context:hover, .cm-hexg.is-context:focus-visible { opacity: 1; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .cm-hexg { animation: cm-hexin var(--t2c-med) var(--t2c-ease) backwards; animation-delay: var(--cm-hex-delay, 0ms); }
+  @keyframes cm-hexin { from { opacity: 0; transform: translateY(6px); } }
 }
 
-.cm-column.is-empty .cm-columnh { color: var(--warn); }
-.cm-emptycol {
-  display: grid; gap: 8px; justify-items: center; text-align: center;
-  padding: var(--s3) 14px; min-height: var(--cm-node-h);
-  border: 1px dashed var(--warn); border-radius: var(--m-radius-sm);
-  background: rgb(196 132 0 / 6%);
+/* ---- the readout ---- */
+.cm-hud {
+  position: absolute; left: 12px; bottom: 12px; z-index: 3;
+  display: flex; flex-wrap: wrap; gap: 5px; pointer-events: none;
 }
-.cm-emptymark { font-family: var(--m-mono); font-size: 20px; color: var(--warn); }
-.cm-emptycol p { font-size: 11px; line-height: 1.5; color: var(--soft); margin: 0; }
+.cm-hudchip {
+  font-family: var(--m-mono); font-size: 9px; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--dim);
+  padding: 3px 7px; border: 1px solid var(--line-2); border-radius: 3px;
+  background: rgb(7 16 18 / 88%);
+}
+.cm-hudchip b { color: var(--ink); }
+.cm-hudchip.is-brand b { color: var(--brand); }
+.cm-hudchip.is-warn b { color: var(--warn); }
 
 /* ---- controls ---- */
 /* Positioned against the mode wrapper rather than the canvas, so the controls

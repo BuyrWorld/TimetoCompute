@@ -416,6 +416,145 @@ export function chainMap({ architecture = 'deployed', pillar = null, showInferre
 export const sourcesFor = ids =>
   [...new Set(ids || [])].map(id => SOURCE_BY_ID[id]).filter(Boolean);
 
+/* ------------------------------------------------------------ the geometry -- */
+
+/**
+ * Where every node sits on the canvas, and what shape each link is.
+ *
+ * Pure arithmetic over the graph, kept here rather than in the renderer so the
+ * layout can be asserted by test instead of only inspected by eye. The viewBox
+ * grows with the tallest column; nothing is clipped and nothing scrolls
+ * horizontally inside the SVG itself.
+ */
+export const GEOMETRY = Object.freeze({
+  width: 1180, colWidth: 236, nodeW: 148, nodeH: 58, rowGap: 88,
+  headroom: 46, minHeight: 400, notch: 15
+});
+
+/** A hexagon with clipped left and right points, as an SVG points list. */
+export function hexPoints(cx, cy, w = GEOMETRY.nodeW, h = GEOMETRY.nodeH) {
+  const { notch: k } = GEOMETRY;
+  const x0 = cx - w / 2, x1 = cx + w / 2, y0 = cy - h / 2, y1 = cy + h / 2;
+  return `${x0},${cy} ${x0 + k},${y0} ${x1 - k},${y0} ${x1},${cy} ${x1 - k},${y1} ${x0 + k},${y1}`;
+}
+
+/**
+ * Positions, link paths and the canvas box for one graph.
+ *
+ * TWO KINDS OF LINK, DRAWN DIFFERENTLY BECAUSE THEY CLAIM DIFFERENT THINGS.
+ *
+ *   A `direct` edge joins two NODES and is drawn as a thin curve between them.
+ *   T2C holds exactly one: AXT to Lumentum, under a named, dated agreement.
+ *
+ *   A structural edge joins two COLUMNS and is drawn as a wide, faint band
+ *   between the column centroids. It is deliberately not fanned out into
+ *   node-to-node curves: joining every node to every node in the next column
+ *   would draw dozens of lines asserting dozens of relationships nobody has
+ *   disclosed. What is true is weaker and simpler — this column feeds the next.
+ *
+ * Reading a band as "some node here supplies some node there" is the one
+ * misreading the shape has to prevent, so a band never touches a node.
+ */
+export function chainGeometry(graph) {
+  const G = GEOMETRY;
+  const cols = graph.columns.map(c => c.nodes);
+  const rows = Math.max(1, ...cols.map(c => c.length));
+  const height = Math.max(G.minHeight, rows * G.rowGap + G.headroom * 2);
+
+  const pos = {};
+  const columnBox = graph.columns.map((c, ci) => {
+    const cx = G.colWidth * ci + G.colWidth / 2;
+    const top = (height - c.nodes.length * G.rowGap) / 2 + G.rowGap / 2;
+    c.nodes.forEach((n, i) => { pos[n.id] = { x: cx, y: top + i * G.rowGap, column: ci }; });
+    return {
+      id: c.id, index: ci, cx,
+      x0: G.colWidth * ci, x1: G.colWidth * (ci + 1),
+      /* An empty column's band still needs a vertical anchor, and the canvas
+         middle is the only honest one — it has no nodes to average. */
+      cy: c.nodes.length
+        ? c.nodes.reduce((a, n) => a + pos[n.id].y, 0) / c.nodes.length
+        : height / 2,
+      empty: c.empty
+    };
+  });
+
+  const links = [];
+  for (const e of graph.edges) {
+    if (e.columnLevel) {
+      const from = columnBox.find(c => c.id === e.fromColumn);
+      const to = columnBox.find(c => c.id === e.toColumn);
+      if (!from || !to) continue;
+      /* The band stops short of both columns' node edges so it can never be
+         mistaken for a line arriving at a particular box. */
+      const x1 = from.cx + G.nodeW / 2 + 14;
+      const x2 = to.cx - G.nodeW / 2 - 14;
+      const mx = (x1 + x2) / 2;
+      links.push({
+        ...e, kind: 'band',
+        d: `M ${x1} ${from.cy} C ${mx} ${from.cy}, ${mx} ${to.cy}, ${x2} ${to.cy}`,
+        x1, y1: from.cy, x2, y2: to.cy
+      });
+      continue;
+    }
+    const a = pos[e.from], b = pos[e.to];
+    if (!a || !b) continue;
+    const x1 = a.x + G.nodeW / 2, x2 = b.x - G.nodeW / 2;
+    const mx = (x1 + x2) / 2;
+    links.push({
+      ...e, kind: 'edge',
+      d: `M ${x1} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${x2} ${b.y}`,
+      x1, y1: a.y, x2, y2: b.y
+    });
+  }
+
+  return { width: G.width, height, pos, columnBox, links };
+}
+
+/**
+ * Every node reachable from one node, following real edges in both directions.
+ *
+ * Bands are excluded on purpose. Tracing through a structural band would report
+ * "this substrate reaches that customer" on the strength of T2C's own framing of
+ * how a data centre is built, which is precisely the leap the two link types
+ * exist to keep apart. With one direct edge on file the traced chain is short,
+ * and the interface says so rather than padding it.
+ */
+export function traceChain(graph, id) {
+  const up = {}, down = {};
+  for (const e of graph.edges) {
+    if (e.columnLevel || !e.from || !e.to) continue;
+    (down[e.from] = down[e.from] || []).push(e.to);
+    (up[e.to] = up[e.to] || []).push(e.from);
+  }
+  const seen = new Set([id]);
+  const walk = (n, dir) => {
+    for (const m of (dir[n] || [])) if (!seen.has(m)) { seen.add(m); walk(m, dir); }
+  };
+  walk(id, up); walk(id, down);
+  return seen;
+}
+
+/**
+ * Components with exactly one maker on file.
+ *
+ * The pack's mockup hand-flags "bottlenecks". This derives the nearest thing
+ * that is actually checkable: a part for which T2C holds a single named maker.
+ * It is labelled "single maker on file" everywhere and never "sole supplier" —
+ * one maker in T2C's records is a statement about the records, not about the
+ * world, and the gap between those two is where a chokepoint claim goes wrong.
+ */
+export function singleMakerNodes(graph) {
+  return graph.nodes
+    .filter(n => {
+      /* Only the parts columns can answer this. An operator or a customer has
+         no "maker", so counting them would mean flagging every one of them. */
+      if (n.column !== 'inputs' && n.column !== 'components') return false;
+      const makers = Array.isArray(n.suppliers) ? n.suppliers.length : (n.supplierId ? 1 : 0);
+      return makers === 1;
+    })
+    .map(n => n.id);
+}
+
 /**
  * The commercial timeline for the tracked estate.
  *

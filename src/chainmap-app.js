@@ -1,12 +1,13 @@
 /**
  * Chain Mapping — client behaviour.
  *
- * The map itself is server-rendered and works without this file: five columns,
- * every node, the list view and the timeline are all in the document. What this
- * adds is the research workspace — switching architecture, tracing, filtering,
- * opening evidence, keyboard navigation, zoom and one-shot path playback.
+ * The map itself is a server-rendered SVG and works without this file: every
+ * node, every link, both architecture modes, the list view and the timeline are
+ * all in the document. What this adds is the research workspace — switching
+ * architecture, tracing, filtering, opening evidence, keyboard navigation, zoom
+ * and one-shot path playback.
  *
- * Three rules from the pack are load-bearing rather than cosmetic:
+ * Four rules are load-bearing rather than cosmetic. Three come from the pack:
  *
  *   1. FILTERED CONTEXT STAYS READABLE. A node outside the current filter drops
  *      to ~60% prominence, never to near-invisible. The reader must still be
@@ -16,6 +17,15 @@
  *      every time they read a source.
  *   3. NOTHING ANIMATES FOREVER. Playback runs once and stops. There is no
  *      ambient motion on this canvas at all.
+ *
+ * The fourth is this map's own, and is the reason tracing exists at all:
+ *
+ *   4. TRACING FOLLOWS EVIDENCE, NEVER STRUCTURE. Highlighting a chain walks
+ *      only the direct, node-to-node edges — the ones where a document names
+ *      both companies. Walking the structural bands would let a hover report
+ *      that a substrate "reaches" a hyperscaler on the strength of T2C's own
+ *      framing of how a data centre is built. T2C holds one direct edge, so a
+ *      traced chain is short, and the readout says so rather than padding it.
  */
 (function () {
   'use strict';
@@ -56,9 +66,18 @@
   function activeMode() { return document.querySelector('.cm-mode[data-mode="' + state.architecture + '"]'); }
   function activeLive() { var m = activeMode(); return m ? m.querySelector('.cm-live') : null; }
   function inMode(sel) { var m = activeMode(); return m ? m.querySelector(sel) : null; }
+  /**
+   * Nodes the reader can actually reach right now.
+   *
+   * `offsetParent` is always null on an SVG element, so the HTML test this used
+   * to do reported every node as hidden the moment the map became an SVG —
+   * silently killing arrow-key navigation. `getClientRects()` is the test that
+   * works for both, and it also correctly excludes the hidden architecture mode.
+   */
   function visibleNodes() {
     var m = activeMode();
-    return m ? qsa('.cm-node', m).filter(function (n) { return !n.hidden && n.offsetParent !== null; }) : [];
+    if (!m) return [];
+    return qsa('.cm-hexg', m).filter(function (n) { return n.getClientRects().length > 0; });
   }
 
   /* ---------------------------------------------------------- URL state -- */
@@ -132,7 +151,7 @@
     if (!m) return;
     var shown = 0, dimmed = 0;
 
-    qsa('.cm-node', m).forEach(function (n) {
+    qsa('.cm-hexg', m).forEach(function (n) {
       var okPillar = !state.pillar || n.getAttribute('data-pillar') === state.pillar;
       /* Trace modes emphasise; they do not remove. Bottleneck highlights the
          nodes whose evidence is weakest, which is where delivery actually
@@ -141,7 +160,7 @@
       if (state.trace === 'bottleneck') {
         okTrace = ['ecosystem', 'inferred', 'unknown'].indexOf(n.getAttribute('data-rel')) !== -1;
       } else if (state.trace === 'company') {
-        okTrace = !!n.querySelector('.cm-node__org');
+        okTrace = n.getAttribute('data-org') === 'yes';
       } else if (state.trace === 'project') {
         okTrace = n.getAttribute('data-column') === 'infrastructure' ||
           n.getAttribute('data-column') === 'monetisation';
@@ -163,6 +182,7 @@
     if (inf) inf.checked = state.inferred;
     m.classList.toggle('hide-inferred', !state.inferred);
 
+    drawHud();
     say(shown + ' node' + (shown === 1 ? '' : 's') + ' match' + (shown === 1 ? 'es' : '') +
       ' the current trace and filters' + (dimmed ? ', ' + dimmed + ' shown as context' : '') + '.');
     writeUrl();
@@ -251,7 +271,7 @@
     if (!drawer) return;
 
     if (opts.focus !== false) {
-      lastFocus = document.querySelector('.cm-node[data-node="' + id + '"]') || document.activeElement;
+      lastFocus = document.querySelector('.cm-hexg[data-node="' + id + '"]') || document.activeElement;
     }
     state.selected = id;
 
@@ -262,11 +282,12 @@
     drawer.hidden = false;
     page.classList.add('is-drawer-open');
 
-    qsa('.cm-node').forEach(function (b) {
+    qsa('.cm-hexg').forEach(function (b) {
       b.classList.toggle('is-selected', b.getAttribute('data-node') === id);
       b.setAttribute('aria-pressed', String(b.getAttribute('data-node') === id));
     });
 
+    highlightChain(id);
     if (opts.focus !== false) $('cm-drawer-h').focus();
     track('chain_mapping_node_opened', { node: id, architecture: state.architecture });
   }
@@ -277,21 +298,127 @@
     if (!drawer || drawer.hidden) return;
     drawer.hidden = true;
     page.classList.remove('is-drawer-open');
-    qsa('.cm-node').forEach(function (b) {
+    qsa('.cm-hexg').forEach(function (b) {
       b.classList.remove('is-selected'); b.setAttribute('aria-pressed', 'false');
     });
     state.selected = null;
+    highlightChain(null);
     // Focus returns to the node that opened it, not to the top of the document.
     if (opts.restore !== false && lastFocus && document.contains(lastFocus)) lastFocus.focus();
     lastFocus = null;
   }
 
-  /* --------------------------------------------------------------- zoom -- */
+  /* -------------------------------------------------------- zoom and pan -- */
 
   function applyZoom() {
     qsa('.cm-zoomwrap').forEach(function (z) {
       z.style.setProperty('--cm-zoom', String(state.zoom));
     });
+    drawHud();
+  }
+
+  /**
+   * Drag to pan, over the container's own scroll position.
+   *
+   * The map is a scrolling container rather than a transformed layer, so panning
+   * is just `scrollLeft`. That was worth doing properly: native scrolling brings
+   * momentum, a scrollbar, keyboard scrolling and trackpad gestures for free,
+   * and a hand-rolled transform pan has none of them.
+   *
+   * Dragging never starts on a node — clicking a node to open its evidence is
+   * the primary action here, and a node you cannot click is a node you cannot
+   * read.
+   */
+  function wirePan(wrap) {
+    var down = false, sx = 0, sl = 0, moved = false;
+    wrap.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('.cm-hexg')) return;
+      down = true; moved = false;
+      sx = e.clientX; sl = wrap.scrollLeft;
+      wrap.classList.add('is-dragging');
+      try { wrap.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    wrap.addEventListener('pointermove', function (e) {
+      if (!down) return;
+      var dx = e.clientX - sx;
+      if (Math.abs(dx) > 3) moved = true;
+      wrap.scrollLeft = sl - dx;
+    });
+    var end = function () { down = false; wrap.classList.remove('is-dragging'); };
+    wrap.addEventListener('pointerup', end);
+    wrap.addEventListener('pointercancel', end);
+    /* A drag that ended on empty canvas closes the drawer; a drag that moved
+       does not, or panning away from a node would keep dismissing its evidence. */
+    wrap.addEventListener('click', function (e) {
+      if (!moved && !e.target.closest('.cm-hexg')) closeDrawer();
+    });
+  }
+
+  /* ------------------------------------------------------ chain tracing -- */
+
+  /**
+   * Light the dependency chain running through one node.
+   *
+   * Follows only DIRECT edges — the ones where a document names both companies.
+   * Structural bands are excluded on purpose: tracing through one would report
+   * "this substrate reaches that customer" on the strength of T2C's own framing
+   * of how a data centre is built, which is a much stronger claim than any
+   * document supports.
+   */
+  function chainOf(id) {
+    var adj = CFG.adjacency || { up: {}, down: {} };
+    var seen = {};
+    seen[id] = true;
+    var walk = function (n, dir) {
+      var next = (adj[dir] || {})[n] || [];
+      for (var i = 0; i < next.length; i++) {
+        if (!seen[next[i]]) { seen[next[i]] = true; walk(next[i], dir); }
+      }
+    };
+    walk(id, 'up'); walk(id, 'down');
+    return seen;
+  }
+
+  function highlightChain(id) {
+    var m = activeMode();
+    if (!m) return;
+    var chain = id ? chainOf(id) : null;
+    qsa('.cm-hexg', m).forEach(function (g) {
+      g.classList.toggle('is-inchain', !!chain && !!chain[g.getAttribute('data-node')]);
+    });
+    qsa('.cm-edge', m).forEach(function (e) {
+      var hot = chain && chain[e.getAttribute('data-a')] && chain[e.getAttribute('data-b')];
+      e.classList.toggle('is-hot', !!hot);
+      e.classList.toggle('is-dim', !!chain && !hot);
+    });
+  }
+
+  /* ------------------------------------------------------------ readout -- */
+
+  /**
+   * The counters under the map.
+   *
+   * "Links" counts only the direct, node-to-node edges. The structural bands are
+   * reported separately as "bands", because a single number covering both would
+   * present T2C's own framing as if it were the same kind of fact as a signed
+   * agreement.
+   */
+  function drawHud() {
+    var m = activeMode();
+    if (!m) return;
+    var hud = m.querySelector('[data-hud]');
+    if (!hud) return;
+    var nodes = qsa('.cm-hexg', m);
+    var shown = nodes.filter(function (n) { return !n.classList.contains('is-context'); });
+    var direct = qsa('.cm-edge', m).length;
+    var bands = qsa('.cm-band', m).length;
+    var single = nodes.filter(function (n) { return n.getAttribute('data-single') === 'true'; }).length;
+    hud.innerHTML =
+      '<span class="cm-hudchip"><b>' + shown.length + '</b> of ' + nodes.length + ' nodes</span>' +
+      '<span class="cm-hudchip is-brand"><b>' + direct + '</b> direct link' + (direct === 1 ? '' : 's') + '</span>' +
+      '<span class="cm-hudchip"><b>' + bands + '</b> structural band' + (bands === 1 ? '' : 's') + '</span>' +
+      '<span class="cm-hudchip is-warn"><b>' + single + '</b> single maker on file</span>' +
+      '<span class="cm-hudchip"><b>' + Math.round(state.zoom * 100) + '%</b> zoom</span>';
   }
 
   /* ----------------------------------------------------------- playback -- */
@@ -364,12 +491,12 @@
     if (e.target.closest('#cmReset')) {
       state.trace = 'product'; state.pillar = null; state.inferred = true;
       state.zoom = 1; state.listView = false;
-      closeDrawer(); applyFilters(); applyZoom(); applyListView();
+      closeDrawer(); highlightChain(null); applyFilters(); applyZoom(); applyListView();
       say('View reset.');
       return;
     }
 
-    var node = e.target.closest('.cm-node') || e.target.closest('.cm-rowbtn');
+    var node = e.target.closest('.cm-hexg') || e.target.closest('.cm-rowbtn');
     if (node) { openDrawer(node.getAttribute('data-node')); return; }
 
     if (e.target.closest('#cmDrawerClose')) { closeDrawer(); return; }
@@ -382,7 +509,11 @@
       state.zoom = Math.max(0.6, state.zoom - 0.15); applyZoom();
       track('chain_mapping_zoom_changed', { zoom: state.zoom }); return;
     }
-    if (e.target.closest('[data-ctl="fit"]')) { state.zoom = 1; applyZoom(); return; }
+    if (e.target.closest('[data-ctl="fit"]')) {
+      state.zoom = 1; applyZoom();
+      qsa('.cm-zoomwrap').forEach(function (z) { z.scrollLeft = 0; });
+      return;
+    }
 
     if (e.target.closest('[data-ctl="list"]')) {
       state.listView = !state.listView; applyListView();
@@ -399,6 +530,31 @@
     if (e.target.closest('[data-source]')) track('chain_mapping_source_opened', {});
     if (e.target.closest('[data-explainer]')) track('chain_mapping_explainer_opened', {});
   });
+
+  /**
+   * Hovering a node previews its chain; selecting one holds it.
+   *
+   * Hover never overrides a selection — a reader who opened a node's evidence
+   * and then moved the pointer across the map would otherwise watch the
+   * highlight they were reading slide away underneath them.
+   */
+  function wireHover() {
+    document.addEventListener('pointerover', function (e) {
+      var g = e.target.closest && e.target.closest('.cm-hexg');
+      if (!g || state.selected) return;
+      highlightChain(g.getAttribute('data-node'));
+    });
+    document.addEventListener('pointerout', function (e) {
+      var g = e.target.closest && e.target.closest('.cm-hexg');
+      if (!g || state.selected) return;
+      if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.cm-hexg') === g) return;
+      highlightChain(null);
+    });
+    document.addEventListener('focusin', function (e) {
+      var g = e.target.closest && e.target.closest('.cm-hexg');
+      if (g && !state.selected) highlightChain(g.getAttribute('data-node'));
+    });
+  }
 
   function applyListView() {
     qsa('.cm-mode').forEach(function (m) {
@@ -436,7 +592,7 @@
     if (e.key === 'Escape' && !$('cmDrawer').hidden) { e.preventDefault(); return closeDrawer(); }
     if (['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].indexOf(e.key) === -1) return;
     var cur = document.activeElement;
-    if (!cur || !cur.classList || !cur.classList.contains('cm-node')) return;
+    if (!cur || !cur.classList || !cur.classList.contains('cm-hexg')) return;
     e.preventDefault();
 
     var nodes = visibleNodes();
@@ -455,6 +611,9 @@
     });
     if (best) best.focus();
   });
+
+  qsa('.cm-zoomwrap').forEach(wirePan);
+  wireHover();
 
   readUrl();
   applyArchitecture();

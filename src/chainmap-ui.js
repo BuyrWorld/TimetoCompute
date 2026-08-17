@@ -1,24 +1,22 @@
 /**
  * Chain Mapping components.
  *
- * THE CENTRING CONTRACT, which the pack states three separate times and which is
- * the thing most likely to be quietly broken by a later edit:
+ * The map is a server-rendered SVG graph: hexagonal nodes over curved links,
+ * positioned by `chainGeometry()` so the arithmetic can be tested rather than
+ * only looked at. It is in the document at first paint, every node is a
+ * focusable `role="button"` carrying its own `<desc>`, and the list view beside
+ * it carries the same records as ordinary HTML. Nothing is drawn on a canvas —
+ * a canvas map would be invisible to search, to a screen reader and to print.
  *
- *   Every node is three layers — a bounding button, a decorative hex shell, and
- *   a content stage that is `position:absolute; inset:0; display:grid;
- *   place-items:center`. The label stack is mathematically centred and is NEVER
- *   nudged with per-node margins. A status badge must not change the node's
- *   bounding box, which is why the badge lives inside the same stage rather than
- *   being appended after it.
- *
- * The map is real HTML nodes over a semantic SVG connector layer, so it is
- * searchable, keyboard-navigable and readable by a screen reader. Nothing here
- * is drawn on a canvas.
+ * THE CENTRING CONTRACT still holds, in SVG terms: a node's label stack is
+ * placed from the node's own centre point and is NEVER nudged per node. The
+ * single-maker ring is a separate, larger polygon around the body rather than a
+ * change to the body, so a flag appearing cannot resize or reposition the hex.
  */
 import { esc, date } from './lib/format.js';
 import { RELATIONSHIPS, CONFIDENCES, MATURITIES } from '../data/chainmap.js';
 import { STAGE_BY_ID } from '../data/chainmap.js';
-import { sourcesFor } from './lib/chainmap.js';
+import { sourcesFor, hexPoints } from './lib/chainmap.js';
 
 const ICON = '/assets/t2c/chain-mapping/chain-mapping-icons.svg';
 export const icon = (name, size = 20) =>
@@ -116,63 +114,179 @@ export function filterRail({ traceModes, traceMode, pillars, pillar, showInferre
 /* ------------------------------------------------------------------- map ---- */
 
 /**
- * One node.
+ * The graph.
  *
- * The hex shell is a decorative layer; the content stage sits absolutely inside
- * the same box, so a badge appearing or disappearing cannot resize the node.
+ * An SVG of hexagonal nodes over curved links, rendered on the server so it is
+ * in the document at first paint — searchable, printable and visible without a
+ * script. Only zoom, pan, tracing and the drawer need JavaScript.
+ *
+ * TWO LINK SHAPES, BECAUSE THEY CLAIM TWO DIFFERENT THINGS. A thin curve between
+ * two hexes is a named agreement between those two companies; T2C holds one. A
+ * wide faint band between two columns is structural — this column feeds the next
+ * — and it deliberately stops short of every node so it can never be read as a
+ * line arriving at a particular box. The legend says which is which, and the
+ * shapes are different enough that they cannot be confused at a glance.
  */
-export function mapNode(n, index, mode) {
+export function chainMapCanvas(graph, geo, flags = {}) {
+  const { singleMakers = [], mode = graph.architecture } = flags;
+  const single = new Set(singleMakers);
+  const ns = `cm-${mode}`;
+
+  const bands = geo.links.filter(l => l.kind === 'band');
+  const edges = geo.links.filter(l => l.kind === 'edge');
+
+  /* The column headings live INSIDE the scroller, beside the map they label.
+     Left outside it they stayed put while the map scrolled under them, so at
+     narrow widths the map's third column sat under the heading for its first. */
+  return `<div class="cm-canvas">
+    <div class="cm-zoomwrap" data-pan>
+      <div class="cm-colhead" aria-hidden="true">
+        ${graph.columns.map(c => `<div class="cm-ch${c.empty ? ' is-empty' : ''}">
+          <span>${esc(c.label)}</span><b>${esc(c.definition)}</b></div>`).join('')}
+      </div>
+
+      <svg class="cm-svg" data-map viewBox="0 0 ${geo.width} ${geo.height}"
+        preserveAspectRatio="xMidYMin meet" role="group"
+        aria-label="Dependency map: ${graph.nodes.length} nodes across five columns">
+
+        <defs>
+          <marker id="${ns}-flow" viewBox="0 0 10 10" refX="8" refY="5"
+            markerUnits="userSpaceOnUse" markerWidth="15" markerHeight="15"
+            orient="auto-start-reverse">
+            <path class="cm-bandhead" d="M 0 0 L 10 5 L 0 10 z" />
+          </marker>
+          <marker id="${ns}-flowbreak" viewBox="0 0 10 10" refX="8" refY="5"
+            markerUnits="userSpaceOnUse" markerWidth="15" markerHeight="15"
+            orient="auto-start-reverse">
+            <path class="cm-bandhead is-broken" d="M 0 0 L 10 5 L 0 10 z" />
+          </marker>
+        </defs>
+
+        <g class="cm-guides" aria-hidden="true">
+          ${geo.columnBox.slice(1).map(c =>
+            `<line x1="${c.x0}" y1="0" x2="${c.x0}" y2="${geo.height}" />`).join('')}
+        </g>
+
+        <g class="cm-bands" aria-hidden="true">
+          ${bands.map(b => `<path class="cm-band${b.broken ? ' is-broken' : ''}"
+            d="${b.d}" data-from-col="${esc(b.fromColumn)}" data-to-col="${esc(b.toColumn)}"
+            marker-end="url(#${ns}-${b.broken ? 'flowbreak' : 'flow'})">
+            <title>${esc(b.label)}</title></path>`).join('')}
+        </g>
+
+        <g class="cm-edges">
+          ${edges.map(e => `<g class="cm-edge" data-edge="${esc(e.id)}"
+            data-a="${esc(e.from)}" data-b="${esc(e.to)}" data-rel="${esc(e.relationship)}">
+            <path id="${ns}-${esc(e.id)}" class="cm-edgeline" d="${e.d}" />
+            <circle class="cm-edgedot" cx="${e.x2}" cy="${e.y2}" r="2.6" />
+            <title>${esc(e.label)}</title>
+          </g>`).join('')}
+        </g>
+
+        ${graph.columns.filter(c => c.empty).map(c => {
+          const box = geo.columnBox.find(b => b.id === c.id);
+          return emptyColumnPlate(box, c.emptyReason, geo.height);
+        }).join('')}
+
+        <g class="cm-hexes">
+          ${graph.nodes.map((n, i) => hexNode(n, geo.pos[n.id], i, mode, single.has(n.id))).join('')}
+        </g>
+      </svg>
+    </div>
+
+    <div class="cm-hud" data-hud aria-live="off"></div>
+  </div>`;
+}
+
+/** An empty column, drawn as a dashed plate that states why it is empty. */
+function emptyColumnPlate(box, reason, height) {
+  const words = String(reason).split(' ');
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    if ((cur + ' ' + w).trim().length > 30) { lines.push(cur.trim()); cur = w; } else cur += ' ' + w;
+  }
+  lines.push(cur.trim());
+  const h = lines.length * 15 + 38;
+  const top = height / 2 - h / 2;
+  /* NOT aria-hidden. Why a column is empty is the most important sentence on
+     this map, and hiding it from assistive technology would leave a screen
+     reader with a column that simply has no nodes — indistinguishable from a
+     rendering fault. `aria-label` carries the unwrapped sentence, because SVG
+     has no text wrapping and the visible version is split across <text> lines. */
+  return `<g class="cm-emptyplate" role="note" aria-label="${esc(reason)}">
+    <rect x="${box.cx - 104}" y="${top}" width="208" height="${h}" rx="4" aria-hidden="true" />
+    <text class="cm-emptymark" x="${box.cx}" y="${top + 23}" text-anchor="middle"
+      aria-hidden="true">—</text>
+    ${lines.map((l, i) =>
+      /* The trailing space keeps the words apart when the lines are copied or
+         concatenated — without it the text reads "accelerator,switch". */
+      `<text class="cm-emptyline" x="${box.cx}" y="${top + 42 + i * 15}"
+        text-anchor="middle" aria-hidden="true">${esc(l)} </text>`).join('')}
+  </g>`;
+}
+
+/**
+ * One hexagonal node.
+ *
+ * The label wraps to two lines when it has to, measured on character count
+ * rather than nudged by hand — SVG has no text wrapping, so the alternative is
+ * a label that silently overflows its hex on the longest name in the set.
+ */
+function hexNode(n, p, index, mode, isSingle) {
+  if (!p) return '';
   const rel = RELATIONSHIPS[n.relationship] || RELATIONSHIPS.unknown;
   const conf = CONFIDENCES[n.confidence] || CONFIDENCES.unverified;
   const mat = MATURITIES[n.maturity] || MATURITIES.unknown;
   const stage = n.commercialStage ? STAGE_BY_ID[n.commercialStage] : null;
+  const descId = `cm-nodedesc-${esc(mode)}-${esc(n.id)}`;
+  /* An operator's node title IS its company name, so printing both stacked
+     "IREN Limited / IREN Limited" — two lines saying one thing. The second line
+     earns its space only when it adds a fact the first does not. */
+  const org = n.org && n.org !== n.title ? n.org : '';
 
-  return `<li class="cm-nodewrap">
-    <button type="button" class="cm-node" data-node="${esc(n.id)}"
-      data-column="${esc(n.column)}" data-pillar="${esc(n.pillar)}"
-      data-rel="${esc(n.relationship)}" data-maturity="${esc(n.maturity)}"
-      data-index="${index}"
-      aria-describedby="cm-nodedesc-${esc(mode)}-${esc(n.id)}">
-      <span class="cm-node__hex" aria-hidden="true"></span>
-      <span class="cm-node__content">
-        <span class="cm-node__title">${esc(n.title)}</span>
-        ${n.org ? `<span class="cm-node__org">${esc(n.org)}</span>` : ''}
-        <span class="cm-node__badge" data-rel="${esc(n.relationship)}">${esc(rel.label)}</span>
-      </span>
-    </button>
-    <span class="vh" id="cm-nodedesc-${esc(mode)}-${esc(n.id)}">
-      ${esc(n.simple || n.technical)}. Relationship ${esc(rel.label)},
+  /* THE CENTRING CONTRACT, in SVG. Rows are collected first, then laid out from
+     the node's own centre using their own heights. Nothing is nudged per node,
+     and a node that drops its org line recentres instead of leaving a hole
+     where the line would have been. */
+  const words = String(n.title).split(' ');
+  const half = Math.ceil(words.length / 2);
+  const rows = [];
+  if (n.title.length > 17 && words.length > 1) {
+    rows.push({ cls: 'cm-hexlabel', text: words.slice(0, half).join(' '), h: 12 });
+    rows.push({ cls: 'cm-hexlabel', text: words.slice(half).join(' '), h: 12 });
+  } else {
+    rows.push({ cls: 'cm-hexlabel', text: n.title, h: 12 });
+  }
+  if (org) rows.push({ cls: 'cm-hexorg', text: org, h: 11 });
+  rows.push({ cls: 'cm-hexrel', text: rel.label.toUpperCase(), h: 11, rel: n.relationship });
+
+  const stackH = rows.reduce((a, r) => a + r.h, 0);
+  let cursor = p.y - stackH / 2;
+  const label = rows.map(r => {
+    cursor += r.h;
+    return `<text class="${r.cls}" x="${p.x}" y="${cursor - 2}" text-anchor="middle"${
+      r.rel ? ` data-rel="${esc(r.rel)}"` : ''}>${esc(r.text)}</text>`;
+  }).join('');
+
+  return `<g class="cm-hexg" data-node="${esc(n.id)}" data-column="${esc(n.column)}"
+      data-pillar="${esc(n.pillar)}" data-rel="${esc(n.relationship)}"
+      data-maturity="${esc(n.maturity)}" data-single="${isSingle}"
+      data-org="${n.org ? 'yes' : 'no'}"
+      tabindex="0" role="button" aria-describedby="${descId}"
+      aria-label="${esc(n.title)}${n.org ? ', ' + esc(n.org) : ''}"
+      style="--cm-hex-delay:${index * 26}ms">
+    ${isSingle
+      ? `<polygon class="cm-hexsingle" points="${hexPoints(p.x, p.y, 160, 70)}" />`
+      : ''}
+    <polygon class="cm-hexhalo" points="${hexPoints(p.x, p.y, 157, 67)}" />
+    <polygon class="cm-hexbody" points="${hexPoints(p.x, p.y)}" />
+    ${label}
+    <desc id="${descId}">${esc(n.simple || n.technical)}. Relationship ${esc(rel.label)},
       evidence ${esc(conf.label)}, maturity ${esc(mat.label)}${
-        stage ? `, commercial stage ${esc(stage.label)}` : ', no commercial stage on record'}.
-    </span>
-  </li>`;
-}
-
-/** The five columns, with the empty one declared rather than dropped. */
-export function chainMapCanvas(graph) {
-  return `<div class="cm-canvas">
-    <div class="cm-zoomwrap">
-      <ol class="cm-columns" role="list">
-        ${graph.columns.map((c, ci) => `<li class="cm-column${c.empty ? ' is-empty' : ''}"
-          data-column="${esc(c.id)}">
-          <h3 class="cm-columnh">
-            <span class="cm-columnn" aria-hidden="true">${c.order}</span>
-            ${esc(c.label)}
-            <span class="cm-columncount">${c.nodes.length}</span>
-          </h3>
-          <p class="cm-columndef">${esc(c.definition)}</p>
-          ${c.empty
-            ? `<div class="cm-emptycol">
-                 <span class="cm-emptymark" aria-hidden="true">—</span>
-                 <p>${esc(c.emptyReason)}</p>
-               </div>`
-            : `<ul class="cm-nodes" role="list">
-                 ${c.nodes.map((n, i) => mapNode(n, ci * 100 + i, graph.architecture)).join('')}
-               </ul>`}
-        </li>`).join('')}
-      </ol>
-    </div>
-  </div>`;
+        stage ? `, commercial stage ${esc(stage.label)}` : ', no commercial stage on record'}${
+        isSingle ? '. One maker on file' : ''}.</desc>
+  </g>`;
 }
 
 /**

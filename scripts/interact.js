@@ -917,20 +917,54 @@ const run = async () => {
   await page.goto(base + '/chain-mapping/', { waitUntil: 'networkidle0' });
   await new Promise(r => setTimeout(r, 400));
 
-  const cmCols = await page.$$eval('.cm-mode:not([hidden]) .cm-column', els => els.length);
+  const cmCols = await page.$$eval('.cm-mode:not([hidden]) .cm-ch', els => els.length);
   check('the map shows all five columns', cmCols === 5, String(cmCols));
 
-  const cmEmpty = await page.$$eval('.cm-mode:not([hidden]) .cm-emptycol p',
-    els => els.map(e => e.textContent.trim()));
+  const cmEmpty = await page.$$eval('.cm-mode:not([hidden]) .cm-emptyplate',
+    els => els.map(e => e.textContent.replace(/\s+/g, ' ').trim()));
   check('an empty column explains itself rather than being hidden',
     cmEmpty.length === 1 && /no accelerator, switch or server/.test(cmEmpty[0]),
     cmEmpty.length + ' explanation(s)');
 
+  /* THE TWO LINK SHAPES. A thin curve is a named agreement between two named
+     companies; a wide band is T2C's own framing of how a deployment is built.
+     They must be countable separately, or the page would present one as the
+     other. */
+  const cmEdges = await page.$$eval('.cm-mode:not([hidden]) .cm-edge', e => e.length);
+  const cmBands = await page.$$eval('.cm-mode:not([hidden]) .cm-band', e => e.length);
+  check('node-to-node links are only the evidenced ones', cmEdges === 1, String(cmEdges));
+  check('structural flow is drawn column-to-column, not node-to-node',
+    cmBands > 0 && cmBands < cmEdges + 5, cmBands + ' bands');
+  const bandGap = await page.evaluate(() => {
+    const band = document.querySelector('.cm-mode:not([hidden]) .cm-band');
+    const hexes = [...document.querySelectorAll('.cm-mode:not([hidden]) .cm-hexbody')];
+    const b = band.getBoundingClientRect();
+    // A band that touched a node would read as a line arriving at that company.
+    return hexes.every(h => {
+      const r = h.getBoundingClientRect();
+      return r.right <= b.left + 1 || r.left >= b.right - 1;
+    });
+  });
+  check('a structural band never touches a node', bandGap);
+
+  const hud = await page.$eval('.cm-mode:not([hidden]) [data-hud]',
+    e => e.textContent.replace(/\s+/g, ' ').trim());
+  check('the readout counts direct links and bands separately',
+    /1 direct link/i.test(hud) && /structural band/i.test(hud), hud);
+
+  // Hovering a node lights the chain that actually runs through it.
+  await page.hover('.cm-mode:not([hidden]) .cm-hexg[data-node="input-axt"]');
+  await new Promise(r => setTimeout(r, 300));
+  const cmChain = await page.$$eval('.cm-hexg.is-inchain', e => e.map(x => x.dataset.node));
+  check('hovering a node traces its evidenced chain',
+    cmChain.length === 2 && cmChain.indexOf('input-axt') !== -1 &&
+    cmChain.indexOf('component-cw-laser') !== -1, cmChain.join(','));
+
   // Architecture toggle swaps exactly the interconnect node.
-  const cmBefore = await page.$$eval('.cm-mode:not([hidden]) .cm-node', e => e.map(n => n.dataset.node));
+  const cmBefore = await page.$$eval('.cm-mode:not([hidden]) .cm-hexg', e => e.map(n => n.dataset.node));
   await page.click('.cm-segbtn[data-arch="next"]');
   await new Promise(r => setTimeout(r, 400));
-  const cmAfter = await page.$$eval('.cm-mode:not([hidden]) .cm-node', e => e.map(n => n.dataset.node));
+  const cmAfter = await page.$$eval('.cm-mode:not([hidden]) .cm-hexg', e => e.map(n => n.dataset.node));
   const gone = cmBefore.filter(x => cmAfter.indexOf(x) === -1);
   const added = cmAfter.filter(x => cmBefore.indexOf(x) === -1);
   check('the architecture toggle swaps only the interconnect node',
@@ -948,7 +982,7 @@ const run = async () => {
   await new Promise(r => setTimeout(r, 350));
 
   // Drawer: opens, separates the three axes, and returns focus on close.
-  await page.click('.cm-mode:not([hidden]) .cm-node[data-node="interconnect-deployed"]');
+  await page.click('.cm-mode:not([hidden]) .cm-hexg[data-node="interconnect-deployed"]');
   await new Promise(r => setTimeout(r, 350));
   const cmDrawerOpen = await page.$eval('#cmDrawer', e => !e.hidden);
   const cmDrawerTitle = await page.$eval('#cm-drawer-h', e => e.textContent.trim());
@@ -976,7 +1010,7 @@ const run = async () => {
   // Filters emphasise without hiding.
   await page.click('.cm-trace[data-trace="bottleneck"]');
   await new Promise(r => setTimeout(r, 300));
-  const ctx = await page.$$eval('.cm-mode:not([hidden]) .cm-node.is-context',
+  const ctx = await page.$$eval('.cm-mode:not([hidden]) .cm-hexg.is-context',
     els => els.map(e => +getComputedStyle(e).opacity));
   check('filtered-out nodes stay readable rather than vanishing',
     ctx.length > 0 && ctx.every(o => o >= 0.5), ctx.slice(0, 3).join(','));
@@ -999,7 +1033,16 @@ const run = async () => {
   await new Promise(r => setTimeout(r, 250));
 
   // Keyboard navigation between nodes.
-  await page.focus('.cm-mode:not([hidden]) .cm-node');
+  /* puppeteer's focus() refuses anything that is not an HTMLElement, so an SVG
+     node has to be focused through the page. Worth asserting separately that it
+     actually took focus — if it had not, arrow navigation would be untestable
+     rather than merely awkward. */
+  const svgFocused = await page.evaluate(() => {
+    const n = document.querySelector('.cm-mode:not([hidden]) .cm-hexg');
+    n.focus();
+    return document.activeElement === n;
+  });
+  check('an SVG node can take keyboard focus', svgFocused);
   await page.keyboard.press('ArrowRight');
   await new Promise(r => setTimeout(r, 200));
   const moved = await page.evaluate(() => (document.activeElement.dataset || {}).node);

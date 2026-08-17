@@ -18,7 +18,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chainMap, commercialTimeline } from '../src/lib/chainmap.js';
+import {
+  chainMap, commercialTimeline, chainGeometry, traceChain,
+  singleMakerNodes, hexPoints, GEOMETRY
+} from '../src/lib/chainmap.js';
 import {
   COLUMNS, PILLARS, ARCHITECTURES, COMMERCIAL_STAGES, RELATIONSHIPS,
   CONFIDENCES, MATURITIES, BOUNDARY_STATEMENT, REACH_BANDS
@@ -278,21 +281,132 @@ test('every sprite symbol the page uses exists in the sprite', () => {
   for (const u of used) assert.ok(ids.has(u), `the page uses #${u}, which the sprite does not define`);
 });
 
-test('the map is real HTML, not a canvas or an image', () => {
+test('the map is markup, not a canvas or an image', () => {
   const html = page();
   assert.ok(!/<canvas/.test(html), 'the map is drawn on a canvas and cannot be read or searched');
-  const nodes = (html.match(/class="cm-node"/g) || []).length;
+  const nodes = (html.match(/class="cm-hexg"/g) || []).length;
   assert.ok(nodes >= 30, `expected both modes' nodes in the document, found ${nodes}`);
-  // Every node is a real button, so it is focusable and announceable.
-  assert.equal((html.match(/<button type="button" class="cm-node"/g) || []).length, nodes);
+  /* Every node is focusable, announceable and carries its own description —
+     an SVG shape with none of those is a picture of a node, not a node. */
+  assert.equal((html.match(/class="cm-hexg"[^>]*/g) || [])
+    .filter(t => t.includes('tabindex="0"')).length, nodes);
+  assert.equal((html.match(/role="button"/g) || []).length >= nodes, true);
+  assert.equal((html.match(/<desc id="cm-nodedesc-/g) || []).length, nodes);
 });
 
 test('the graph has an equivalent list alternative', () => {
   const html = page();
   assert.ok(html.includes('class="cm-listview"'), 'no list alternative exists');
   const rows = (html.match(/data-row-node="/g) || []).length;
-  const nodes = (html.match(/class="cm-node"/g) || []).length;
+  const nodes = (html.match(/class="cm-hexg"/g) || []).length;
   assert.equal(rows, nodes, 'the list view and the map show different numbers of nodes');
+});
+
+/* ================= geometry ================= */
+
+test('every node gets a position and nothing lands outside the canvas', () => {
+  for (const architecture of ['deployed', 'next']) {
+    const g = chainMap({ architecture });
+    const geo = chainGeometry(g);
+    assert.equal(Object.keys(geo.pos).length, g.nodes.length, architecture);
+    for (const n of g.nodes) {
+      const p = geo.pos[n.id];
+      assert.ok(p, `${n.id} has no position`);
+      assert.ok(p.x > 0 && p.x < geo.width, `${n.id} sits outside the canvas horizontally`);
+      assert.ok(p.y > 0 && p.y < geo.height, `${n.id} sits outside the canvas vertically`);
+    }
+  }
+});
+
+test('a column occupies its own band and never overlaps the next', () => {
+  const g = chainMap({ architecture: 'deployed' });
+  const geo = chainGeometry(g);
+  for (const n of g.nodes) {
+    const box = geo.columnBox.find(c => c.id === n.column);
+    const p = geo.pos[n.id];
+    assert.ok(Math.abs(p.x - box.cx) < 0.01, `${n.id} is not on its column's centre line`);
+    assert.ok(p.x - GEOMETRY.nodeW / 2 >= box.x0, `${n.id} overhangs into the previous column`);
+    assert.ok(p.x + GEOMETRY.nodeW / 2 <= box.x1, `${n.id} overhangs into the next column`);
+  }
+});
+
+test('nodes in one column never overlap each other', () => {
+  const g = chainMap({ architecture: 'deployed' });
+  const geo = chainGeometry(g);
+  for (const c of g.columns) {
+    const ys = c.nodes.map(n => geo.pos[n.id].y).sort((a, b) => a - b);
+    for (let i = 1; i < ys.length; i++) {
+      assert.ok(ys[i] - ys[i - 1] >= GEOMETRY.nodeH, `${c.id} stacks two nodes on top of each other`);
+    }
+  }
+});
+
+/**
+ * The shape of a link is the claim it makes, so the two must not be confusable.
+ * A band that reached a node would say "this company supplies that one" on the
+ * strength of T2C's own framing of how a deployment is built.
+ */
+test('a structural band stops short of every node it passes', () => {
+  const g = chainMap({ architecture: 'deployed' });
+  const geo = chainGeometry(g);
+  const bands = geo.links.filter(l => l.kind === 'band');
+  assert.ok(bands.length > 0);
+  for (const b of bands) {
+    for (const n of g.nodes) {
+      const p = geo.pos[n.id];
+      const left = p.x - GEOMETRY.nodeW / 2, right = p.x + GEOMETRY.nodeW / 2;
+      // The band's own endpoints must sit in the gutters, never inside a node.
+      for (const x of [b.x1, b.x2]) {
+        assert.ok(x <= left || x >= right, `a band endpoint lands inside ${n.id}`);
+      }
+    }
+  }
+});
+
+test('only evidenced links are drawn node to node', () => {
+  const g = chainMap({ architecture: 'deployed' });
+  const geo = chainGeometry(g);
+  const edges = geo.links.filter(l => l.kind === 'edge');
+  assert.equal(edges.length, 1, 'T2C holds exactly one company-to-company agreement');
+  assert.equal(edges[0].relationship, 'direct');
+  assert.ok(edges[0].evidenceIds.length > 0, 'the one direct edge cites no source');
+});
+
+test('tracing follows evidence, never structure', () => {
+  const g = chainMap({ architecture: 'deployed' });
+  const chain = traceChain(g, 'input-axt');
+  assert.deepEqual([...chain].sort(), ['component-cw-laser', 'input-axt']);
+  /* If tracing walked the structural bands it would reach the customers, which
+     no document supports. */
+  assert.ok(![...chain].some(id => id.startsWith('customer-')));
+});
+
+test('a single maker on file is flagged only where it can be counted', () => {
+  const g = chainMap({ architecture: 'deployed' });
+  const flagged = singleMakerNodes(g);
+  assert.ok(flagged.length > 0);
+  for (const id of flagged) {
+    const n = g.nodes.find(x => x.id === id);
+    assert.ok(['inputs', 'components'].includes(n.column),
+      `${id} is in ${n.column}, which has no makers to count`);
+    const makers = Array.isArray(n.suppliers) ? n.suppliers.length : (n.supplierId ? 1 : 0);
+    assert.equal(makers, 1, `${id} is flagged but has ${makers} makers on file`);
+  }
+  // Nothing with two or more makers may carry the flag.
+  for (const n of g.nodes) {
+    const makers = Array.isArray(n.suppliers) ? n.suppliers.length : 0;
+    if (makers > 1) assert.ok(!flagged.includes(n.id), `${n.id} has ${makers} makers but is flagged`);
+  }
+});
+
+test('a hexagon is a closed six-point polygon at the point it is asked for', () => {
+  const pts = hexPoints(100, 50).split(' ').map(p => p.split(',').map(Number));
+  assert.equal(pts.length, 6);
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  assert.equal((Math.min(...xs) + Math.max(...xs)) / 2, 100);
+  assert.equal((Math.min(...ys) + Math.max(...ys)) / 2, 50);
+  assert.equal(Math.max(...xs) - Math.min(...xs), GEOMETRY.nodeW);
+  assert.equal(Math.max(...ys) - Math.min(...ys), GEOMETRY.nodeH);
 });
 
 /* ================= route ================= */
