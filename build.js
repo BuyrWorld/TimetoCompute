@@ -58,6 +58,7 @@ import {
   RULES as ESTIMATE_RULES, GROSS_TO_CRITICAL_IT
 } from './src/lib/estimate.js';
 import { LAB_COVERAGE, CONTRACT_ECONOMICS, CAPEX_REFERENCE, MODEL_DEFAULTS, ASSUMPTION_PROVENANCE } from './data/economics.js';
+import { PHOTONICS_SUPPLIERS } from './data/suppliers.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(ROOT, 'dist');
@@ -138,7 +139,11 @@ const NAV = [
 const MOBILE_NAV = [
   { id: 'today', label: 'Today', href: '/' },
   { id: 'chain', label: 'Chain', href: '/chain-mapping/' },
-  { id: 'watchlist', label: 'Watchlist', href: '/companies/?filter=watching' },
+  /* AI news, not the watchlist. A bar slot is the most expensive space on the
+     site and should hold a destination that is worth something on a first
+     visit; a watchlist is empty until the reader has built one, so it spent
+     that slot on a page most people would arrive at with nothing in it. */
+  { id: 'ainews', label: 'AI news', href: '/ai-news/' },
   { id: 'search', label: 'Search', action: 'palOpenMobile' }
 ];
 
@@ -288,7 +293,7 @@ function appHeader(active = 'today') {
   <button type="button" class="press" data-mode="live">Leave focus</button>
 </div>
 ${/* Mobile gets four destinations, not six. Six labels collide at 390px, and
-      the brief prioritises Today, Chain, Watchlist and Search. Everything else
+      the brief prioritises Today, Chain, AI news and Search. Everything else
       stays one tap away in the utility menu — nothing is unreachable. */''}
 <nav class="bottomnav" aria-label="Primary, mobile">
   ${MOBILE_NAV.map(n => (n.action
@@ -1699,9 +1704,28 @@ function methodologyPage() {
       <b>AI factory</b>, <b>customer accepted</b> and <b>revenue</b> — covering
       ${COMPANIES.length} operators, ${allSites().length} sites and
       ${aiFactoryGraph().counts.confirmed} confirmed relationships, every one of them citing a document.</p>
-    <p>It holds <b>nothing</b> for the first four — materials, wafers, chips and HBM, and photonics.
-      Not thin data: none. There are no supplier records, no qualification records, no order or
-      shipment records, and no relationship edges of any kind upstream of the data centre.</p>
+    <p>It holds <b>nothing</b> for the first three — materials, wafers, and chips and HBM. Not thin
+      data: none. There are no supplier records, no qualification records and no order or shipment
+      records for any of them.</p>
+    ${(() => {
+      /* Derived, never typed. A hardcoded count here is the exact failure this
+         paragraph was rewritten to fix: the previous version said "none" long
+         after the records existed, and nothing caught it. */
+      const g = k => PHOTONICS_SUPPLIERS.filter(s => s.grade === k);
+      const agreement = g('supply-agreement');
+      const order = g('volume-order');
+      const weak = PHOTONICS_SUPPLIERS.length - agreement.length - order.length;
+      const named = agreement[0];
+      return `<p>Photonics is the exception, and a narrow one. T2C holds
+      ${PHOTONICS_SUPPLIERS.length} component-supplier records.
+      ${agreement.length === 1 ? 'One is' : `${agreement.length} are`} a named, dated supply
+      agreement between two companies: ${esc(named.company.replace(/,.*$/, ''))} supplies indium
+      phosphide to ${esc(named.counterparty)}.
+      ${order.length === 1 ? 'One is' : `${order.length} are`} a disclosed volume order, where the
+      supplier named the order but not the buyer. The remaining ${weak} establish only that the
+      company makes the part &mdash; capability, not an award, and no counterparty is named in any
+      of them.</p>`;
+    })()}
     <p>Those four stages are nonetheless drawn as <b>having happened</b>, because they did. A site that
       is billing a customer proves that materials were mined, wafers were fabbed, chips were packaged
       and optics were installed — you cannot bill for compute that was never built. Drawing those
@@ -1714,10 +1738,16 @@ function methodologyPage() {
     <p>The implication runs one way only, upstream. Billing implies the chips existed; nothing implies
       the reverse. A confirmed contract never implies acceptance, and acceptance never implies billing —
       that is the one distinction this site exists to keep.</p>
-    <p>Every relationship T2C currently holds is <b>confirmed</b>: the company disclosed it in a primary
-      document and that document is linked. The interface also defines <b>ecosystem</b> and
-      <b>inferred</b> relationships, drawn with different line styles, so that the day one appears it
-      cannot be mistaken for a supply agreement. None is on file today.</p>
+    <p>Relationships are graded, and the grades are not interchangeable. Exactly one is
+      <b>direct</b> — a primary document naming both companies, with a date, and the document is
+      linked. One more is <b>reported</b>: disclosed by one side only. The rest are
+      <b>ecosystem</b> — the company operates at that stage and no award is evidenced. Each is drawn
+      with its own line style, so an ecosystem record cannot be mistaken for a supply agreement at a
+      glance.</p>
+    <p>Chain mapping also draws an <b>industry reference</b> layer: the structure of the chain, with
+      example companies at each stage. Those are product classes rather than companies, and naming a
+      company against one is not a claim that it supplies anyone T2C tracks. Reference nodes are
+      drawn differently, counted separately, and say which they are on every surface they appear on.</p>
 
     <h2 id="customers">Customers, and what they build</h2>
     <p>The chain ends with a customer paying for megawatts, so the supply-chain explorer maps every

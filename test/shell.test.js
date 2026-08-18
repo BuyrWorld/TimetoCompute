@@ -690,14 +690,14 @@ test('undisclosed figures render as not disclosed, never as zero', () => {
 /* ================= mobile and interaction affordances ================= */
 
 test('the mobile bar carries four reachable destinations', () => {
-  // Six labels collide at 390px, so mobile prioritises Today, Chain, Watchlist
+  // Six labels collide at 390px, so mobile prioritises Today, Chain, AI news
   // and Search. Everything omitted stays reachable from the utility menu, which
   // the "no orphaned route" test above already enforces on every page.
   for (const r of ROUTES) {
     const html = read(r);
     assert.ok(html.includes('class="bottomnav"'), `${r} has no mobile navigation`);
     const hrefs = [...html.matchAll(/class="bnav[^"]*" href="([^"]+)"/g)].map(m => m[1]);
-    assert.deepEqual(hrefs, ['/', '/chain-mapping/', '/companies/?filter=watching'],
+    assert.deepEqual(hrefs, ['/', '/chain-mapping/', '/ai-news/'],
       `${r} mobile navigation is wrong`);
     assert.ok(/id="palOpenMobile"/.test(html), `${r} mobile bar has no search`);
   }

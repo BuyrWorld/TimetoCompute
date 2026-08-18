@@ -298,7 +298,20 @@ function monetisationNodes() {
     inputs: 'Accepted capacity.', outputs: 'Disclosed billing, then recognised revenue.',
     maturity: 'deployed',
     relationship: 'direct', confidence: 'high',
-    commercialStage: 'accepted',
+    /* DERIVED, NEVER STAMPED.
+       This was hardcoded to 'accepted' for every customer, which put five
+       customers at Accepted on the graph while the order-to-revenue ladder on
+       the same page — which derives from real acceptance gates — said two. Four
+       of the five had `deliveredMw: null`, and Anthropic's TeraWulf lease does
+       not expect initial capacity until H2 2027.
+
+       Acceptance is the one distinction this site exists to keep, so it is now
+       read off the contracts: a customer sits at Accepted only where an operator
+       has disclosed capacity actually delivered to them. Everything else is a
+       signed contract and says so. */
+    commercialStage: cu.contracts.some(c => typeof c.deliveredMw === 'number' && c.deliveredMw > 0)
+      ? 'accepted'
+      : 'capacity',
     contractedMw: cu.contractedMw, operators: cu.operators.map(o => o.ticker),
     companySlug: cu.id === 'coreweave' ? 'coreweave' : null,
     evidenceIds: [...new Set(cu.contracts.flatMap(c => c.sourceIds || []))]
