@@ -80,8 +80,9 @@
   font-family: var(--m-mono); font-size: 11px; font-weight: 700;
   letter-spacing: .08em; text-transform: uppercase;
   color: var(--dim); background: none; border: 0; border-radius: 5px;
-  transition: background var(--t2c-fast) var(--t2c-ease), color var(--t2c-fast) var(--t2c-ease);
+  transition: background var(--t2c-fast) var(--t2c-ease), color var(--t2c-fast) var(--t2c-ease), transform var(--t2c-fast) var(--t2c-ease);
 }
+.cm-segbtn:active { transform: scale(.97); }
 .cm-segbtn:hover { color: var(--soft); }
 /* The active mode is marked by fill AND by aria-pressed, never colour alone. */
 .cm-segbtn.is-on { background: var(--brand); color: var(--brand-ink); }
@@ -119,12 +120,16 @@
   letter-spacing: .06em; text-transform: uppercase;
   color: var(--soft); background: var(--m-panel, var(--surface));
   border: 1px solid var(--line-2); border-radius: var(--m-radius-sm);
-  transition: border-color var(--t2c-fast) var(--t2c-ease), color var(--t2c-fast) var(--t2c-ease);
+  transition: border-color var(--t2c-fast) var(--t2c-ease), color var(--t2c-fast) var(--t2c-ease), transform var(--t2c-fast) var(--t2c-ease);
 }
 .cm-trace:hover, .cm-pillar:not([disabled]):hover { border-color: var(--line); color: var(--ink); }
 .cm-trace.is-on { border-color: var(--brand); color: var(--brand); background: rgb(214 255 0 / 8%); }
 .cm-pillar.is-on { border-color: var(--t2c-cyan); color: var(--t2c-cyan); background: var(--t2c-cyan-soft); }
 .cm-pillar.is-untracked { opacity: .6; cursor: not-allowed; }
+/* PRESS STATES. Not one button on this page acknowledged a tap before the
+   result appeared, so every interaction read as a pause. Transform only, so it
+   composites; the tokens collapse to 1ms under reduced motion. */
+.cm-trace:active, .cm-pillar:not([disabled]):active { transform: scale(.97); }
 .cm-pillarnote {
   margin-left: auto; font-size: 8.5px; letter-spacing: .06em; color: var(--warn);
   border: 1px dotted var(--warn); border-radius: 3px; padding: 2px 5px;
@@ -168,7 +173,9 @@
   border-color: rgb(43 217 245 / 38%); border-style: dashed; background: rgb(9 17 21 / 92%);
 }
 
+.cm-reset:active { transform: scale(.97); }
 .cm-reset {
+  transition: transform var(--t2c-fast) var(--t2c-ease);
   display: flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 44px; cursor: pointer;
   font-family: var(--m-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase;
@@ -300,7 +307,14 @@
 }
 
 /* ---- the hex node ---- */
-.cm-hexg { cursor: pointer; }
+.cm-hexg {
+  cursor: pointer;
+  transform-box: fill-box; transform-origin: center;
+  /* Opacity eases so the trace repaint reads as a reveal rather than a flicker
+     — this is the page's best moment and it was snapping. */
+  transition: opacity var(--t2c-fast) var(--t2c-ease), transform var(--t2c-fast) var(--t2c-ease);
+}
+.cm-hexg:active { transform: scale(.96); }
 .cm-hexbody {
   fill: rgb(13 20 24 / 95%); stroke: var(--line-strong, var(--line));
   stroke-width: 1.4;
@@ -419,10 +433,12 @@
 .cm-mode.is-list .cm-ctl:not([data-ctl="list"]) { display: none; }
 
 .cm-ctl {
+  transition: transform var(--t2c-fast) var(--t2c-ease);
   display: grid; place-items: center; width: 40px; height: 40px; cursor: pointer;
   color: var(--soft); background: rgb(8 13 15 / 90%);
   border: 1px solid var(--line); border-radius: var(--m-radius-sm);
 }
+.cm-ctl:active { transform: scale(.93); }
 .cm-ctl:hover { color: var(--brand); border-color: var(--brand); }
 .cm-ctl[aria-pressed="true"] { color: var(--brand-ink); background: var(--brand); border-color: var(--brand); }
 .cm-live { position: absolute; left: -9999px; }
@@ -443,9 +459,11 @@
   text-transform: uppercase; color: var(--dim);
 }
 .cm-rowbtn {
+  transition: transform var(--t2c-fast) var(--t2c-ease);
   background: none; border: 0; padding: 0; cursor: pointer; font: inherit;
   font-weight: 800; color: var(--ink); text-align: left; min-height: 24px;
 }
+.cm-rowbtn:active { transform: scale(.97); }
 .cm-rowbtn:hover { color: var(--brand); }
 .cm-tag {
   font-family: var(--m-mono); font-size: 9px; font-weight: 700;
@@ -484,6 +502,7 @@
   text-align: left; cursor: pointer; font: inherit; color: inherit;
   background: var(--m-panel, var(--surface));
   border: 1px solid var(--line-2); border-radius: var(--m-radius-sm);
+  transition: opacity var(--t2c-fast) var(--t2c-ease), transform var(--t2c-fast) var(--t2c-ease);
 }
 .cm-cardbtn[data-tier="reference"] { border-style: dashed; border-color: rgb(43 217 245 / 30%); }
 .cm-cardtop { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -499,12 +518,45 @@
 }
 .cm-cardstage { font-size: 12px; color: var(--dim); }
 .cm-cardbtn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* A full-width card collapsing 3% reads as broken; 1.5% reads as a press. */
+.cm-cardbtn:active { transform: scale(.985); }
+/* The same staggered entrance the hexes already have, reusing their keyframe.
+   The list is now the mobile default, so it was the surface arriving in one
+   undifferentiated block. 26ms matches --cm-hex-delay exactly. */
+@media (prefers-reduced-motion: no-preference) {
+  .cm-cardbtn {
+    animation: cm-hexin var(--t2c-med) var(--t2c-ease) backwards;
+    animation-delay: var(--cm-card-delay, 0ms);
+  }
+}
 /* Tracing has to be visible here too — a list has no edges to light, so the
    card itself carries the state the SVG carries on its links. */
 .cm-cardbtn.is-inchain { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); }
 .cm-cardbtn.is-selected { border-color: var(--brand); background: rgb(20 30 12 / 60%); }
 /* The readability floor that applies to nodes applies to cards. */
 .cm-cardbtn.is-context, .cm-cardbtn.is-dim { opacity: .62; }
+
+
+/* The trace readout. Lives in normal flow above both the map and the list, so
+   it survives the view toggle — unlike the HUD, which is inside the canvas that
+   list view hides. Always occupies its slot, so starting a trace shifts
+   nothing. */
+.cm-tracehud {
+  display: flex; align-items: center; min-height: 34px;
+  margin: 0 0 var(--s2); padding: 8px 12px;
+  font-family: var(--m-mono); font-size: 10.5px; letter-spacing: .04em;
+  color: var(--dim);
+  border: 1px solid var(--line-2); border-radius: var(--m-radius-sm);
+  background: var(--surface-2);
+  transition: background var(--t2c-fast) var(--t2c-ease), border-color var(--t2c-fast) var(--t2c-ease);
+}
+.cm-tracehud[data-active=true] {
+  color: var(--soft); border-color: rgb(214 255 0 / 30%); background: rgb(214 255 0 / 6%);
+}
+/* The two link kinds keep their colours here too — a reader should be able to
+   read the count and the legend in the same vocabulary. */
+.cm-tracehud b { color: var(--brand); }
+.cm-tracehud em { color: var(--t2c-cyan); font-style: normal; }
 
 /* ---- drawer ---- */
 .cm-drawer {
@@ -541,7 +593,9 @@
 }
 .cm-drawerh:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
 .cm-drawerorg { font-size: 12px; color: var(--dim); margin: 5px 0 0; }
+.cm-drawerclose:active { transform: scale(.9); }
 .cm-drawerclose {
+  transition: transform var(--t2c-fast) var(--t2c-ease);
   margin-left: auto; width: 40px; height: 40px; flex: none; cursor: pointer;
   font-size: 22px; line-height: 1; color: var(--dim);
   background: none; border: 1px solid var(--line); border-radius: var(--m-radius-sm);
@@ -653,7 +707,9 @@
 }
 .cm-tlsub { font-size: 12.5px; line-height: 1.6; color: var(--soft); margin: 0; max-width: 70ch; }
 .cm-tlctl { display: flex; gap: 8px; }
+.cm-play:active { transform: scale(.97); }
 .cm-play {
+  transition: transform var(--t2c-fast) var(--t2c-ease);
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
   padding: 10px 16px; cursor: pointer;
   font-family: var(--m-mono); font-size: 10.5px; font-weight: 700;

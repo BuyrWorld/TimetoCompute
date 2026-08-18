@@ -60,6 +60,13 @@
   var lastFocus = null;
   var playTimer = null;
 
+  /* Must match TRACE_IDLE in chainmap-ui.js. This file is a plain browser
+     script, not a module, so it cannot import the constant — and a mismatch
+     would only show as the readout changing wording the first time a trace
+     ends, which is exactly the kind of thing nobody notices. A test pins the
+     two together. */
+  var TRACE_IDLE = 'Hover or select any node to trace its full chain, upstream and downstream.';
+
   function isNarrow() { return window.matchMedia('(max-width: 640px)').matches; }
   function reduced() {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -352,6 +359,13 @@
 
     highlightChain(id);
     if (opts.focus !== false) $('cm-drawer-h').focus();
+    /* One light tap, only on a selection the reader actually made. The
+       architecture switch also calls openDrawer with focus:false to follow a
+       node's successor — buzzing for that would be the device reacting to
+       something nobody did. */
+    if (opts.focus !== false && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch (err) {}
+    }
     track('chain_mapping_node_opened', { node: id, architecture: state.architecture });
   }
 
@@ -479,10 +493,16 @@
     qsa('.cm-hexg', m).forEach(function (g) {
       g.classList.toggle('is-inchain', !!chain && !!chain[g.getAttribute('data-node')]);
     });
+    var hotEvidenced = 0, hotStructural = 0;
     qsa('.cm-edge', m).forEach(function (e) {
       var hot = chain && chain[e.getAttribute('data-a')] && chain[e.getAttribute('data-b')];
       e.classList.toggle('is-hot', !!hot);
       e.classList.toggle('is-dim', !!chain && !hot);
+      /* Tallied in the loop that already runs, and kept in the same two
+         categories the legend defines — a traced path must never report one
+         combined "links" figure, which would present T2C's framing of how a
+         data centre is built as though it were a signed agreement. */
+      if (hot) { if (e.classList.contains('is-structural')) hotStructural++; else hotEvidenced++; }
     });
 
     /* TRACING IN THE LIST. A list has no edges to light, so the card carries on
@@ -494,6 +514,26 @@
       b.classList.toggle('is-inchain', inChain);
       b.classList.toggle('is-dim', !!chain && !inChain);
     });
+
+    /* Say the number. A traced chain used to light up and state nothing, so the
+       reader had to count hexes to know what they had found. */
+    var hud = m.querySelector('[data-tracehud]');
+    if (!hud) return;
+    if (!chain) {
+      hud.removeAttribute('data-active');
+      hud.textContent = TRACE_IDLE;
+      return;
+    }
+    var count = 0;
+    for (var k in chain) if (Object.prototype.hasOwnProperty.call(chain, k)) count++;
+    var plural = function (n, one, many) { return n === 1 ? one : many; };
+    hud.setAttribute('data-active', 'true');
+    hud.innerHTML =
+      'Tracing <b>' + count + '</b> ' + plural(count, 'node', 'nodes') +
+      ' &middot; <b>' + hotEvidenced + '</b> evidenced ' +
+        plural(hotEvidenced, 'agreement', 'agreements') +
+      ' &middot; <em>' + hotStructural + '</em> structural ' +
+        plural(hotStructural, 'dependency', 'dependencies');
   }
 
   /* ------------------------------------------------------------ readout -- */
@@ -652,15 +692,23 @@
    * highlight they were reading slide away underneath them.
    */
   function wireHover() {
+    /* 80ms of hover intent. A pointer crossing several packed hexes on the way
+       somewhere else used to fire a full re-trace per hex, which strobed the
+       whole map. Keyboard focus below stays instant — arrow-key navigation
+       should never feel delayed. */
+    var hoverTimer = null;
     document.addEventListener('pointerover', function (e) {
       var g = e.target.closest && e.target.closest('.cm-hexg');
+      if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
       if (!g || state.selected) return;
-      highlightChain(g.getAttribute('data-node'));
+      var id = g.getAttribute('data-node');
+      hoverTimer = setTimeout(function () { hoverTimer = null; highlightChain(id); }, 80);
     });
     document.addEventListener('pointerout', function (e) {
       var g = e.target.closest && e.target.closest('.cm-hexg');
       if (!g || state.selected) return;
       if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.cm-hexg') === g) return;
+      if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
       highlightChain(null);
     });
     document.addEventListener('focusin', function (e) {
@@ -721,6 +769,19 @@
   /* Keyboard: arrows move between visible nodes, Escape closes the drawer. */
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !$('cmDrawer').hidden) { e.preventDefault(); return closeDrawer(); }
+
+    /* A KEYBOARD LOCKOUT, not a polish item. .cm-hexg is an SVG <g> with
+       role="button" and tabindex=0 — a non-native control, so no browser
+       synthesises a click on Enter or Space. Arrow keys moved focus between
+       nodes and there was no way to open one, which locked keyboard readers out
+       of the single most valuable interaction on the page. */
+    if ((e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') && !e.repeat) {
+      var focused = document.activeElement;
+      if (focused && focused.classList && focused.classList.contains('cm-hexg')) {
+        e.preventDefault();
+        return openDrawer(focused.getAttribute('data-node'));
+      }
+    }
     if (['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].indexOf(e.key) === -1) return;
     var cur = document.activeElement;
     if (!cur || !cur.classList || !cur.classList.contains('cm-hexg')) return;

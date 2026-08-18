@@ -540,3 +540,90 @@ test('the filter rail ships open so it is never a zero-size box', () => {
     'the rail ships closed; its controls render at 0×0 wherever CSS cannot reopen it');
   assert.ok(html.includes('class="cm-railsummary"'), 'the rail has no disclosure summary');
 });
+
+/* ================= the trace readout ================= */
+
+/**
+ * The idle string is declared in two places and must stay identical.
+ *
+ * chainmap-app.js is a plain browser script, not a module, so it cannot import
+ * the constant the server renders. A drift would only show as the readout
+ * changing its own wording the first time a trace ends — which nobody notices.
+ */
+test('the trace readout says the same thing on the server and in the client', () => {
+  const client = read('src/chainmap-app.js').match(/var TRACE_IDLE = '([^']+)'/);
+  const server = read('src/chainmap-ui.js').match(/export const TRACE_IDLE =\s*'([^']+)'/);
+  assert.ok(client, 'the client declares no TRACE_IDLE');
+  assert.ok(server, 'the server exports no TRACE_IDLE');
+  assert.equal(client[1], server[1]);
+  assert.ok(page().includes(client[1]), 'the idle readout is not in the rendered page');
+});
+
+/**
+ * The readout survives the view toggle.
+ *
+ * The older HUD lives inside .cm-canvas, which list view hides — and list view
+ * is what a phone opens. A readout only the desktop map can show is a readout
+ * most readers never see.
+ */
+test('the trace readout sits outside the canvas so list view keeps it', () => {
+  const html = page();
+  const canvasStart = html.indexOf('class="cm-canvas"');
+  const hudPos = html.indexOf('data-tracehud');
+  assert.ok(hudPos > -1, 'no trace readout rendered');
+  assert.ok(hudPos < canvasStart,
+    'the readout is inside the canvas, so it disappears in list view');
+});
+
+/* ================= motion discipline ================= */
+
+/**
+ * Nothing on the commercial-stage ladder or on a per-company badge may move.
+ *
+ * A stage badge that animates is a delivery milestone celebrating itself, and
+ * an evidence grade that pulses is a judgement about a company rather than
+ * about a document. Both are off limits on a page about listed securities.
+ */
+test('no stage or evidence badge moves, pulses or fades', () => {
+  const css = read('src/chainmap.css');
+  const BADGES = ['.cm-stage', '.cm-tag', '.cm-tiertag', '.cm-dtier', '.cm-ladderrow'];
+  for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const sel = selector.trim();
+    if (!BADGES.some(f => sel.split(',').some(p => p.trim().startsWith(f)))) continue;
+
+    /* A keyframe animation on a badge is always wrong — that is a pulse, and a
+       pulsing delivery stage is a milestone celebrating itself. */
+    assert.ok(!/\banimation\b/.test(body), `${sel} carries a keyframe animation`);
+
+    /* Movement and fading are equally wrong. A colour transition is not: the
+       timeline playback steps through the ladder on a border-colour change, and
+       that is a reader walking the stages deliberately, not a stage reacting to
+       a company doing well. */
+    for (const [, list] of body.matchAll(/transition:\s*([^;]+)/g)) {
+      for (const part of list.split(',')) {
+        const prop = part.trim().split(/\s+/)[0];
+        assert.ok(!['transform', 'opacity', 'scale', 'all'].includes(prop),
+          `${sel} transitions ${prop} — a badge may change colour, never move or fade`);
+      }
+    }
+  }
+});
+
+/**
+ * 60fps or it does not ship: transform and opacity only.
+ *
+ * A `:active` press that animated width, height or box-shadow would jank on
+ * exactly the mid-range phone most readers are holding.
+ */
+test('every press state animates transform only', () => {
+  const css = read('src/chainmap.css');
+  const presses = [...css.matchAll(/(\.cm-[^{}]*:active[^{}]*)\{([^{}]*)\}/g)];
+  assert.ok(presses.length >= 8, `only ${presses.length} press states found`);
+  for (const [, sel, body] of presses) {
+    const props = body.split(';').map(d => d.split(':')[0].trim()).filter(Boolean);
+    for (const prop of props) {
+      assert.ok(prop === 'transform' || prop === 'transform-origin' || prop === 'transform-box',
+        `${sel.trim()} animates ${prop}; only transform composites`);
+    }
+  }
+});

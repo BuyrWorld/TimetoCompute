@@ -392,8 +392,24 @@ export function mapControls() {
     <button type="button" class="cm-ctl" data-ctl="list" aria-label="Switch to list view"
       aria-pressed="false">${icon('list', 16)}</button>
   </div>
+  ${/* THE TRACE READOUT, and why it is not in the HUD.
+        The existing readout lives inside .cm-canvas, which list view hides
+        outright — and list view is what a phone opens by default. So the
+        majority of readers got no number at all for the single most valuable
+        thing this page does: a wafer lights seventeen nodes and nothing said
+        "seventeen".
+
+        This sits in normal flow above both surfaces, so it survives the view
+        toggle, and it always occupies its slot — the idle copy teaches the
+        interaction to a reader who has not found it yet, and keeping the box
+        filled means starting a trace shifts no layout. */''}
+  <p class="cm-tracehud" data-tracehud>${TRACE_IDLE}</p>
   <p class="cm-live" aria-live="polite"></p>`;
 }
+
+/** Shown when nothing is traced. Also the string the client resets to. */
+export const TRACE_IDLE =
+  'Hover or select any node to trace its full chain, upstream and downstream.';
 
 /**
  * The list alternative.
@@ -459,9 +475,10 @@ export function chainMapList(graph) {
     ${/* The card list. Identifier first, then the tier, then the qualifiers —
           every field the table carries, none dropped for space. */''}
     <ul class="cm-cards" role="list">
-      ${rows.map(({ c, n, rel, conf, mat, stage, tierShort }) => `
+      ${rows.map(({ c, n, rel, conf, mat, stage, tierShort }, i) => `
         <li>
           <button type="button" class="cm-cardbtn" data-node="${esc(n.id)}"
+            style="--cm-card-delay:${i * 26}ms"
             data-column="${esc(n.column)}" data-pillar="${esc(n.pillar)}"
             data-rel="${esc(n.relationship)}" data-tier="${esc(n.tier)}"
             data-org="${n.org ? 'yes' : 'no'}">
