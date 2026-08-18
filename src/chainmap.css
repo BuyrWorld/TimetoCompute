@@ -48,7 +48,22 @@
   font-family: inherit; font-size: 13.5px; font-weight: 700; color: var(--brand);
   background: var(--surface); border: 1px solid var(--brand); border-radius: var(--m-radius-sm);
 }
-.cm-helper { font-size: 12.5px; font-style: italic; color: var(--dim); margin: 8px 0 0; }
+.cm-helper { font-size: 12.5px; font-style: italic; color: var(--dim); margin: 0; }
+
+/* The scope statement that replaced the dead project filter. Styled as a
+   statement of fact, not as a disabled control — there is nothing here to
+   re-enable, so it must not look like something waiting to be switched on. */
+.cm-scope {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px;
+  max-width: 62ch; margin: 10px 0 0;
+  font-size: 12px; line-height: 1.55; color: var(--dim);
+}
+.cm-scopetag {
+  flex: none;
+  font-family: var(--m-mono); font-size: 9px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--soft);
+  padding: 3px 7px; border: 1px solid var(--line-2); border-radius: 3px;
+}
 
 .cm-archlabel {
   display: flex; align-items: center; gap: 7px;
@@ -534,10 +549,16 @@
   grid-template-columns: minmax(0, 1fr);
 }
 @media (min-width: 900px) { .cm-boundary { grid-template-columns: minmax(0, 360px) minmax(0, 1fr); } }
+/* SECTION HEADINGS, NOT PAGE TITLES.
+   These two sat one clamp step below .cm-h1 in the same display face and the
+   same uppercase treatment, which made each lower section read as another
+   landing page stacked under the workspace. Stepped down further and set in
+   the body face so they read as parts of this page. No copy changes — every
+   caveat and figure in both sections is untouched. */
 .cm-bdh {
-  font-family: var(--ed-display); font-weight: 800;
-  font-size: clamp(1.4rem, 3vw, 2.1rem); line-height: 1.02;
-  text-transform: uppercase; margin: 0 0 10px; color: var(--ink);
+  font-weight: 800;
+  font-size: clamp(1.15rem, 1.9vw, 1.45rem); line-height: 1.15;
+  letter-spacing: -.01em; margin: 0 0 10px; color: var(--ink);
 }
 .cm-bdsupport { font-size: 13px; line-height: 1.6; color: var(--soft); margin: 0; }
 
@@ -572,8 +593,8 @@
 .cm-timeline { margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--line); }
 .cm-tlhead { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: end; justify-content: space-between; margin-bottom: var(--s3); }
 .cm-tlh {
-  font-family: var(--ed-display); font-size: clamp(1.2rem, 2.4vw, 1.7rem);
-  text-transform: uppercase; margin: 0 0 6px; color: var(--ink);
+  font-weight: 800; font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  letter-spacing: -.01em; margin: 0 0 6px; color: var(--ink);
 }
 .cm-tlsub { font-size: 12.5px; line-height: 1.6; color: var(--soft); margin: 0; max-width: 70ch; }
 .cm-tlctl { display: flex; gap: 8px; }

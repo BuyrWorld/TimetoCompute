@@ -33,16 +33,23 @@ export function workspaceHeader({ architecture, architectures, projects, project
       <h1 class="cm-h1">Chain mapping</h1>
     </div>
 
+    <!-- This was a "Project / product" dropdown listing every operator. It
+         filtered nothing: choosing IREN changed no pixel, and the only
+         acknowledgement was a screen-reader message sighted readers never got.
+         A control that looks like a filter and is not one teaches a reader that
+         either the tool is broken or every operator's chain is identical.
+
+         The gap is a missing capability, not a missing control, so it is
+         stated the way the two untracked pillars in the rail are stated
+         rather than dressed up as a working filter. -->
     <div class="cm-headproject">
-      <label class="cm-field">
-        <span>Project / product</span>
-        <select id="cmProject">
-          <option value="">All tracked operators</option>
-          ${projects.map(p => `<option value="${esc(p.id)}"${p.id === projectId ? ' selected' : ''}>
-            ${esc(p.label)}</option>`).join('')}
-        </select>
-      </label>
       <p class="cm-helper">Trace every dependency. Verify every commercial step.</p>
+      <p class="cm-scope">
+        <span class="cm-scopetag">Whole map</span>
+        Showing all ${projects.length} tracked operators. Filtering to one project needs
+        project-level supplier records, which T2C does not hold.
+        <a class="press" href="/methodology/#chain">What it would take</a>
+      </p>
     </div>
 
     <div class="cm-headarch">
@@ -510,7 +517,10 @@ export function commercialTimelineView(stages) {
 export function boundaryPanel({ bands, statement, support, architecture }) {
   return `<section class="cm-boundary" aria-labelledby="cm-bd-h">
     <div class="cm-bdcopy">
-      <p class="cm-eyebrow">How the interconnect changes</p>
+      ${/* No eyebrow here. `cm-eyebrow` is the page-title grammar — the thing
+            above the h1 — and repeating it further down made this section read
+            as a second landing page bolted onto the workspace rather than as a
+            part of it. The heading alone carries it. */''}
       <h2 class="cm-bdh" id="cm-bd-h">${esc(statement)}</h2>
       <p class="cm-bdsupport">${esc(support)}</p>
     </div>

@@ -616,12 +616,22 @@ test('the current route is marked for assistive technology, not colour alone', (
 /* ================= market and feed state ================= */
 
 test('no page ships a hard-coded price, change or market state', () => {
+  /* This used to assert the pill said "Updating…". That was the old mechanism
+     for "never bake a session", and it had its own cost: a loading string in
+     served HTML is what crawlers index and what a no-JS reader sees for ever.
+     The pill now ships EMPTY and HIDDEN, which satisfies the same rule more
+     strictly — there is no session to be wrong, and no placeholder either. */
+  const SESSIONS = /Market open|Market closed|Pre-market|After hours|Updating…|Checking the feed/;
   for (const r of [...ROUTES, 'companies/iren/index.html']) {
     const html = read(r);
     const pill = html.match(/<span class="mstate[^"]*"[^>]*>([\s\S]*?)<\/span>\s*<\/span>/);
     assert.ok(pill, `${r} has no market-state pill`);
-    assert.ok(/Updating…/.test(pill[0]),
-      `${r} states a market session in static HTML instead of waiting for the client`);
+    assert.ok(/\bhidden\b/.test(pill[0]),
+      `${r} ships the market pill visible before the client has an answer`);
+    assert.ok(!SESSIONS.test(pill[0]),
+      `${r} states a market session or a loading string in static HTML`);
+    assert.ok(!SESSIONS.test(html),
+      `${r} ships a session or loading string somewhere in the served markup`);
   }
 });
 

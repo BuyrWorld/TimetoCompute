@@ -401,6 +401,9 @@
       }
       el.className = cls;
       el.innerHTML = '<i aria-hidden="true"></i><span class="mstate-text">' + esc(text) + '</span>';
+      /* The pill ships hidden so no loading string reaches the served HTML.
+         This is the first moment there is anything true to show. */
+      el.hidden = false;
     }
 
     var detail = $('feedDetail');
@@ -411,6 +414,7 @@
       if (FEED.lastSuccessAt) lines.push('Last refresh: ' + fmtEt(FEED.lastSuccessAt));
       lines.push('Provider: Finnhub' + (FEED.realtime ? '' : ' — quotes may be delayed'));
       detail.innerHTML = lines.map(function (l) { return '<div>' + esc(l) + '</div>'; }).join('');
+      detail.hidden = false;
     }
   }
 

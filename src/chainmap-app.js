@@ -632,15 +632,6 @@
     });
   }
 
-  var proj = $('cmProject');
-  if (proj) {
-    proj.addEventListener('change', function () {
-      say(proj.value ? 'Showing the whole map. Per-project filtering needs project-level supplier ' +
-        'records, which T2C does not yet hold.' : 'Showing all tracked operators.');
-      track('chain_mapping_filter_changed', { project: proj.value });
-    });
-  }
-
   /* Keyboard: arrows move between visible nodes, Escape closes the drawer. */
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !$('cmDrawer').hidden) { e.preventDefault(); return closeDrawer(); }

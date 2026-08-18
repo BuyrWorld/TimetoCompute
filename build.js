@@ -244,25 +244,37 @@ function appHeader(active = 'today') {
         <button class="modebtn press" type="button" data-mode="live" aria-pressed="true">Standard</button>
         <button class="modebtn press" type="button" data-mode="focus" aria-pressed="false">Focus</button>
       </div>
-      <span class="mstate secondary" id="marketState" aria-live="polite">
-        <i aria-hidden="true"></i><span class="mstate-text">Updating…</span>
+      ${/* NO LOADING STRING IN SERVER HTML. This shipped "Updating…", which is
+            what crawlers index, what link previews show, and what a reader with
+            no JavaScript sees for ever. On a site whose whole claim is "trust
+            what we say we know", a permanent "Updating…" reads as a broken feed.
+
+            Baking the session in at build time would be worse, not better: a
+            page built at 10:00 would tell a midnight reader the market is open.
+            The pill is purely a live-data affordance, so with no live data it
+            does not exist. The client unhides it once it has a real answer. */''}
+      <span class="mstate secondary" id="marketState" aria-live="polite" hidden>
+        <i aria-hidden="true"></i><span class="mstate-text"></span>
       </span>
       <details class="umenu">
         <summary class="press" aria-label="Settings and data status"><span aria-hidden="true">⋯</span></summary>
         <div class="umenupanel">
           <div class="umenugroup">
             <div class="umenuhead">Data</div>
-            <div class="umenurow" id="feedDetail">Checking the feed…</div>
+            <div class="umenurow" id="feedDetail" hidden></div>
             <button class="umenubtn press" id="refreshBtn" type="button">Refresh data</button>
           </div>
-          <div class="umenugroup umenu-narrow">
-            <div class="umenuhead">You</div>
-            <a class="umenubtn press" href="/companies/?filter=watching">My watchlist</a>
-            <div class="modetoggle" role="group" aria-label="Interface mode">
-              <button class="modebtn press" type="button" data-mode="live" aria-pressed="true">Standard</button>
-              <button class="modebtn press" type="button" data-mode="focus" aria-pressed="false">Focus</button>
-            </div>
-          </div>
+          ${/* The "You" group held a second "My watchlist" link and a second
+                Standard/Focus toggle, duplicating the two that already sit in
+                the visible bar. Both copies were in the DOM at once and both
+                on screen the moment this panel opened, so a reader had no way
+                to tell they were the same switch rather than two settings that
+                might disagree.
+
+                Removed rather than gated: the bar already carries both, and
+                the group had nothing else in it. This is also the direction of
+                travel for the watchlist, which is shrinking rather than
+                growing — it keeps its bar button and loses this surface. */''}
           <div class="umenugroup">
             <div class="umenuhead">Display</div>
             <button class="umenubtn press" id="themeBtn" type="button" aria-label="Switch to light theme">Light theme</button>
