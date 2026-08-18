@@ -85,9 +85,20 @@ export function chainMappingBody() {
 
   ${commercialTimelineView(stages)}
 
-  <p class="cm-foot">Chain Mapping shows dependencies and commercial position. It is research
-    context, not investment advice, and a relationship shown here is only ever as strong as the
-    document beside it.
+  ${/* This page names around twenty-five listed companies against stages of a
+        chain, beside real delivery and revenue records, so it states its own
+        position rather than leaning on the site footer. The stage ladder orders
+        operators by delivery progress, and a reader scanning for "who is
+        furthest along" is doing exactly what the ladder invites — so it says
+        plainly that being further along is not a reason to prefer anyone's
+        shares. Nothing here ranks investment merit. */''}
+  <p class="cm-foot">Chain Mapping shows dependencies and commercial position. A relationship shown
+    here is only ever as strong as the document beside it, and the order-to-revenue ladder orders
+    operators by delivery progress only &mdash; it is not a ranking of investment merit, and being
+    further along it is not a reason to prefer one company's shares over another's.
+    <b>T2C is not authorised or regulated by the Financial Conduct Authority.</b> Nothing on this
+    page is a recommendation to buy, sell or hold any security, and nothing on it is investment
+    advice.
     <a class="press" href="/chain/">The stage-level supply chain</a> &middot;
     <a class="press" href="/explainers/">Stage explainers</a></p>
 </div>`;

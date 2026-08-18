@@ -370,9 +370,21 @@ function footer() {
         <li><a href="/contact/">Contact</a></li>
       </ul></div>
     </div>
+    ${/* THREE STATEMENTS, AND THE THIRD IS THE ONE THAT WAS MISSING.
+          "Not investment advice" was here on its own. A first-pass s21 review
+          found the other two absent from every page on the site: that nothing
+          here is a recommendation, and that T2C is not FCA authorised. The
+          authorisation line is the element the analysis actually turns on,
+          because s21 makes it an offence for an UNAUTHORISED person to
+          communicate an inducement — so the reader has to be told which T2C is.
+
+          Kept as plain sentences rather than a collapsed legal block: a
+          disclaimer a reader has to open is a disclaimer they will not read. */''}
     <div class="footbase">
-      <span>For information only — not investment advice. Figures are compiled from public filings and
-        may lag or contain errors. Prices and news supplied by Finnhub; filings from SEC EDGAR.</span>
+      <span><b>T2C is not authorised or regulated by the Financial Conduct Authority.</b>
+        Nothing here is a recommendation to buy, sell or hold any security, and nothing here is
+        investment advice. Figures are compiled from public filings and may lag or contain errors.
+        Prices and news supplied by Finnhub; filings from SEC EDGAR.</span>
       <span class="sep">© 2026 T2C — Time to Compute</span>
     </div>
   </div>

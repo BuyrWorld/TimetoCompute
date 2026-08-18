@@ -791,3 +791,47 @@ test('the stylesheet is one request and includes the shell layer', () => {
   assert.ok(css.includes('.appbar'), 'shell styles are missing from the bundle');
   assert.ok(css.includes('.csnapfigs'), 'company snapshot styles are missing from the bundle');
 });
+
+/* ================= financial promotion ================= */
+
+/**
+ * Three statements, on every page, and the third is the one that goes missing.
+ *
+ * s21 FSMA makes it an offence for an UNAUTHORISED person to communicate an
+ * inducement to engage in investment activity. A first-pass review found the
+ * site said "not investment advice" and nothing else — so a reader was never
+ * told which kind of communicator T2C is, which is the element the analysis
+ * actually turns on. Pinned here because a footer is exactly the thing a later
+ * tidy-up shortens.
+ */
+test('every page states all three financial-promotion positions', () => {
+  const REQUIRED = [
+    [/not authorised or regulated by the Financial Conduct Authority/i, 'FCA authorisation status'],
+    [/is a recommendation to buy, sell or hold any security/i, 'not a recommendation'],
+    [/investment advice/i, 'not investment advice']
+  ];
+  for (const r of ROUTES) {
+    const html = read(r);
+    for (const [re, what] of REQUIRED) {
+      assert.ok(re.test(html), `${r} does not state: ${what}`);
+    }
+  }
+});
+
+/**
+ * The chain map carries its own, because it names ~25 listed companies against
+ * chain stages beside real delivery records, and because its stage ladder
+ * orders operators by progress — which a reader can easily read as a ranking of
+ * merit. A footer disclaimer does not cure an on-page ranking.
+ */
+test('the chain map says its ladder is not a ranking of investment merit', () => {
+  const html = read('chain-mapping/index.html');
+  assert.ok(/not a ranking of investment merit/i.test(html),
+    'the order-to-revenue ladder does not disclaim investment merit');
+  assert.ok(/not a reason to prefer one company/i.test(html),
+    'the ladder does not say what being further along is not');
+  /* And it must not rely on the site footer for the authorisation line. */
+  const foot = html.slice(html.indexOf('cm-foot'), html.indexOf('cm-foot') + 900);
+  assert.ok(/Financial Conduct Authority/i.test(foot),
+    'the page-level note leans on the site footer for the authorisation statement');
+});
