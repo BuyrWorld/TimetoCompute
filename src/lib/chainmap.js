@@ -715,7 +715,36 @@ export function singleMakerNodes(graph) {
  * before it, which is exactly how "announced capacity" becomes "revenue".
  */
 export function commercialTimeline() {
-  const accepted = PROJECTS.filter(p => projectPath(p).some(s => s.id === 'acceptance' && s.status === 'complete'));
+  /**
+   * ACCEPTANCE IS COUNTED PER EVENT, NOT PER PROJECT RECORD.
+   *
+   * T2C holds one physical acceptance: IREN Horizon 1, 50 MW, accepted by
+   * Microsoft on 13 Aug 2026, evidenced by `iren-horizon1-delivery`. It appears
+   * in PROJECTS twice — once on the parent site `iren-childress` and once on the
+   * tranche `iren-horizon-1` — and counting rows reported it as two, on the same
+   * page where the monetisation column correctly showed one accepted customer.
+   *
+   * Two records citing the same document on the same date are one event. The
+   * signature is the gate's own date and sources, so a genuine second acceptance
+   * — a different date, or a different document — still counts separately.
+   */
+  const acceptedGates = [];
+  const seenEvents = new Set();
+  for (const p of PROJECTS) {
+    const gate = projectPath(p).find(s => s.id === 'acceptance' && s.status === 'complete');
+    if (!gate) continue;
+    /* The GATE's sources, never the project's top-level ones. iren-childress
+       cites `iren-q3-fy26-results`, a filing its own note says describes IREN's
+       wider 480 MW target and explicitly "not this site's capacity" — counting
+       it here made a document that describes no acceptance into evidence for
+       one. */
+    const sourceIds = [...new Set(gate.sourceIds || [])].sort();
+    const signature = `${gate.effectiveAt || gate.at || '?'}|${sourceIds.join(',')}`;
+    if (seenEvents.has(signature)) continue;
+    seenEvents.add(signature);
+    acceptedGates.push({ project: p, sourceIds });
+  }
+
   const billing = COMPANIES.filter(c => isKnown(getMeasure(c, 'revenueLiveMw')));
   const ordered = PHOTONICS_SUPPLIERS.filter(s => s.grade === 'volume-order' || s.grade === 'supply-agreement');
 
@@ -724,7 +753,7 @@ export function commercialTimeline() {
     qualified: 0,
     ordered: ordered.length,
     shipping: 0,
-    accepted: accepted.length,
+    accepted: acceptedGates.length,
     recognised: billing.length
   };
   const evidence = {
@@ -732,7 +761,7 @@ export function commercialTimeline() {
     qualified: 0,
     ordered: [...new Set(ordered.flatMap(s => s.sourceIds))].length,
     shipping: 0,
-    accepted: [...new Set(accepted.flatMap(p => p.sourceIds || []))].length,
+    accepted: [...new Set(acceptedGates.flatMap(g => g.sourceIds))].length,
     /* Derived from the billing measures themselves rather than hardcoded. A
        stage reporting records but zero sources would be the exact defect this
        table exists to expose. */

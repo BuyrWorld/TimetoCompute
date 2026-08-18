@@ -1726,7 +1726,14 @@ function methodologyPage() {
       const g = k => PHOTONICS_SUPPLIERS.filter(s => s.grade === k);
       const agreement = g('supply-agreement');
       const order = g('volume-order');
-      const weak = PHOTONICS_SUPPLIERS.length - agreement.length - order.length;
+      /* FOUR GRADES, NOT THREE-AND-A-BUCKET. An earlier draft folded
+         demonstration and capability together as "the remaining N establish only
+         that the company makes the part", which understated a demonstration —
+         the company has shown the technology working, which is more than
+         publishing a datasheet — and blurred a distinction data/suppliers.js
+         calls load-bearing. Each grade now reports itself. */
+      const demo = g('demonstration');
+      const capability = g('capability');
       const named = agreement[0];
       return `<p>Photonics is the exception, and a narrow one. T2C holds
       ${PHOTONICS_SUPPLIERS.length} component-supplier records.
@@ -1734,9 +1741,11 @@ function methodologyPage() {
       agreement between two companies: ${esc(named.company.replace(/,.*$/, ''))} supplies indium
       phosphide to ${esc(named.counterparty)}.
       ${order.length === 1 ? 'One is' : `${order.length} are`} a disclosed volume order, where the
-      supplier named the order but not the buyer. The remaining ${weak} establish only that the
-      company makes the part &mdash; capability, not an award, and no counterparty is named in any
-      of them.</p>`;
+      supplier named the order but not the buyer.
+      ${demo.length === 1 ? 'One is a demonstration' : `${demo.length} are demonstrations`} &mdash;
+      the company has shown the technology working, which is not a qualification, an order or a
+      shipment. The remaining ${capability.length} establish only that the company makes the part.
+      No counterparty is named in any of those last ${demo.length + capability.length}.</p>`;
     })()}
     <p>Those four stages are nonetheless drawn as <b>having happened</b>, because they did. A site that
       is billing a customer proves that materials were mined, wafers were fabbed, chips were packaged

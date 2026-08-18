@@ -27,6 +27,9 @@ import {
   CONFIDENCES, MATURITIES, BOUNDARY_STATEMENT, REACH_BANDS
 } from '../data/chainmap.js';
 import { PHOTONICS_SUPPLIERS, EVIDENCE_GRADES } from '../data/suppliers.js';
+import { PROJECTS } from '../data/projects.js';
+import { SOURCE_BY_ID } from '../data/sources.js';
+import { path as projectPath } from '../src/lib/sites.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const read = rel => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -626,4 +629,85 @@ test('every press state animates transform only', () => {
         `${sel.trim()} animates ${prop}; only transform composites`);
     }
   }
+});
+
+/* ================= acceptance is counted once ================= */
+
+/**
+ * One acceptance event, however many project rows describe it.
+ *
+ * T2C's single acceptance — IREN Horizon 1, accepted by Microsoft on
+ * 13 Aug 2026 — sits in PROJECTS twice, on the parent site and on the tranche.
+ * Counting rows reported it as two on the same page where the monetisation
+ * column correctly showed one accepted customer.
+ */
+test('the ladder counts acceptance events, not duplicate project rows', () => {
+  const accepted = commercialTimeline().find(s => s.id === 'accepted');
+  const gates = PROJECTS
+    .map(p => projectPath(p).find(s => s.id === 'acceptance' && s.status === 'complete'))
+    .filter(Boolean);
+  const distinct = new Set(gates.map(g =>
+    `${g.effectiveAt || g.at || '?'}|${[...new Set(g.sourceIds || [])].sort().join(',')}`));
+  assert.equal(accepted.count, distinct.size,
+    `the ladder says ${accepted.count} but only ${distinct.size} distinct acceptance events exist`);
+  assert.ok(gates.length >= distinct.size, 'sanity: gates cannot be fewer than distinct events');
+});
+
+/**
+ * The acceptance evidence count comes from the GATE's sources.
+ *
+ * It used to come from each project's top-level `sourceIds`, which pulled in
+ * `iren-q3-fy26-results` — a filing whose own note says it describes IREN's
+ * wider 480 MW target and explicitly not this site's capacity. A document that
+ * describes no acceptance was being counted as evidence for one.
+ */
+test('acceptance evidence comes from the acceptance gate, not the project', () => {
+  const accepted = commercialTimeline().find(s => s.id === 'accepted');
+  const gateSources = new Set();
+  for (const p of PROJECTS) {
+    const g = projectPath(p).find(s => s.id === 'acceptance' && s.status === 'complete');
+    if (g) for (const id of g.sourceIds || []) gateSources.add(id);
+  }
+  assert.equal(accepted.sourceCount, gateSources.size);
+  /* Every cited source must actually resolve. */
+  for (const id of gateSources) assert.ok(SOURCE_BY_ID[id], `acceptance cites unknown source ${id}`);
+});
+
+/**
+ * The two places the page states acceptance must agree.
+ *
+ * The graph's monetisation column and the order-to-revenue ladder are derived
+ * independently; a reader scrolling between them sees both.
+ */
+test('the graph and the ladder agree on how much has been accepted', () => {
+  const acceptedCustomers = chainMap({ architecture: 'deployed' }).nodes
+    .filter(n => n.column === 'monetisation' && n.commercialStage === 'accepted');
+  const ladder = commercialTimeline().find(s => s.id === 'accepted');
+  assert.equal(acceptedCustomers.length, ladder.count,
+    `graph shows ${acceptedCustomers.length} accepted, ladder says ${ladder.count}`);
+});
+
+/* ================= the methodology prose ================= */
+
+/**
+ * Every supplier evidence grade reports itself separately.
+ *
+ * An earlier draft folded demonstration and capability into one "the remaining
+ * N make the part" bucket, which understated a demonstration and blurred a
+ * distinction data/suppliers.js calls load-bearing.
+ */
+test('the methodology page reports each supplier grade separately', () => {
+  const html = read('dist/methodology/index.html');
+  const count = g => PHOTONICS_SUPPLIERS.filter(s => s.grade === g).length;
+  assert.ok(html.includes(`T2C holds\n      ${PHOTONICS_SUPPLIERS.length} component-supplier records`) ||
+    html.includes(`${PHOTONICS_SUPPLIERS.length} component-supplier records`),
+    'the total is not stated');
+  /* The demonstration row is described as a demonstration, not as capability. */
+  if (count('demonstration') > 0) {
+    assert.ok(/demonstration/i.test(html), 'the demonstration grade is not named');
+    assert.ok(/shown the technology working/i.test(html),
+      'the demonstration grade is not explained');
+  }
+  assert.ok(html.includes(`The remaining ${count('capability')} establish only that the company makes the part`),
+    'the capability count does not match data/suppliers.js');
 });
