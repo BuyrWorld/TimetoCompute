@@ -60,6 +60,7 @@
   var lastFocus = null;
   var playTimer = null;
 
+  function isNarrow() { return window.matchMedia('(max-width: 640px)').matches; }
   function reduced() {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
@@ -96,7 +97,14 @@
     var pl = p.get('pillar');
     if (pl && document.querySelector('[data-pillar="' + pl + '"]:not([disabled])')) state.pillar = pl;
     if (p.get('inferred') === '0') state.inferred = false;
-    if (p.get('view') === 'list') state.listView = true;
+    /* The default view depends on the viewport, not on a constant. A node
+       graph is unreadable at 390px; a list is the honest primary there. An
+       explicit ?view= always wins, so a shared link keeps whatever the sender
+       was looking at. */
+    var v = p.get('view');
+    if (v === 'list') state.listView = true;
+    else if (v === 'map') state.listView = false;
+    else state.listView = isNarrow();
   }
   function writeUrl() {
     var p = new URLSearchParams(location.search);
@@ -104,7 +112,11 @@
     if (state.trace !== 'product') p.set('trace', state.trace); else p.delete('trace');
     if (state.pillar) p.set('pillar', state.pillar); else p.delete('pillar');
     if (!state.inferred) p.set('inferred', '0'); else p.delete('inferred');
-    if (state.listView) p.set('view', 'list'); else p.delete('view');
+    /* Only record the view when it differs from what this viewport would pick
+       anyway — otherwise every phone visit would rewrite the URL to ?view=list
+       and pin a desktop reader opening that link to the list too. */
+    if (state.listView === isNarrow()) p.delete('view');
+    else p.set('view', state.listView ? 'list' : 'map');
     var q = p.toString();
     history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
   }
@@ -156,23 +168,37 @@
     if (!m) return;
     var shown = 0, dimmed = 0;
 
-    qsa('.cm-hexg', m).forEach(function (n) {
-      var okPillar = !state.pillar || n.getAttribute('data-pillar') === state.pillar;
-      /* Trace modes emphasise; they do not remove. Bottleneck highlights the
-         nodes whose evidence is weakest, which is where delivery actually
-         stalls, rather than hiding everything else. */
+    /* Trace modes emphasise; they do not remove. Bottleneck highlights the
+       nodes whose evidence is weakest, which is where delivery actually stalls,
+       rather than hiding everything else. */
+    var passes = function (el) {
+      var okPillar = !state.pillar || el.getAttribute('data-pillar') === state.pillar;
       var okTrace = true;
       if (state.trace === 'bottleneck') {
-        okTrace = ['ecosystem', 'inferred', 'unknown'].indexOf(n.getAttribute('data-rel')) !== -1;
+        okTrace = ['ecosystem', 'inferred', 'unknown'].indexOf(el.getAttribute('data-rel')) !== -1;
       } else if (state.trace === 'company') {
-        okTrace = n.getAttribute('data-org') === 'yes';
+        okTrace = el.getAttribute('data-org') === 'yes';
       } else if (state.trace === 'project') {
-        okTrace = n.getAttribute('data-column') === 'infrastructure' ||
-          n.getAttribute('data-column') === 'monetisation';
+        okTrace = el.getAttribute('data-column') === 'infrastructure' ||
+          el.getAttribute('data-column') === 'monetisation';
       }
-      var inFilter = okPillar && okTrace;
+      return okPillar && okTrace;
+    };
+
+    qsa('.cm-hexg', m).forEach(function (n) {
+      var inFilter = passes(n);
       n.classList.toggle('is-context', !inFilter);
       if (inFilter) shown++; else dimmed++;
+    });
+
+    /* THE CARDS FILTER TOO. This loop ran over the hexes alone, so switching to
+       the list left every trace mode and pillar filter doing nothing visible —
+       a rail full of dead controls. It was survivable while the list was an
+       alternative view; it is not now the list is what a phone opens by
+       default. The cards carry the same data attributes, so the same predicate
+       decides both and the two can never disagree. */
+    qsa('.cm-cardbtn', m).forEach(function (b) {
+      b.classList.toggle('is-context', !passes(b));
     });
 
     qsa('.cm-trace').forEach(function (b) {
@@ -294,7 +320,20 @@
     if (!drawer) return;
 
     if (opts.focus !== false) {
-      lastFocus = document.querySelector('.cm-hexg[data-node="' + id + '"]') || document.activeElement;
+      /* Whichever surface is actually on screen owns the focus return — a card
+         in list view, a hex on the map. Hunting only for the hex sent a phone
+         reader back to a node that is not rendered.
+
+         Tested with getClientRects rather than :not([hidden]): the card is not
+         itself hidden, its container is, and an attribute selector cannot see
+         an ancestor. That mistake sent focus into the hidden list on desktop. */
+      var onScreen = function (sel) {
+        var el = inMode(sel);
+        return el && el.getClientRects().length ? el : null;
+      };
+      lastFocus = onScreen('.cm-cardbtn[data-node="' + id + '"]') ||
+        onScreen('.cm-hexg[data-node="' + id + '"]') ||
+        document.activeElement;
     }
     state.selected = id;
 
@@ -305,9 +344,10 @@
     drawer.hidden = false;
     page.classList.add('is-drawer-open');
 
-    qsa('.cm-hexg').forEach(function (b) {
-      b.classList.toggle('is-selected', b.getAttribute('data-node') === id);
-      b.setAttribute('aria-pressed', String(b.getAttribute('data-node') === id));
+    qsa('.cm-hexg, .cm-cardbtn').forEach(function (b) {
+      var on = b.getAttribute('data-node') === id;
+      b.classList.toggle('is-selected', on);
+      b.setAttribute('aria-pressed', String(on));
     });
 
     highlightChain(id);
@@ -321,7 +361,7 @@
     if (!drawer || drawer.hidden) return;
     drawer.hidden = true;
     page.classList.remove('is-drawer-open');
-    qsa('.cm-hexg').forEach(function (b) {
+    qsa('.cm-hexg, .cm-cardbtn').forEach(function (b) {
       b.classList.remove('is-selected'); b.setAttribute('aria-pressed', 'false');
     });
     state.selected = null;
@@ -354,7 +394,26 @@
    */
   function wirePan(wrap) {
     var down = false, sx = 0, sl = 0, moved = false;
+    /* PINCH TO ZOOM, on the map a phone reader has deliberately opened.
+       Two fingers scale; one finger still pans. The +/- buttons stay as the
+       keyboard and accessible route — a gesture is never the only way to do
+       something. Page zoom is untouched: nothing here sets `user-scalable=no`,
+       and `touch-action: none` applies only inside this container. */
+    var pts = {}, pinchFrom = 0, zoomFrom = 1;
+    var spread = function () {
+      var k = Object.keys(pts);
+      if (k.length < 2) return 0;
+      return Math.hypot(pts[k[0]].x - pts[k[1]].x, pts[k[0]].y - pts[k[1]].y);
+    };
+
     wrap.addEventListener('pointerdown', function (e) {
+      pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (Object.keys(pts).length === 2) {
+        pinchFrom = spread(); zoomFrom = state.zoom;
+        down = false;                       // a pinch is not a pan
+        wrap.classList.remove('is-dragging');
+        return;
+      }
       if (e.target.closest('.cm-hexg')) return;
       down = true; moved = false;
       sx = e.clientX; sl = wrap.scrollLeft;
@@ -362,12 +421,23 @@
       try { wrap.setPointerCapture(e.pointerId); } catch (err) {}
     });
     wrap.addEventListener('pointermove', function (e) {
+      if (e.pointerId in pts) pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (Object.keys(pts).length === 2 && pinchFrom > 0) {
+        moved = true;
+        state.zoom = Math.max(0.6, Math.min(2.4, zoomFrom * (spread() / pinchFrom)));
+        applyZoom();
+        return;
+      }
       if (!down) return;
       var dx = e.clientX - sx;
       if (Math.abs(dx) > 3) moved = true;
       wrap.scrollLeft = sl - dx;
     });
-    var end = function () { down = false; wrap.classList.remove('is-dragging'); };
+    var end = function (e) {
+      delete pts[e.pointerId];
+      if (Object.keys(pts).length < 2) pinchFrom = 0;
+      down = false; wrap.classList.remove('is-dragging');
+    };
     wrap.addEventListener('pointerup', end);
     wrap.addEventListener('pointercancel', end);
     /* A drag that ended on empty canvas closes the drawer; a drag that moved
@@ -413,6 +483,16 @@
       var hot = chain && chain[e.getAttribute('data-a')] && chain[e.getAttribute('data-b')];
       e.classList.toggle('is-hot', !!hot);
       e.classList.toggle('is-dim', !!chain && !hot);
+    });
+
+    /* TRACING IN THE LIST. A list has no edges to light, so the card carries on
+       itself the state the SVG carries on its links: in the chain, or dimmed
+       out of it. Without this, tapping a card on a phone silently did the most
+       valuable thing this page does and showed the reader nothing. */
+    qsa('.cm-cardbtn', m).forEach(function (b) {
+      var inChain = !!chain && !!chain[b.getAttribute('data-node')];
+      b.classList.toggle('is-inchain', inChain);
+      b.classList.toggle('is-dim', !!chain && !inChain);
     });
   }
 
@@ -528,7 +608,8 @@
       return;
     }
 
-    var node = e.target.closest('.cm-hexg') || e.target.closest('.cm-rowbtn');
+    var node = e.target.closest('.cm-hexg') || e.target.closest('.cm-rowbtn') ||
+      e.target.closest('.cm-cardbtn');
     if (node) { openDrawer(node.getAttribute('data-node')); return; }
 
     if (e.target.closest('#cmDrawerClose')) { closeDrawer(); return; }
@@ -594,6 +675,11 @@
       var list = m.querySelector('.cm-listview');
       if (canvas) canvas.hidden = state.listView;
       if (list) list.hidden = !state.listView;
+      /* The mode is on the wrapper so CSS can retire the zoom controls in list
+         view. Zoom and fit act on a hidden map — the same dead-control problem
+         the project selector had, and worth not reintroducing three fixes
+         later. The list toggle itself stays: it is the way back. */
+      m.classList.toggle('is-list', state.listView);
     });
     qsa('[data-ctl="list"]').forEach(function (b) {
       b.setAttribute('aria-pressed', String(state.listView));
@@ -656,6 +742,20 @@
     });
     if (best) best.focus();
   });
+
+  /* The rail ships open so it is never a zero-size box for a no-JS reader.
+     On a narrow viewport the script collapses it into its sheet, and a tap
+     outside closes it again — a sheet you can only dismiss by finding its own
+     header is a sheet that covers the thing you opened it to change. */
+  (function () {
+    var rail = document.querySelector('.cm-rail');
+    if (!rail) return;
+    if (isNarrow()) rail.removeAttribute('open');
+    document.addEventListener('click', function (e) {
+      if (!isNarrow() || !rail.hasAttribute('open')) return;
+      if (!e.target.closest('.cm-rail')) rail.removeAttribute('open');
+    });
+  })();
 
   qsa('.cm-zoomwrap').forEach(wirePan);
   wireHover();

@@ -478,3 +478,65 @@ test('the workspace is at /chain-mapping/ and the old route survives', () => {
     '/chain/ was deleted — it is a published URL');
   assert.match(page(), /<title>Chain mapping/);
 });
+
+/* ================= the list as a mobile surface ================= */
+
+/**
+ * The tier badge on the list is the legally load-bearing one.
+ *
+ * The graph has carried it since the tier system landed. The list did not,
+ * which made the list the one surface where an industry-reference row and a row
+ * T2C holds a document for looked identical — and the list is what a phone now
+ * opens by default, and what a text-only export or a screen reader is most
+ * likely to reach.
+ */
+test('every list row and every card states its tier', () => {
+  const html = page();
+  const nodes = (html.match(/class="cm-hexg"/g) || []).length;
+  const tags = (html.match(/class="cm-tiertag" data-tier=/g) || []).length;
+  /* One in the table row and one on the card, across both architecture modes —
+     the same node count the graph draws. */
+  assert.equal(tags, nodes * 2, `${tags} tier tags for ${nodes} nodes`);
+  assert.ok(html.includes('>REFERENCE<'), 'no REFERENCE badge reaches the list');
+  assert.ok(html.includes('>T2C RECORD<'), 'no evidenced badge reaches the list');
+});
+
+test('the cards carry every qualifier the table carries', () => {
+  const html = page();
+  const cards = (html.match(/class="cm-cardbtn"/g) || []).length;
+  assert.ok(cards > 0, 'no cards rendered');
+  assert.equal((html.match(/class="cm-cardid"/g) || []).length, cards);
+  assert.equal((html.match(/class="cm-cardstage"/g) || []).length, cards);
+  assert.equal((html.match(/class="cm-cardmeta"/g) || []).length, cards);
+  /* Compressing a qualifier's presentation is allowed. Dropping it is not. */
+  assert.ok(html.includes('No commercial stage on record'),
+    'the cards drop the "none on record" marker');
+});
+
+test('the cards carry the attributes the filters act on', () => {
+  const html = page();
+  const cards = [...html.matchAll(/class="cm-cardbtn"([\s\S]{0,300}?)>/g)];
+  assert.ok(cards.length > 0);
+  for (const [, attrs] of cards) {
+    for (const a of ['data-node', 'data-column', 'data-pillar', 'data-rel', 'data-tier', 'data-org']) {
+      assert.ok(attrs.includes(a), `a card is missing ${a}, so a filter cannot reach it`);
+    }
+  }
+});
+
+/**
+ * The rail ships OPEN, and that is not an accident.
+ *
+ * A closed `<details>` gives its non-summary children a zero-size box whatever
+ * `display` they are given. Shipping it closed and re-opening it with CSS above
+ * 640px therefore rendered every desktop control at 0×0 — invisible to a
+ * pointer, still clickable by script, which is why only a real pointer-driven
+ * check caught it. The script closes it on a narrow viewport instead, and a
+ * reader with no JavaScript keeps the expanded rail they have today.
+ */
+test('the filter rail ships open so it is never a zero-size box', () => {
+  const html = page();
+  assert.ok(html.includes('<details class="cm-rail" open>'),
+    'the rail ships closed; its controls render at 0×0 wherever CSS cannot reopen it');
+  assert.ok(html.includes('class="cm-railsummary"'), 'the rail has no disclosure summary');
+});

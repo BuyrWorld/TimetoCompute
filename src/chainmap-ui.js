@@ -69,8 +69,33 @@ export function workspaceHeader({ architecture, architectures, projects, project
 
 /* ------------------------------------------------------------------ rail ---- */
 
+/**
+ * Trace modes, pillar filters, display toggles and the legend.
+ *
+ * A `<details>` rather than an `<aside>`, so it is a permanent rail on a desktop
+ * and a collapsed bottom sheet on a phone. At 390px this stack ran 400–500px
+ * before any chain content appeared, which on an 844px viewport meant scrolling
+ * past every control to reach the thing the controls act on.
+ *
+ * IT SHIPS OPEN, and the script closes it on a narrow viewport. The tempting
+ * version — ship it closed and re-open it with CSS above 640px — does not work,
+ * and fails silently: a closed <details> gives its non-summary children a ZERO
+ * SIZE box whatever `display` they are given, so the desktop rail rendered with
+ * every control at 0×0. Scripted clicks still hit it, which is why only a real
+ * pointer-driven check caught it.
+ *
+ * Shipping open means a reader with no JavaScript gets the expanded rail on a
+ * phone — exactly what they get today, so nothing regresses; they simply do not
+ * gain the sheet.
+ *
+ * The a11y trade is deliberate and worth naming: `<aside>` was an implicit
+ * landmark. `<details>` is not, but it exposes open/closed state instead, which
+ * is what a disclosure widget should announce. Nothing inside changes.
+ */
 export function filterRail({ traceModes, traceMode, pillars, pillar, showInferred }) {
-  return `<aside class="cm-rail" aria-label="Trace and filters">
+  return `<details class="cm-rail" open>
+    <summary class="cm-railsummary">Trace &amp; filters</summary>
+    <div class="cm-railinner">
     <section class="cm-railblock" aria-labelledby="cm-trace-h">
       <h2 class="cm-railh" id="cm-trace-h">Trace by</h2>
       <div class="cm-tracelist" role="group" aria-labelledby="cm-trace-h">
@@ -127,7 +152,8 @@ export function filterRail({ traceModes, traceMode, pillars, pillar, showInferre
     </section>
 
     <button type="button" class="cm-reset" id="cmReset">${icon('reset', 15)} Reset view</button>
-  </aside>`;
+    </div>
+  </details>`;
 }
 
 /* ------------------------------------------------------------------- map ---- */
@@ -375,35 +401,88 @@ export function mapControls() {
  * Not a fallback — the same information as a table, which is the only form some
  * readers can use at all, and the only form that survives a text-only export.
  */
+/**
+ * The list view — a table on a desktop, cards on a phone.
+ *
+ * BOTH ARE SERVER-RENDERED and CSS picks one at 640px, following the shell's
+ * own `.mainnav` / `.bottomnav` convention. Building the cards in JavaScript
+ * would break this page's stated contract that every node is real HTML a reader
+ * can reach without a script — and on mobile the cards are now the DEFAULT
+ * surface, so that reader would get nothing at all.
+ *
+ * THE TIER COLUMN IS NOT DECORATION. Without it a REFERENCE row — industry
+ * structure naming example companies — is indistinguishable from a row T2C
+ * holds a document for. The graph has carried that badge since the tier system
+ * landed; the list never did, which made it the one surface where the
+ * distinction silently vanished. It is also the surface a text-only export or a
+ * screen reader is most likely to use.
+ */
 export function chainMapList(graph) {
+  const rows = graph.columns.flatMap(c => c.nodes.map(n => ({
+    c, n,
+    rel: RELATIONSHIPS[n.relationship] || RELATIONSHIPS.unknown,
+    conf: CONFIDENCES[n.confidence] || CONFIDENCES.unverified,
+    mat: MATURITIES[n.maturity] || MATURITIES.unknown,
+    stage: n.commercialStage ? STAGE_BY_ID[n.commercialStage] : null,
+    tierShort: n.tier === 'reference' ? TIERS.reference.short : 'T2C RECORD'
+  })));
+
   return `<div class="cm-listview" hidden>
-    <div class="tw">
+    <div class="tw cm-listtable">
       <table class="cm-table">
-        <caption class="vh">Every node in the chain map, with its column, evidence and commercial stage</caption>
+        <caption class="vh">Every node in the chain map, with the tier it belongs to, its
+          evidence and its commercial stage</caption>
         <thead><tr>
-          <th scope="col">Column</th><th scope="col">Node</th><th scope="col">Organisation</th>
+          <th scope="col">Column</th><th scope="col">Node</th><th scope="col">Tier</th>
+          <th scope="col">Organisation</th>
           <th scope="col">Relationship</th><th scope="col">Evidence</th>
           <th scope="col">Maturity</th><th scope="col">Commercial stage</th>
         </tr></thead>
         <tbody>
-          ${graph.columns.flatMap(c => c.nodes.map(n => {
-            const rel = RELATIONSHIPS[n.relationship] || RELATIONSHIPS.unknown;
-            const stage = n.commercialStage ? STAGE_BY_ID[n.commercialStage] : null;
-            return `<tr data-row-node="${esc(graph.architecture)}-${esc(n.id)}">
+          ${rows.map(({ c, n, rel, conf, mat, stage, tierShort }) => `
+            <tr data-row-node="${esc(graph.architecture)}-${esc(n.id)}">
               <td>${esc(c.label)}</td>
               <th scope="row" class="tleft">
                 <button type="button" class="cm-rowbtn" data-node="${esc(n.id)}">${esc(n.title)}</button>
               </th>
+              <td><span class="cm-tiertag" data-tier="${esc(n.tier)}">${esc(tierShort)}</span></td>
               <td class="tleft">${esc(n.org || '—')}</td>
               <td><span class="cm-tag" data-rel="${esc(n.relationship)}">${esc(rel.label)}</span></td>
-              <td>${esc((CONFIDENCES[n.confidence] || CONFIDENCES.unverified).label)}</td>
-              <td>${esc((MATURITIES[n.maturity] || MATURITIES.unknown).label)}</td>
+              <td>${esc(conf.label)}</td>
+              <td>${esc(mat.label)}</td>
               <td>${stage ? esc(stage.label) : '<span class="cm-none">None on record</span>'}</td>
-            </tr>`;
-          })).join('')}
+            </tr>`).join('')}
         </tbody>
       </table>
     </div>
+
+    ${/* The card list. Identifier first, then the tier, then the qualifiers —
+          every field the table carries, none dropped for space. */''}
+    <ul class="cm-cards" role="list">
+      ${rows.map(({ c, n, rel, conf, mat, stage, tierShort }) => `
+        <li>
+          <button type="button" class="cm-cardbtn" data-node="${esc(n.id)}"
+            data-column="${esc(n.column)}" data-pillar="${esc(n.pillar)}"
+            data-rel="${esc(n.relationship)}" data-tier="${esc(n.tier)}"
+            data-org="${n.org ? 'yes' : 'no'}">
+            <span class="cm-cardtop">
+              <span class="cm-cardcol">${esc(c.label)}</span>
+              <span class="cm-tiertag" data-tier="${esc(n.tier)}">${esc(tierShort)}</span>
+            </span>
+            <span class="cm-cardid">${esc(n.title)}</span>
+            ${n.org && n.org !== n.title ? `<span class="cm-cardorg">${esc(n.org)}</span>` : ''}
+            <span class="cm-cardmeta">
+              <span class="cm-tag" data-rel="${esc(n.relationship)}">${esc(rel.label)}</span>
+              <span>${esc(conf.label)} evidence</span>
+              <span>${esc(mat.label)}</span>
+            </span>
+            <span class="cm-cardstage">${stage
+              ? `Commercial stage: ${esc(stage.label)}`
+              : '<span class="cm-none">No commercial stage on record</span>'}</span>
+          </button>
+        </li>`).join('')}
+    </ul>
+
     ${graph.columns.filter(c => c.empty).map(c => `<p class="cm-listempty">
       <b>${esc(c.label)}:</b> ${esc(c.emptyReason)}</p>`).join('')}
   </div>`;
