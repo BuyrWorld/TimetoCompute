@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chainState } from '../src/lib/chain.js';
+import * as pj from '../data/projects.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(ROOT, 'dist');
@@ -865,4 +866,49 @@ test('every megawatt row on /compare/ carries its power basis', () => {
   /* And the note must say the bases differ rather than leaving it to the chips. */
   assert.ok(/never subtracted from\s*'?\s*\+?\s*'?one another/.test(src) ||
     /never subtracted from/.test(src), '/compare/ does not say the bases are never subtracted');
+});
+
+/**
+ * A gate's qualifying note must reach the page.
+ *
+ * These notes exist to stop a gate being read as more than it is. Removing the
+ * status ladder from the site page silently took 23 of them off the site,
+ * because the surviving rail's mapping dropped the field — the loss was
+ * invisible to every check that looked for source links, dates and
+ * "Not disclosed" markers, which all survived.
+ *
+ * The floor is measured, not absolute: a handful are dropped by the path()
+ * rollup, which keeps only the notes belonging to gates matching the stage's
+ * picked status. That is a pre-existing rollup question, not a rendering one.
+ */
+test('gate notes reach the site page that owns them', () => {
+  const { PROJECTS } = pj;
+  let withNotes = 0, unrendered = [];
+  for (const p of PROJECTS) {
+    for (const g of p.gates || []) {
+      if (!g.notes) continue;
+      withNotes++;
+      const file = `sites/${p.id}/index.html`;
+      if (!exists(file)) continue;
+      if (!read(file).includes(g.notes.slice(0, 40))) unrendered.push(`${p.id}/${g.id}`);
+    }
+  }
+  assert.ok(withNotes > 20, `expected a body of gate notes, found ${withNotes}`);
+  assert.ok(unrendered.length <= 6,
+    `${unrendered.length} gate notes never reach their page (floor is 6): ${unrendered.join(', ')}`);
+});
+
+/**
+ * The rail is the component that carries gate notes now.
+ *
+ * Keyed on the mechanism rather than on one note's wording, so rephrasing a
+ * note in the data cannot break the test that protects notes.
+ */
+test('the delivery rail renders gate notes, not just stores them', () => {
+  const withNotes = pj.PROJECTS.filter(p =>
+    (p.gates || []).some(g => g.notes) && exists(`sites/${p.id}/index.html`));
+  assert.ok(withNotes.length > 3, 'expected several site pages carrying gate notes');
+  const rendering = withNotes.filter(p => read(`sites/${p.id}/index.html`).includes('ed-railnote'));
+  assert.equal(rendering.length, withNotes.length,
+    `${withNotes.length - rendering.length} site pages carry gate notes in data but render none`);
 });

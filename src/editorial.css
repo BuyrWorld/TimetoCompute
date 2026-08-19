@@ -559,3 +559,11 @@ a.ed-card:hover { border-color: var(--brand); }
   display: flex; flex-wrap: wrap; gap: var(--s3);
   margin: 10px 0 0; font-size: 12.5px;
 }
+
+/* A gate's qualifying note. Muted, never hidden: it is the sentence that stops a
+   completed gate being read as more than it is. Body size at a dimmer colour,
+   per the rule that small print is a colour demotion and not a size one. */
+.ed-railnote {
+  margin: 8px 0 0; max-width: 68ch;
+  font-size: 15px; line-height: 1.6; color: var(--dim);
+}

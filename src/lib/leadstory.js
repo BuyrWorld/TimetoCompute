@@ -168,6 +168,14 @@ export function journeyRail(stages) {
       id: st.id, simple: j.simple, detailed: j.detailed, state,
       statusLabel: st.statusLabel, effectiveAt: st.effectiveAt,
       sourceIds: st.sourceIds, gates: st.gates,
+      /* THE GATE NOTE TRAVELS WITH THE STAGE.
+         This mapping dropped `notes`, which was survivable only while the
+         status ladder also rendered and carried them. It no longer does, and
+         the omission silently took 23 qualifiers off the site pages — including
+         the FERC note saying in terms that a federal approval is NOT approval
+         to build a data centre. A note attached to a gate exists precisely to
+         stop the gate being read as more than it is. */
+      notes: st.notes || null,
       impliedBy: st.impliedBy || null
     };
   });

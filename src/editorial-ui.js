@@ -60,14 +60,24 @@ export function deliveryRail(rail, { idPrefix = 'rail' } = {}) {
     <ol class="ed-rail" aria-label="Delivery journey">
       ${rail.map(step => {
         const evidenced = step.sourceIds && step.sourceIds.length > 0;
+        /* THE GATE'S OWN NOTE, WHERE IT HAS ONE.
+           A note exists to stop a gate being read as more than it is — the
+           sharpest example on the site says a federal approval is "NOT approval
+           to build a data centre". It travels into the accessible label as well
+           as the visible text, so it is not something only a sighted reader who
+           expands the evidence gets to see. */
+        const note = step.notes ? ` ${step.notes}` : '';
         const label = step.state === 'implied'
           ? `${step.simple} — ${step.detailed}. Implied: this stage must have been passed because ` +
-            `${step.impliedBy} is confirmed. It is not separately evidenced.`
-          : `${step.simple} — ${step.detailed}. ${step.statusLabel}${step.effectiveAt ? `, ${date(step.effectiveAt)}` : ''}.`;
+            `${step.impliedBy} is confirmed. It is not separately evidenced.${note}`
+          : `${step.simple} — ${step.detailed}. ${step.statusLabel}${step.effectiveAt ? `, ${date(step.effectiveAt)}` : ''}.${note}`;
         const inner = `<span class="ed-railnode" aria-hidden="true">${STATE_GLYPH[step.state]}</span>
           <span class="ed-railsimple">${esc(step.simple)}</span>
           <span class="ed-raildetail">${esc(step.detailed)}</span>
           <span class="ed-railstate">${esc(step.statusLabel)}</span>`;
+        const noteHtml = step.notes
+          ? `<p class="ed-railnote">${esc(step.notes)}</p>`
+          : '';
         return `<li class="ed-railstep is-${esc(step.state)}">
           ${evidenced
             ? `<button type="button" class="ed-railbtn press" aria-expanded="false"
@@ -77,6 +87,7 @@ export function deliveryRail(rail, { idPrefix = 'rail' } = {}) {
                  ${sourceChips(step.sourceIds)}
                </div>`
             : `<span class="ed-railbtn is-inert" role="text" aria-label="${esc(label)}">${inner}</span>`}
+          ${noteHtml}
         </li>`;
       }).join('')}
     </ol>

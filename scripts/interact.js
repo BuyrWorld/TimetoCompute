@@ -420,8 +420,15 @@ const run = async () => {
     page.click('#siteGrid .sitecard')
   ]);
   check('a site card opens a real site page', /\/sites\/[a-z0-9-]+\/$/.test(page.url()), page.url());
-  const ladder = await page.$$eval('.ladder .lstep', els => els.length);
-  check('the site page renders its status ladder', ladder === 7, `${ladder} steps`);
+  /* The site page used to render its delivery path twice, as a rail and a
+     ladder. The ladder is gone; the rail is the one timeline. It must carry
+     all seven stages, and the duplicate must not come back — losing the gate
+     notes the ladder owned is exactly what happened when it was removed. */
+  const ladderGone = await page.$$eval('.ladder .lstep', els => els.length);
+  check('the duplicate status ladder is not rendered', ladderGone === 0, ladderGone + ' steps');
+  /* Gate notes are asserted in test/shell.test.js across every site page that
+     has them, rather than here where the harness lands on whichever card is
+     first and that site may legitimately have none. */
 
   /* ---- rail steps reveal evidence rather than doing nothing ---- */
   await page.goto(base + '/sites/iren-horizon-1/', { waitUntil: 'networkidle0' });
