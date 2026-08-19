@@ -236,16 +236,49 @@ export const REFERENCE_NODES = [
     outputs: 'A tested rack, ready to install and energise.'
   },
   {
-    id: 'ref-liquid-cooling', column: 'systems', pillar: 'power-cooling',
-    title: 'Liquid cooling',
-    examples: ['Vertiv', 'Boyd', 'LiquidStack', 'CoolIT Systems'],
-    simple: 'carrying heat away with fluid because air has run out',
-    technical: 'Direct-to-chip cold plates, coolant distribution units and rear-door heat ' +
-      'exchangers for racks air can no longer hold.',
-    whyItMatters: 'Above roughly 40kW a rack, air stops working. Cooling decides how much compute ' +
-      'can safely run inside a hall that already exists.',
-    inputs: 'Cold plates, pumps, manifolds, facility water.',
-    outputs: 'Thermal headroom, and therefore rack density.'
+    /* Three nodes, not one. "Liquid cooled" is used across the sector as though it
+       named a single thing; it names three approaches with different costs,
+       different retrofit difficulty and different vendors. A reader who sees one
+       node cannot tell whether a hall was re-plumbed, re-doored or rebuilt.
+
+       The four example companies here are the four that were on the single node
+       before the split, redistributed. None was added: assigning a vendor to a
+       cooling type is a factual claim, and the ones kept are the associations
+       that define those companies rather than a reading of a current market. */
+    id: 'ref-cooling-direct', column: 'systems', pillar: 'power-cooling',
+    title: 'Direct-to-chip cooling',
+    examples: ['CoolIT Systems', 'Boyd'],
+    simple: 'fluid piped to a metal plate sitting on the hot chip',
+    technical: 'Cold plates clamped to the processor, fed by manifolds and a coolant distribution ' +
+      'unit that keeps the rack loop separate from the facility water.',
+    whyItMatters: 'Above roughly 40kW a rack, air stops working. This is the approach most ' +
+      'operators reach for first, because the hall keeps its air handling and only the rack changes.',
+    inputs: 'Cold plates, pumps, manifolds, coolant distribution units.',
+    outputs: 'Heat moved off the processor and into the facility loop.'
+  },
+  {
+    id: 'ref-cooling-immersion', column: 'systems', pillar: 'power-cooling',
+    title: 'Immersion cooling',
+    examples: ['LiquidStack'],
+    simple: 'the whole server sits in a bath of fluid that does not conduct electricity',
+    technical: 'Single-phase or two-phase immersion in a dielectric fluid. Servers are built ' +
+      'without fans and sealed for the tank.',
+    whyItMatters: 'Needs a hall designed around tanks rather than racks, so it is rarely a ' +
+      'retrofit. Choosing it is a decision about the building, not about the rack.',
+    inputs: 'Dielectric fluid, tanks, servers built for immersion.',
+    outputs: 'Thermal headroom without a fan in the server.'
+  },
+  {
+    id: 'ref-cooling-rear-door', column: 'systems', pillar: 'power-cooling',
+    title: 'Rear-door heat exchangers',
+    examples: ['Vertiv'],
+    simple: 'a radiator bolted to the back of the rack',
+    technical: 'A water-cooled coil in the rack door, taking heat out of the exhaust air before ' +
+      'it reaches the hall.',
+    whyItMatters: 'Lets a hall that already exists carry denser racks without re-plumbing the ' +
+      'servers inside them.',
+    inputs: 'Facility water, door-mounted coils.',
+    outputs: 'Exhaust air cooled before it reaches the room.'
   },
 
   /* -------------------------------------------------------- infrastructure -- */
@@ -304,7 +337,9 @@ export const REFERENCE_EDGES = [
   ['ref-accelerator', 'ref-rack-integration', 'accelerators are built into compute trays'],
   ['ref-network-fabric', 'ref-rack-integration', 'fabric is cabled and tested with the rack'],
   ['ref-power-semis', 'ref-rack-integration', 'power shelves convert facility power at the rack'],
-  ['ref-liquid-cooling', 'ref-rack-integration', 'cold plates and manifolds are fitted in the rack'],
+  ['ref-cooling-direct', 'ref-rack-integration', 'cold plates and manifolds are fitted in the rack'],
+  ['ref-cooling-immersion', 'ref-rack-integration', 'servers are built without fans and sealed for the tank'],
+  ['ref-cooling-rear-door', 'ref-rack-integration', 'a heat exchanger is hung on the back of the rack'],
 
   ['ref-transformers', 'ref-grid', 'the substation is what the interconnection terminates into'],
   ['ref-grid', 'ref-construction', 'a hall is commissioned against delivered power']

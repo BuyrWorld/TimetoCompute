@@ -101,7 +101,13 @@ function referenceNodes() {
   return REFERENCE_NODES.map(r => node({
     ...r,
     tier: 'reference',
-    org: r.examples.length === 1 ? r.examples[0] : `${r.examples.length} example makers`,
+    /* Always the count, never the bare company name. A reference node showing a
+       single org reads exactly like an evidenced one, which would assert a
+       supplier relationship no document supports. Until the cooling split every
+       reference node carried three or four examples, so the single-example branch
+       that used to sit here was never reached — it was removed rather than left
+       waiting for the first node that would have tripped it. */
+    org: `${r.examples.length} example ${r.examples.length === 1 ? 'maker' : 'makers'}`,
     maturity: 'deployed',
     /* `ecosystem` is the correct relationship for "operates in this area, no
        award evidenced" — the same grade a capability record gets, because that
