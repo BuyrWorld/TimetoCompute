@@ -68,29 +68,53 @@ the page, and all three are lighter, so a ratio against `--bg` is the best case,
 not the worst. `--bad` and `--unknown` were recorded as "marginal but passing"
 and were, where actually painted, failures.
 
-### Light theme — 102 failing classes, not fixed
+### Light theme — 94 failing classes, was 102
 
 The light theme is reachable: `src/app.js:70` sets `data-theme` and there is a
-"Light theme" button. Measured the same way, it has **102 failing classes**
+"Light theme" button. Measured the same way, it has **94 failing classes**
 against 0 in dark. It was never finished.
+
+**Fixed: dark ink on panels that stay dark.** Six surfaces are painted a fixed
+near-black whatever the theme is — the header, hero and footer (`--hero-bg`
+`#08080A`, declared identically in both theme blocks), the campus visual
+(`#07070A`), the chain map canvas (`#071012`) and the map hotspot cards
+(`rgba(8,10,9,.9)`). The ink tokens flip, so all six rendered dark text on a dark
+background at 1.00:1. Fixed at the cause with a scoped re-pin:
+
+```css
+html[data-theme="light"] :is(.top,.hero,.foot,.campus,.cm-canvas,.hotcard) {
+  --ink:#FFFFFF; --soft:#C9C9CE; --dim:#8A8A93; --faint:#5C5C64;
+  --line:#2B2B30; --line-2:#1F1F23;
+}
+```
+
+This also caught the **FCA disclosure in light mode**. The footer keeps a dark
+background while `--dim` flips to `#63636A`, so the disclosure sat at 3.36:1
+there even after being raised to 5.85:1 in dark. It is now 5.85:1 in both.
+
+One member of that group was a **false positive in the audit probe**: the probe
+reads `color`, but SVG `<text>` paints with `fill`. `.cm-hexlabel` renders
+`rgb(255,255,255)` in both themes and always did. That is why the count fell by
+8 and not 9.
+
+**Still open — needs a palette decision, not a bug fix:**
 
 | Cause | Count | Detail |
 |---|---|---|
-| Lime as text on white | 42 | `--brand` is `#D6FF00` in **both** theme blocks. Lime is 1.16:1 on white — effectively invisible. |
+| Lime as text on white | 41 | `--brand` is `#D6FF00` in **both** theme blocks. Lime is 1.16:1 on white — effectively invisible. |
 | `--warn` `#C98A00` on white | 25 | ~3.0:1. |
 | `--ok` `#2E9B52` on white | 12 | ~3.9:1. |
 | `--t2c-cyan` `#42D9FF` | 10 | Declared once in `chain.css:17`, no light value. |
-| Dark ink on fixed-dark backgrounds | 8 | `--hero-bg` is `#08080A` in both themes, but `--ink` flips to `#0A0A0A`. Dark text on a dark panel, 1.00:1. |
 | `#DDDDDD` literals on white | 3 | Non-adapting literals. |
 
 The palette comment already records "lime is 1.16:1 on white, so light mode uses
 green for live instead" — that adaptation was made for `--ok` and never extended
-to `--brand`, which is the signal colour and appears as text everywhere.
+to `--brand`, which is the signal colour and appears as text everywhere. Choosing
+a light-mode signal colour changes the site's identity in that mode; it is a
+design decision, not a defect with one correct answer.
 
-**Not fixed here, deliberately.** Choosing a light-mode signal colour changes the
-site's identity in that mode; it is a design decision, not a defect with one
-correct answer. The dark-ink-on-dark-panel group is an unambiguous bug and could
-be fixed independently of that choice.
+`--warn`, `--ok` and the cyan can each be darkened to clear the floor without
+touching the brand, and would remove 47 of the 94 between them.
 
 ### Contrast below floor — historical, now cleared
 
@@ -156,7 +180,7 @@ carries a label or a glyph as well.
 
 ## Open, in priority order
 
-1. Light theme: 102 failing classes, chiefly lime used as text on white. Needs a light-mode signal colour decided.
+1. Light theme: 94 failing classes, chiefly lime used as text on white. Needs a light-mode signal colour decided.
 2. Evidence set at 10.5px — source links and status badges below body size.
 3. 33 touch targets under 44px, including source links.
 4. `.palfield input` has no visible focus state.
