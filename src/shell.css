@@ -134,7 +134,7 @@ a.pill-lite:hover { color: var(--ok); }
   position: relative; z-index: 2; display: grid; grid-template-columns: 1.35fr 1fr;
   gap: var(--s5); padding: var(--s6) var(--s3);
 }
-.herocopy h1 { font-size: clamp(32px, 4.4vw, 52px); font-weight: 900; letter-spacing: -.04em; line-height: 1.04; color: #fff; }
+.herocopy h1 { font-size: clamp(32px, 4.4vw, 52px); font-weight: 900; letter-spacing: -.04em; line-height: 1.04; color: var(--ink); }
 .herocopy h1 u { text-decoration: none; color: var(--brand); }
 .herolede { font-size: 17.5px; color: #A6A6B0; line-height: 1.6; max-width: 54ch; margin-top: var(--s2); }
 .heroacts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: var(--s3); }
@@ -147,11 +147,11 @@ a.pill-lite:hover { color: var(--ok); }
   font-size: 10.5px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase;
   color: var(--brand); font-family: 'IBM Plex Mono', monospace;
 }
-.proofco { font-size: 14px; font-weight: 700; margin-top: 12px; color: #fff; }
+.proofco { font-size: 14px; font-weight: 700; margin-top: 12px; color: var(--ink); }
 .proofco b { font-family: 'IBM Plex Mono', monospace; color: var(--brand); margin-right: 6px; }
 .prooffig {
   font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums;
-  font-size: 40px; font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: 10px 0; color: #fff;
+  font-size: 40px; font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: 10px 0; color: var(--ink);
 }
 .proofsent { font-size: 14.5px; color: #A6A6B0; line-height: 1.55; }
 .proofmeta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }

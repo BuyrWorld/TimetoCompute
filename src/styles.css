@@ -19,6 +19,32 @@
    is why --ok differs between the two modes.
    ========================================================================== */
 
+/* Every ratio below is computed against --bg #0B0B0C and is correct as written.
+   Do not re-derive them by eye, and do not add a colour without computing its
+   ratio first. The floor is 4.5:1 for body text and 3:1 for large text and for
+   any border that carries meaning.
+
+     --ink      #FFFFFF   19.7:1   headings
+     --soft     #C9C9CE   11.9:1   body
+     --dim      #8A8A93    5.7:1   captions, source lines — passes body
+     --faint    #5C5C64    3.0:1   LARGE TEXT AND BORDERS ONLY, never body
+     --brand    #D6FF00   17.0:1   signal. Text on brand is --brand-ink
+     --ok       #C8E82A   14.1:1
+     --warn     #C48400    6.2:1
+     --bad      #D14545    4.4:1   BELOW THE 4.5 BODY FLOOR — see note below
+     --unknown  #7A7A82    4.6:1   only just passes
+     --line     #2B2B30    1.4:1   structural, never text
+     --line-2   #1F1F23    1.2:1   structural, never text
+
+   TWO KNOWN PROBLEMS, LEFT AS THEY ARE AND FLAGGED RATHER THAN CHANGED HERE:
+
+   --ink is pure white. At 19.7:1 on near-black it vibrates, and the type system
+   calls for a warmed off-white for exactly that reason. Changing it alters every
+   heading on the site, which is a visible change and not plumbing.
+
+   --bad is 4.4:1, marginally under the body floor. Nudging it lighter is a
+   one-value fix, but it is the colour that marks a delay or a failure, so it is
+   worth deciding deliberately rather than in passing. */
 :root, html[data-theme="dark"] {
   --bg:#0B0B0C; --surface:#141416; --surface-2:#1B1B1E; --surface-3:#232327;
   --line:#2B2B30; --line-2:#1F1F23;
@@ -33,6 +59,54 @@
   --hero-bg:#08080A;
   --shadow:0 1px 2px rgba(0,0,0,.5);
   --radius:4px;
+
+  /* ------------------------------------------------------------------ type
+     THREE SIZES AND ONE MONO. A fourth size means the hierarchy is unresolved,
+     and the fix is to settle the hierarchy rather than to add a size.
+
+     Small print — captions, source lines, timestamps — is BODY SIZE AT A
+     DIMMER COLOUR, never a smaller size. Those lines are the evidence, and
+     shrinking evidence to make a page feel tidy is the wrong trade. The site
+     does not obey this yet: roughly 300 declarations sit between 9px and
+     12.5px because captions were given a size instead of a colour. Collapsing
+     them changes how every caption looks, so it is a density decision and
+     belongs to the next phase, not to this plumbing one. */
+  --t-display:clamp(2rem, 4vw, 3rem);  /* 32–48px, one per page   */
+  --t-section:17px;                    /* section and card headings */
+  --t-body:15px;                       /* everything readable      */
+  --t-mono:14px;                       /* every figure             */
+  --lh-display:1.05; --lh-section:1.35; --lh-body:1.6; --lh-mono:1.4;
+  --tracking-display:-.03em;           /* negative as size rises   */
+  --tracking-upper:.12em;              /* uppercase always tracked */
+  --measure:68ch;                      /* ~70 characters           */
+
+  /* --------------------------------------------------------------- spacing
+     THE SPACING SCALE IS NOT DECLARED HERE. It lives in shell.css:11 as
+     --s1:8px --s2:16px --s3:24px --s4:32px --s5:48px --s6:64px, and 403
+     declarations across the site already use it.
+
+     I tried to add the system's 8-step scale from 4px here and it broke the
+     site quietly and badly: this block's selector is `:root,
+     html[data-theme="dark"]`, and `html[data-theme="dark"]` scores higher than
+     shell.css's plain `:root`, so my values won on every dark page. Every gap
+     and pad roughly halved, and the companies grid reflowed from three columns
+     to four. It looked deliberate, which is what made it dangerous.
+
+     Two scales exist and only one is used. Reconciling them means repointing
+     403 declarations and is a change with visible consequences — it is not
+     plumbing, and it is flagged rather than done. */
+
+  /* ---------------------------------------------------------------- radii
+     Two. --radius above is the small one at 4px; this is the large one.
+     mission.css declares a third and fourth (--m-radius 14px, --m-radius-sm
+     10px) and they are still in use — reconciling those is architecture
+     rather than styling, and is flagged rather than done here. */
+  --radius-lg:8px;
+
+  /* ---------------------------------------------------------------- focus
+     One focus treatment, everywhere, and it never disappears. */
+  --focus-ring:2px solid var(--brand);
+  --focus-offset:2px;
 }
 
 html[data-theme="light"] {
@@ -81,7 +155,7 @@ a{color:inherit}
 .hero{background:var(--hero-bg);position:relative;overflow:hidden;border-bottom:1px solid #1E1E22}
 #flow{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:.55}
 .heroin{position:relative;z-index:2;padding:34px 0 30px}
-.tagline{color:#FFF;font-weight:900;letter-spacing:-.035em;line-height:1.05;font-size:clamp(25px,3.5vw,40px);max-width:20ch}
+.tagline{color: var(--ink);font-weight:900;letter-spacing:-.035em;line-height:1.05;font-size:clamp(25px,3.5vw,40px);max-width:20ch}
 .tagline u{text-decoration:none;color:var(--brand)}
 .taglinesub{color:#9C9CA5;font-size:15px;max-width:60ch;margin-top:11px;line-height:1.55}
 .heroacts{display:flex;gap:9px;flex-wrap:wrap;margin-top:19px}
@@ -95,7 +169,7 @@ a{color:inherit}
 .kstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#1E1E22;border-top:1px solid #1E1E22;position:relative;z-index:2}
 .kcell{background:rgba(10,10,12,.86);padding:13px 16px;backdrop-filter:blur(3px);min-width:0}
 .kcell .kv{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:clamp(19px,2.4vw,27px);font-weight:700;letter-spacing:-.03em;line-height:1.05;color:var(--brand)}
-.kcell .kv.plain{color:#FFF}
+.kcell .kv.plain{color: var(--ink)}
 .kcell .kl{font-size:11.5px;font-weight:700;margin-top:6px;color:#DDD;line-height:1.3}
 .kcell .ke{font-size:10.5px;color:#7E7E88;margin-top:3px;line-height:1.4;font-family:'IBM Plex Mono',monospace}
 
@@ -106,7 +180,7 @@ a{color:inherit}
 @keyframes roll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .tape:hover .tapein{animation-play-state:paused}
 .tk{display:inline-flex;align-items:baseline;gap:6px;padding:0 18px;border-right:1px solid #1A1A1E;font-family:'IBM Plex Mono',monospace;font-size:12.5px}
-.tk b{color:#FFF;font-weight:700}
+.tk b{color: var(--ink);font-weight:700}
 .tk span.p{color:#9C9CA5}
 .tk span.u{color:var(--up)}
 .tk span.d{color:var(--down)}

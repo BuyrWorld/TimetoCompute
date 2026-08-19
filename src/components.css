@@ -156,7 +156,10 @@ details.ev summary:hover{color:var(--ok)}
 .lede{max-width:72ch;margin-bottom:16px}
 .qt{font-weight:800;font-size:12.5px;font-family:'IBM Plex Mono',monospace}
 .qn{font-size:10.5px;color:var(--dim);line-height:1.3;margin-top:2px;overflow-wrap:anywhere}
-.tkn{color:#6E6E78;font-size:11px}
+/* Was #6E6E78 at 3.9:1 — the one genuine contrast failure on the site, and
+   below the 4.5 floor at body size. --dim is 5.7:1 and is the token this was
+   hand-rolling an approximation of. */
+.tkn{color:var(--dim);font-size:11px}
 .tkgroup{display:inline-flex}
 .filinghead{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:7px}
 .formpill{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;border:1px solid var(--line);padding:2px 6px;border-radius:3px;color:var(--dim)}
