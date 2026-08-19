@@ -443,7 +443,11 @@ button.bnav {
   text-decoration: none; color: inherit; border-radius: 6px;
 }
 .cor-nodelabel { display: block; font-size: 13.5px; font-weight: 700; }
-.cor-nodesub { display: block; font-size: 11.5px; color: var(--dim); }
+/* Set in Archivo, which is proportional, and stacked eight deep in a column of
+   capacities. Without tabular figures the megawatt numbers do not line up and
+   the column cannot be compared by eye — the one place on the site where this
+   is a real defect rather than a no-op on an already-monospaced face. */
+.cor-nodesub { display: block; font-size: 11.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
 
 .cor-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .cor-table th, .cor-table td {
@@ -545,7 +549,7 @@ button.bnav {
   border: 1px dashed var(--line); border-radius: var(--m-radius);
 }
 .cu-withheldh { font-size: 15px; font-weight: 800; margin: 0 0 8px; color: var(--warn); }
-.cu-withheld p { font-size: 13px; line-height: 1.6; color: var(--soft); margin: 0 0 8px; }
+.cu-withheld p { font-size: 13px; line-height: 1.6; color: var(--soft); margin: 0 0 8px; max-width: var(--measure); }
 .cu-withheld b { font-family: var(--m-mono); color: var(--brand); }
 .cu-withheldlist {
   list-style: none; margin: 0 0 8px; padding: 0;
