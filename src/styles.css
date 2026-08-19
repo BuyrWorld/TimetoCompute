@@ -129,6 +129,29 @@ html[data-theme="light"] {
   --shadow:0 1px 2px rgba(0,0,0,.05),0 6px 20px rgba(0,0,0,.05);
 }
 
+/* ==========================================================================
+   PANELS THAT STAY DARK IN BOTH THEMES
+
+   These surfaces are painted a fixed near-black whatever the theme is: the
+   header, hero and footer (--hero-bg #08080A, identical in both blocks above),
+   the campus visual (#07070A), the chain map canvas (#071012) and the map
+   hotspot cards (rgba(8,10,9,.9)).
+
+   The ink tokens, however, do flip. In light mode --ink becomes #0A0A0A and
+   --soft #333333, so every one of these panels rendered dark text on a dark
+   background — measured at 1.00:1, which is invisible rather than merely hard
+   to read. The footer was the worst of it, because that is where the FCA
+   disclosure sits.
+
+   Re-pinning the text tokens for these subtrees fixes the whole class at once.
+   Fixing it rule by rule would mean finding every descendant that happens to
+   use --ink today and would silently break again the next time one is added.
+   ========================================================================== */
+html[data-theme="light"] :is(.top, .hero, .foot, .campus, .cm-canvas, .hotcard) {
+  --ink:#FFFFFF; --soft:#C9C9CE; --dim:#8A8A93; --faint:#5C5C64;
+  --line:#2B2B30; --line-2:#1F1F23;
+}
+
 *{box-sizing:border-box;margin:0;padding:0}
 html{background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{background:var(--bg);color:var(--ink);min-height:100vh;font-family:'Archivo',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
