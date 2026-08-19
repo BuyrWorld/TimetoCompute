@@ -835,3 +835,34 @@ test('the chain map says its ladder is not a ranking of investment merit', () =>
   assert.ok(/Financial Conduct Authority/i.test(foot),
     'the page-level note leans on the site footer for the authorisation statement');
 });
+
+/**
+ * Every megawatt row on /compare/ states its basis.
+ *
+ * This grid exists so figures can be read down a column, and "Power controlled"
+ * is measured at the utility connection while the rows beneath it are critical
+ * IT load — roughly a factor of two apart. Every other surface on the site
+ * labelled the basis; this one, the page built for comparison, did not.
+ *
+ * Asserted against the source because the grid is client-rendered, so the built
+ * HTML carries only the shell.
+ */
+test('every megawatt row on /compare/ carries its power basis', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'src/app.js'), 'utf8');
+  const start = src.indexOf('var ROWS = [');
+  const block = src.slice(start, src.indexOf('];', start));
+  const rows = [...block.matchAll(/\['([^']+)',\s*'([^']+)'(?:,\s*(null|'[^']+'))?\]/g)];
+  assert.ok(rows.length >= 8, `expected the operational rows, found ${rows.length}`);
+  const MW_KEYS = ['energised', 'contracted', 'secured', 'accepted', 'revenueLive'];
+  for (const [, label, key, basis] of rows) {
+    if (!MW_KEYS.includes(key)) continue;
+    assert.ok(basis && basis !== 'null', `the "${label}" row states no power basis`);
+    assert.match(basis, /Critical IT|Gross|GPU load/, `"${label}" has an unrecognised basis: ${basis}`);
+  }
+  /* Secured is the odd one out and the reason the label matters. */
+  const secured = rows.find(r => r[2] === 'secured');
+  assert.match(secured[3], /Gross/, 'secured power is not labelled gross');
+  /* And the note must say the bases differ rather than leaving it to the chips. */
+  assert.ok(/never subtracted from\s*'?\s*\+?\s*'?one another/.test(src) ||
+    /never subtracted from/.test(src), '/compare/ does not say the bases are never subtracted');
+});

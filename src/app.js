@@ -1630,23 +1630,38 @@
       }).join('') + '</div>';
 
     if (mode === 'operational') {
+      /* EVERY MEGAWATT ROW STATES ITS BASIS.
+         This grid exists so figures can be read down a column, and "Power
+         controlled" is measured at the utility connection while the three rows
+         under it are critical IT load. Those differ by roughly a factor of two.
+         Every other surface on the site labels the basis; this one — the page
+         built for comparison, where it matters most — did not.
+
+         The company page's capacity panel already solves this well, so this
+         copies it rather than inventing a second vocabulary: the short basis
+         form beside the label, and a sentence saying the bases differ and are
+         never subtracted. */
       var ROWS = [
-        ['Capacity switched on', 'energised'],
-        ['Customers have signed for', 'contracted'],
-        ['Power controlled', 'secured'],
-        ['Delivered and accepted', 'accepted'],
-        ['Generating revenue', 'revenueLive'],
-        ['Delivery stage', 'stage'],
-        ['Next catalyst', 'nextCatalyst'],
-        ['Figures sourced', 'sourced']
+        ['Capacity switched on', 'energised', 'Critical IT'],
+        ['Customers have signed for', 'contracted', 'Critical IT'],
+        ['Power controlled', 'secured', 'Gross'],
+        ['Delivered and accepted', 'accepted', 'Critical IT'],
+        ['Generating revenue', 'revenueLive', 'Critical IT'],
+        ['Delivery stage', 'stage', null],
+        ['Next catalyst', 'nextCatalyst', null],
+        ['Figures sourced', 'sourced', null]
       ];
       out.innerHTML = '<div class="cmpgrid" style="--cols:' + rows.length + '">' + headHtml +
         ROWS.map(function (m) {
-          return '<div class="cmprow"><div class="cmplabel">' + esc(m[0]) + '</div>' +
+          return '<div class="cmprow"><div class="cmplabel">' + esc(m[0]) +
+            (m[2] ? ' <span class="basis">' + esc(m[2]) + '</span>' : '') + '</div>' +
             rows.map(function (r) { return '<div class="cmpcell">' + cell(r[m[1]]) + '</div>'; }).join('') + '</div>';
         }).join('') + '</div>' +
-        '<p class="blocknote">Only like-for-like measures share a row. Where a company has not published ' +
-        'a figure the cell reads <b>' + ND + '</b> — never zero, and never a peer’s number.</p>';
+        '<p class="blocknote">Only like-for-like measures share a row. <b>Power controlled is measured ' +
+        'at the utility connection; the rows beneath it are critical IT load.</b> They are separate ' +
+        'disclosures on different bases, roughly a factor of two apart, and are never subtracted from ' +
+        'one another. Where a company has not published a figure the cell reads <b>' + ND + '</b> — ' +
+        'never zero, and never a peer’s number.</p>';
     } else if (mode === 'catalysts') {
       out.innerHTML = '<div class="cmpcats">' + rows.map(function (r) {
         return '<div class="cmpcatco"><h3>' + esc(r.ticker) + ' <span>' + esc(r.name) + '</span></h3>' +
