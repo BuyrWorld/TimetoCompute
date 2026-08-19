@@ -274,7 +274,7 @@
   letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
   margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line-2);
 }
-.an-panelnote { font-size: 11.5px; line-height: 1.5; color: var(--dim); margin: 10px 0 0; }
+.an-panelnote { font-size: 11.5px; line-height: 1.5; color: var(--dim); margin: 10px 0 0; max-width: var(--measure); }
 .an-panelempty { font-size: 12.5px; line-height: 1.55; color: var(--dim); margin: 0; }
 .an-panellink {
   display: inline-block; margin-top: 10px;
@@ -307,11 +307,12 @@
   padding: var(--s3); margin-top: var(--s3);
   border: 1px dashed var(--line); border-radius: var(--m-radius);
 }
-.an-grouping p { font-size: 13px; line-height: 1.6; color: var(--soft); margin: 0 0 10px; }
+.an-grouping p { font-size: 13px; line-height: 1.6; color: var(--soft); margin: 0 0 10px; max-width: var(--measure); }
 .an-grouping b { color: var(--brand); font-family: var(--m-mono); }
 .an-crosslink {
   font-size: 12.5px; line-height: 1.6; color: var(--dim);
   margin: var(--s3) 0 0; padding-top: var(--s2); border-top: 1px solid var(--line-2);
+  max-width: var(--measure);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -392,7 +393,7 @@
 .nw-loading, .nw-error {
   font-size: 13px; line-height: 1.6; color: var(--dim); margin: 0;
   padding: var(--s3); border: 1px dashed var(--line); border-radius: var(--m-radius);
-  grid-column: 1 / -1;
+  grid-column: 1 / -1; max-width: var(--measure);
 }
 .nw-error { color: var(--warn); border-color: var(--warn); border-style: solid; }
 
