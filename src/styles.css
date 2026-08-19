@@ -416,7 +416,10 @@ svg{display:block;width:100%;height:auto}
 .footcol li b{color:#DDD;font-weight:700;font-family:'IBM Plex Mono',monospace}
 .footcol a{color:#93939C;text-decoration:none;border-bottom:1px solid #2A2A30}
 .footcol a:hover{color:var(--brand);border-bottom-color:var(--brand)}
-.footbase{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding-top:18px;font-size:11.5px;color:#66666E;line-height:1.6}
+/* Carries the FCA disclosure. At #66666E on the footer's #08080a this measured
+   3.52:1, below the 4.5 floor for body text — a regulatory statement was the
+   least legible text on the page. --dim measures 5.85:1 there. */
+.footbase{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding-top:18px;font-size:11.5px;color:var(--dim);line-height:1.6}
 .footbase .sep{margin-left:auto}
 
 /* ============ RESPONSIVE ============ */
