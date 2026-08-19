@@ -68,10 +68,10 @@ the page, and all three are lighter, so a ratio against `--bg` is the best case,
 not the worst. `--bad` and `--unknown` were recorded as "marginal but passing"
 and were, where actually painted, failures.
 
-### Light theme — 94 failing classes, was 102
+### Light theme — 44 failing classes, was 102
 
 The light theme is reachable: `src/app.js:70` sets `data-theme` and there is a
-"Light theme" button. Measured the same way, it has **94 failing classes**
+"Light theme" button. Measured the same way, it has **44 failing classes**
 against 0 in dark. It was never finished.
 
 **Fixed: dark ink on panels that stay dark.** Six surfaces are painted a fixed
@@ -97,24 +97,39 @@ reads `color`, but SVG `<text>` paints with `fill`. `.cm-hexlabel` renders
 `rgb(255,255,255)` in both themes and always did. That is why the count fell by
 8 and not 9.
 
-**Still open — needs a palette decision, not a bug fix:**
+**Fixed: the status colours, 94 → 44.** Everything fixable without deciding what
+the signal colour is in light mode is done:
 
-| Cause | Count | Detail |
-|---|---|---|
-| Lime as text on white | 41 | `--brand` is `#D6FF00` in **both** theme blocks. Lime is 1.16:1 on white — effectively invisible. |
-| `--warn` `#C98A00` on white | 25 | ~3.0:1. |
-| `--ok` `#2E9B52` on white | 12 | ~3.9:1. |
-| `--t2c-cyan` `#42D9FF` | 10 | Declared once in `chain.css:17`, no light value. |
-| `#DDDDDD` literals on white | 3 | Non-adapting literals. |
+| Token | Was | Now | Ratio |
+|---|---|---|---|
+| `--ok` | `#2E9B52` | `#1E7038` | 3.2:1 → 5.5:1 |
+| `--warn` | `#C98A00` | `#8F5D00` | 2.9:1 → 5.0:1 |
+| `--t2c-cyan` | *(no light value)* | `#0A6E8A` | 1.9:1 → 5.2:1 |
+| `.cta.ghost`, `.kcell .kl` | `#DDD` | `var(--soft)` | 1.3:1 → 12.6:1 |
+
+These are *darker* than their dark-theme counterparts because the floor runs the
+other way in light mode — dark text on a light ground. The binding case is `--bg`
+`#F2F2EF`, not pure white: `#F2F2EF` is the darker of the two grounds and so the
+harder one. Each value clears 4.5:1 there, not merely against white.
+
+The third `#DDD` literal, `.footcol li b`, was left alone — it sits inside the
+footer, which is pinned dark in both themes, so `#DDD` is correct there.
+
+**Still open — 44, needing a palette decision rather than a bug fix**
+
+43 are lime used as text. `--brand` is `#D6FF00` in **both** theme blocks, and
+lime is 1.16:1 on white — effectively invisible. Confirmed visually on a company
+profile in light mode: the amber and green now read cleanly while every lime
+label ("SUPPLIER PASSPORT", "CUSTOMER ACCEPTED", "WHERE IT SITS") is close to
+invisible.
+
+The 44th is the SVG `fill`/`color` false positive described above.
 
 The palette comment already records "lime is 1.16:1 on white, so light mode uses
 green for live instead" — that adaptation was made for `--ok` and never extended
 to `--brand`, which is the signal colour and appears as text everywhere. Choosing
 a light-mode signal colour changes the site's identity in that mode; it is a
 design decision, not a defect with one correct answer.
-
-`--warn`, `--ok` and the cyan can each be darkened to clear the floor without
-touching the brand, and would remove 47 of the 94 between them.
 
 ### Contrast below floor — historical, now cleared
 
@@ -180,7 +195,7 @@ carries a label or a glyph as well.
 
 ## Open, in priority order
 
-1. Light theme: 94 failing classes, chiefly lime used as text on white. Needs a light-mode signal colour decided.
+1. Light theme: 43 lime-as-text failures. Needs a light-mode signal colour decided — lime cannot be it.
 2. Evidence set at 10.5px — source links and status badges below body size.
 3. 33 touch targets under 44px, including source links.
 4. `.palfield input` has no visible focus state.
