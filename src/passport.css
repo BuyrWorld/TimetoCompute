@@ -48,7 +48,7 @@
 .pp-chaindot { text-align: center; color: var(--dim); }
 .pp-chainlabel { font-size: 13.5px; color: var(--soft); }
 .pp-chainstep.is-gap .pp-chaindot,
-.pp-chainstep.is-gap .pp-chainlabel { color: var(--faint); }
+.pp-chainstep.is-gap .pp-chainlabel { color: var(--dim); }
 .pp-chainstep.is-here { background: var(--m-lime-soft); border-radius: 6px; padding-inline: 8px; }
 .pp-chainstep.is-here .pp-chaindot,
 .pp-chainstep.is-here .pp-chainlabel { color: var(--brand); font-weight: 700; }

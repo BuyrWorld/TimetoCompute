@@ -384,7 +384,7 @@
   font-family: inherit; font-size: 13px; color: var(--ink);
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--m-radius-sm);
 }
-.nw-field input::placeholder { color: var(--faint); }
+.nw-field input::placeholder { color: var(--dim); }
 .nw-count {
   margin-left: auto; align-self: center;
   font-family: var(--m-mono); font-size: 11px; color: var(--dim); white-space: nowrap;

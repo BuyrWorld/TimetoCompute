@@ -27,33 +27,37 @@
      --ink      #FFFFFF   19.7:1   headings
      --soft     #C9C9CE   11.9:1   body
      --dim      #8A8A93    5.7:1   captions, source lines — passes body
-     --faint    #5C5C64    3.0:1   LARGE TEXT AND BORDERS ONLY, never body
+     --faint    #5C5C64    3.0:1   BORDERS ONLY. No longer used for any text.
      --brand    #D6FF00   17.0:1   signal. Text on brand is --brand-ink
      --ok       #C8E82A   14.1:1
      --warn     #C48400    6.2:1
-     --bad      #D14545    4.4:1   BELOW THE 4.5 BODY FLOOR — see note below
-     --unknown  #7A7A82    4.6:1   only just passes
+     --bad      #FF6B78    7.1:1
+     --unknown  #85878B    5.5:1
      --line     #2B2B30    1.4:1   structural, never text
      --line-2   #1F1F23    1.2:1   structural, never text
 
-   TWO KNOWN PROBLEMS, LEFT AS THEY ARE AND FLAGGED RATHER THAN CHANGED HERE:
+   A RATIO AGAINST --bg IS THE BEST CASE, NOT THE WORST. Text sits on --surface
+   #141416, --surface-2 #1B1B1E and --surface-3 #232327 as often as on the page
+   itself, and every one of those is lighter, so every ratio above drops. This
+   table previously recorded --bad at 4.4:1 and --unknown at 4.6:1 and called
+   them marginal; measured on the surfaces they are actually painted on, they
+   were 3.80:1 and 4.04:1 — both failures. The values above were chosen to clear
+   4.5:1 on --surface-3, the lightest surface, not merely on --bg.
+
+   ONE KNOWN PROBLEM, LEFT AS IT IS AND FLAGGED RATHER THAN CHANGED HERE:
 
    --ink is pure white. At 19.7:1 on near-black it vibrates, and the type system
    calls for a warmed off-white for exactly that reason. Changing it alters every
-   heading on the site, which is a visible change and not plumbing.
-
-   --bad is 4.4:1, marginally under the body floor. Nudging it lighter is a
-   one-value fix, but it is the colour that marks a delay or a failure, so it is
-   worth deciding deliberately rather than in passing. */
+   heading on the site, which is a visible change and not plumbing. */
 :root, html[data-theme="dark"] {
   --bg:#0B0B0C; --surface:#141416; --surface-2:#1B1B1E; --surface-3:#232327;
   --line:#2B2B30; --line-2:#1F1F23;
   --ink:#FFFFFF; --soft:#C9C9CE; --dim:#8A8A93; --faint:#5C5C64;
 
   --brand:#D6FF00; --brand-ink:#0A0A0A;
-  --ok:#C8E82A; --warn:#C48400; --bad:#D14545; --unknown:#7A7A82;
+  --ok:#C8E82A; --warn:#C48400; --bad:#FF6B78; --unknown:#85878B;
   --ok-bg:rgba(200,232,42,.12); --warn-bg:rgba(196,132,0,.14);
-  --bad-bg:rgba(209,69,69,.14); --unknown-bg:rgba(122,122,130,.12);
+  --bad-bg:rgba(255,107,120,.14); --unknown-bg:rgba(133,135,139,.12);
 
   --up:#3FD183; --down:#FF6B78;
   --hero-bg:#08080A;
@@ -221,7 +225,7 @@ main{padding:20px 0 0}
    so a reader can always tell where a project sits even if the colours converge. */
 .track{display:flex;align-items:stretch;gap:2px;margin:10px 0 0}
 .seg{flex:1;min-width:0;position:relative;padding:7px 6px 6px;border-radius:2px;background:var(--surface-3);border-top:3px solid var(--faint);text-align:left}
-.seg .sn{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:700;color:var(--faint);display:block;line-height:1}
+.seg .sn{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:700;color: var(--dim);display:block;line-height:1}
 .seg .sl{font-size:10.5px;font-weight:700;color:var(--dim);display:block;margin-top:3px;line-height:1.25;overflow-wrap:anywhere}
 .seg.done{border-top-color:var(--ok);background:var(--ok-bg)}
 .seg.done .sn,.seg.done .sl{color:var(--ok)}
@@ -337,7 +341,7 @@ tbody tr:hover{background:var(--surface-2)}
 .fresh{display:inline-flex;align-items:center;gap:4px;color:var(--ok);font-weight:800}
 .fresh i{width:5px;height:5px;border-radius:50%;background:currentColor;display:block}
 /* Placeholder for the future structured "what changed" summary. */
-.whatchanged{font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace;border-top:1px dashed var(--line);padding-top:7px;margin-top:2px}
+.whatchanged{font-size:11px;color: var(--dim);font-family:'IBM Plex Mono',monospace;border-top:1px dashed var(--line);padding-top:7px;margin-top:2px}
 
 /* ============ FORMS / ODDS ============ */
 .frow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}

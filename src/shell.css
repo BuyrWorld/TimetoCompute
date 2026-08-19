@@ -66,9 +66,9 @@ html[data-theme="light"] .appbar { background: rgba(255, 255, 255, 0.92); }
   transition: background 160ms ease, box-shadow 160ms ease;
 }
 .mstate.is-open i { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
-.mstate.is-closed i { background: var(--bad); box-shadow: 0 0 7px rgb(209 69 69 / 55%); }
+.mstate.is-closed i { background: var(--bad); box-shadow: 0 0 7px rgb(255 107 120 / 55%); }
 .mstate.is-loading i { background: var(--warn); }
-.mstate.is-off i { background: var(--bad); box-shadow: 0 0 0 2px rgb(209 69 69 / 30%); }
+.mstate.is-off i { background: var(--bad); box-shadow: 0 0 0 2px rgb(255 107 120 / 30%); }
 @media (prefers-reduced-motion: reduce) { .mstate i { transition: none; } }
 
 /* utility menu */
@@ -165,7 +165,7 @@ a.pill-lite:hover { color: var(--ok); }
 }
 .fld { display: flex; flex-direction: column; gap: 6px; min-width: 160px; }
 .fld label { font-size: 12.5px; font-weight: 700; color: var(--dim); }
-.fldunit { color: var(--faint); font-weight: 500; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+.fldunit { color: var(--dim); font-weight: 500; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
 .fld input, .fld select {
   background: var(--surface-2); border: 1px solid var(--line); color: var(--ink);
   font-family: 'IBM Plex Mono', monospace; font-size: 15px; padding: 11px 12px;
@@ -245,7 +245,7 @@ a.pill-lite:hover { color: var(--ok); }
   margin-bottom: var(--s2); display: flex; gap: 10px; align-items: center;
   font-family: 'IBM Plex Mono', monospace;
 }
-.catgroup h2 span { color: var(--faint); }
+.catgroup h2 span { color: var(--dim); }
 .catrow {
   display: grid; grid-template-columns: 172px 1fr; gap: var(--s3);
   padding: var(--s3) 0; border-bottom: 1px solid var(--line-2);
@@ -486,7 +486,7 @@ th.prov, td.prov { text-align: left; font-family: 'Archivo', sans-serif; font-we
 /* price cells */
 .pxval { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-weight: 700; }
 .pxchg { display: block; font-size: 12.5px; margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
-.pxqual { display: block; font-size: 11px; color: var(--faint); margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
+.pxqual { display: block; font-size: 11px; color: var(--dim); margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
 
 /* soften the legacy bordered panels inside the new blocks */
 .blockbody > .panel, .explorebody > .panel { border: none; background: none; margin: 0; }
