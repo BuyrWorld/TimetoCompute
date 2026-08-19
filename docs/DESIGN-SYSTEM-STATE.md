@@ -51,7 +51,48 @@ so they are data, not decoration.
 (walking up the tree to the first opaque colour) with the correct WCAG floor per
 element — 3:1 for large text, 4.5:1 for normal.
 
-### Contrast below floor — 8 remaining, was 11
+### Dark theme — clear
+
+**0 failures** across 4,846 elements on 16 pages. All eleven originally found are
+fixed. Three causes:
+
+- `--faint` was used as body text in eleven places; it is a border token, and at
+  #5C5C64 it is 3.0:1 on the page and 2.59:1 on a raised surface. All eleven text
+  uses moved to `--dim`. `--faint` now has exactly two uses, both borders.
+- `--bad` #D14545 → #FF6B78 (was 3.80:1 on a raised surface, now 6.3:1).
+- `--unknown` #7A7A82 → #85878B (was 4.04:1, now 4.8:1).
+
+**Why the old table looked fine.** Every ratio was recorded against `--bg`
+#0B0B0C. Text sits on `--surface`, `--surface-2` and `--surface-3` as often as on
+the page, and all three are lighter, so a ratio against `--bg` is the best case,
+not the worst. `--bad` and `--unknown` were recorded as "marginal but passing"
+and were, where actually painted, failures.
+
+### Light theme — 102 failing classes, not fixed
+
+The light theme is reachable: `src/app.js:70` sets `data-theme` and there is a
+"Light theme" button. Measured the same way, it has **102 failing classes**
+against 0 in dark. It was never finished.
+
+| Cause | Count | Detail |
+|---|---|---|
+| Lime as text on white | 42 | `--brand` is `#D6FF00` in **both** theme blocks. Lime is 1.16:1 on white — effectively invisible. |
+| `--warn` `#C98A00` on white | 25 | ~3.0:1. |
+| `--ok` `#2E9B52` on white | 12 | ~3.9:1. |
+| `--t2c-cyan` `#42D9FF` | 10 | Declared once in `chain.css:17`, no light value. |
+| Dark ink on fixed-dark backgrounds | 8 | `--hero-bg` is `#08080A` in both themes, but `--ink` flips to `#0A0A0A`. Dark text on a dark panel, 1.00:1. |
+| `#DDDDDD` literals on white | 3 | Non-adapting literals. |
+
+The palette comment already records "lime is 1.16:1 on white, so light mode uses
+green for live instead" — that adaptation was made for `--ok` and never extended
+to `--brand`, which is the signal colour and appears as text everywhere.
+
+**Not fixed here, deliberately.** Choosing a light-mode signal colour changes the
+site's identity in that mode; it is a design decision, not a defect with one
+correct answer. The dark-ink-on-dark-panel group is an unambiguous bug and could
+be fixed independently of that choice.
+
+### Contrast below floor — historical, now cleared
 
 | Ratio | Element | Colour | Where |
 |---|---|---|---|
@@ -64,27 +105,17 @@ element — 3:1 for large text, 4.5:1 for normal.
 | 4.27:1 | `.rvbasis.opinion` "An opinion — not a disclosure" | `#d14545` on `#0e0e10` | profile |
 | 4.32:1 | `.nd` "Unavailable" | `#7a7a82` on `#141416` | `/companies/` |
 
-**Fixed:** the footer disclosure. "T2C is not authorised or regulated by the
-Financial Conduct Authority" sat at 3.52:1 — the regulatory statement was among
-the least legible text on the site. `.footbase` moved to `var(--dim)`, 5.85:1.
+A ninth, fixed separately: the footer disclosure. "T2C is not authorised or
+regulated by the Financial Conduct Authority" sat at 3.52:1 — the regulatory
+statement was among the least legible text on the site. `.footbase` moved to
+`var(--dim)`, 5.85:1.
 
-**Two root causes, both needing their own gate:**
-
-1. **`--faint` `#5C5C64` is being used as body and figure text.** The system's own
-   palette says Faint is for "large text and borders only, never body copy". Four
-   of the eight failures are this, and two of them are *figures* — a "35%" and a
-   "60%". A number the reader cannot read is a number that is not published.
-2. **`--bad` `#D14545` fails at body size.** Flagged in Phase 2 at 4.4:1 against
-   the page background; on raised surfaces it drops to 3.80:1.
-
-Three of the eight are markers the standing rules protect — `.st.st-unknown`
+Three of the eight were markers the standing rules protect — `.st.st-unknown`
 ("Not modelled"), `.rvbasis.opinion` ("An opinion — not a disclosure") and `.nd`
-("Unavailable"). They are currently *too quiet to meet the floor*, so raising
-them makes them louder and is consistent with the rule, not in tension with it.
-
-Not fixed here because both causes are tokens used site-wide, and a global colour
-change riding inside a squint-test commit is the exact shape of the Phase 2
-spacing incident.
+("Unavailable"). They were *too quiet to meet the floor*, so raising them made
+them louder, which is consistent with the rule rather than in tension with it.
+Two others were figures — a "35%" and a "60%". A number the reader cannot read is
+a number that is not published.
 
 ### Type size
 
@@ -125,7 +156,7 @@ carries a label or a glyph as well.
 
 ## Open, in priority order
 
-1. `--faint` and `--bad` used as body text — 8 contrast failures, 2 of them figures.
+1. Light theme: 102 failing classes, chiefly lime used as text on white. Needs a light-mode signal colour decided.
 2. Evidence set at 10.5px — source links and status badges below body size.
 3. 33 touch targets under 44px, including source links.
 4. `.palfield input` has no visible focus state.
