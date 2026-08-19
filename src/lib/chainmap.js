@@ -75,7 +75,12 @@ const GRADE_TO_STAGE = {
 };
 
 const node = o => ({
-  org: null, orgTicker: null, pillar: 'photonics',
+  /* `pillar` defaults to null, and every node that has one sets it explicitly.
+     It used to default to 'photonics', which was right only for as long as the
+     one evidenced supplier dataset happened to be all photonics — the next
+     dataset would have inherited a wrong domain tag without a line changing.
+     A domain claim is never a safe default. */
+  org: null, orgTicker: null, pillar: null,
   architectureModes: ['deployed', 'next'],
   maturity: 'unknown', relationship: 'unknown', confidence: 'unverified',
   commercialStage: null, evidenceIds: [], explainerHref: null, inputs: null, outputs: null,
@@ -128,7 +133,7 @@ function inputNodes() {
     const axes = GRADE_TO_AXES[s.grade];
     const ex = EXPLAINER_BY_SLUG[s.components[0]];
     out.push(node({
-      id: `input-${s.id}`, column: 'inputs',
+      id: `input-${s.id}`, column: 'inputs', pillar: 'photonics',
       title: ex ? ex.name : s.components[0],
       org: s.company, orgTicker: s.ticker, orgExchange: s.exchange,
       simple: ex ? ex.simple : null,
@@ -180,7 +185,7 @@ function componentNodes() {
       .sort((a, b) => EVIDENCE_GRADES[b.grade].rank - EVIDENCE_GRADES[a.grade].rank)[0];
     const axes = GRADE_TO_AXES[best.grade];
     return node({
-      id: `component-${slug}`, column: 'components', slug,
+      id: `component-${slug}`, column: 'components', slug, pillar: 'photonics',
       title: ex.name,
       org: suppliers.length === 1 ? best.company : `${suppliers.length} makers on file`,
       orgTicker: suppliers.length === 1 ? best.ticker : null,
@@ -222,7 +227,7 @@ function interconnectNodes() {
       .sort((a, b) => EVIDENCE_GRADES[b.grade].rank - EVIDENCE_GRADES[a.grade].rank)[0] || null;
     const axes = best ? GRADE_TO_AXES[best.grade] : { relationship: 'unknown', confidence: 'unverified' };
     return node({
-      id: spec.id, column: 'components', slug: spec.slug || null,
+      id: spec.id, column: 'components', slug: spec.slug || null, pillar: 'photonics',
       title: spec.title, isInterconnect: true,
       org: best ? (suppliers.length === 1 ? best.company : `${suppliers.length} makers on file`) : null,
       orgTicker: suppliers.length === 1 && best ? best.ticker : null,
@@ -274,7 +279,7 @@ function infrastructureNodes() {
     return node({
       id: `operator-${c.id}`, column: 'infrastructure',
       title: c.name, org: c.name, orgTicker: c.ticker,
-      pillar: 'power-cooling',
+      pillar: null,
       simple: 'an operator building and running the halls',
       technical: `Operator of ${sites.length} tracked site${sites.length === 1 ? '' : 's'}.`,
       whyItMatters: 'Securing power, building the halls and energising them are separate gates that ' +
@@ -296,7 +301,7 @@ function monetisationNodes() {
   const out = customerMap().map(cu => node({
     id: `customer-${cu.id}`, column: 'monetisation',
     title: cu.display, org: cu.display,
-    pillar: 'power-cooling',
+    pillar: null,
     simple: 'a customer paying for the megawatts',
     technical: cu.what,
     whyItMatters: 'The chain only pays for itself here. A contract is not acceptance, and ' +
@@ -328,7 +333,7 @@ function monetisationNodes() {
     out.push(node({
       id: 'customer-withheld', column: 'monetisation',
       title: 'Withheld counterparties',
-      pillar: 'power-cooling',
+      pillar: null,
       simple: 'contracts whose buyer the operator would not name',
       technical: `${withheld.count} contracts disclose the deal but not the counterparty, describing ` +
         'only its credit quality.',
