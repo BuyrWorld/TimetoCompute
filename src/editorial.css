@@ -550,3 +550,12 @@ a.ed-card:hover { border-color: var(--brand); }
    ============================================================ */
 
 .ed-main { padding-bottom: var(--t2c-section); }
+
+/* The two cross-page links demoted out of the snapshot's action row. Quiet by
+   design: they are useful, but they are not the answer the page came to give,
+   and four buttons above the first figure made the reading path land on
+   choices. */
+.csnaplinks {
+  display: flex; flex-wrap: wrap; gap: var(--s3);
+  margin: 10px 0 0; font-size: 12.5px;
+}

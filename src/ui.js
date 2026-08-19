@@ -8,7 +8,7 @@ import { COMPANIES } from '../data/companies.js';
 import { PROJECTS_BY_COMPANY, CONTRACTS, COUNTRY_NAMES } from '../data/projects.js';
 import { CATALYST_STATUS, CATALYST_CATEGORIES, CATALYSTS } from '../data/catalysts.js';
 import { PROFILE_BY_ID, PLATFORM_LABEL, chiefExecutives } from '../data/profiles.js';
-import { companyTile, deliveryFunnel, businessModelDiagram, journeyStrip, footprintDots } from './lib/illustrations.js';
+import { companyTile, deliveryFunnel, businessModelDiagram, footprintDots } from './lib/illustrations.js';
 import {
   companyView, headlineKpis, byCountry, ledger, aggregate, isKnown, gateSummary, dataHealth,
   timeline, deliveryRecord, briefing, companySnapshots, nextStage
@@ -762,11 +762,23 @@ export function storybook(view) {
       </div>
     </div>
 
-    <div class="ph"><h3>How far it has actually got</h3>
-      <span class="meta">Select a step for its evidence</span></div>
-    <div class="pb">${journeyStrip(view)}</div>
+    ${/* THE JOURNEY STRIP IS NOT DRAWN HERE ANY MORE, and choosing which of the
+          six "how far along" modules to compress took some care.
 
-    <div class="ph"><h3>Where the power goes</h3></div>
+          It showed the same six gates the Path to billing section above already
+          shows — and that section carries more, not less: every gate's source
+          link and its effective date. The strip carried source ids and no
+          megawatt figure, so nothing it said is lost by leaning on the section
+          that says it better.
+
+          The funnel below STAYS, and it was the tempting one to cut because it
+          looks like a restatement. It is not. It labels the power basis on
+          every row and draws a marked line at the point where the measurement
+          changes from gross utility to critical IT — the clearest rendering of
+          that distinction anywhere on the site. Cutting it would have removed a
+          qualifier while appearing to remove a duplicate. */''}
+    <div class="ph"><h3>Where the power goes</h3>
+      <span class="meta">Each row states the basis it is measured on</span></div>
     <div class="pb">${deliveryFunnel(view)}</div>
 
     <div class="ph"><h3>What it owns, and what the customer brings</h3></div>

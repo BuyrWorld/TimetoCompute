@@ -1173,9 +1173,20 @@ function investmentSnapshot(c, v) {
       ? `<a class="cta primary" href="/lab/?company=${esc(c.id)}">Open in Edge Lab</a>`
       : `<span class="cta disabled" aria-disabled="true"
            title="${esc(LAB_COVERAGE[c.id]?.reason || 'No contract discloses value, megawatts and term together.')}">Not modellable yet</span>`}
-    <a class="cta ghost" href="/compare/?c=${esc(c.ticker)}">Compare with peers</a>
-    <a class="cta ghost" href="#sources">Read the sources</a>
   </div>
+  ${/* TWO ACTIONS, NOT FOUR. This row sat directly under the company name and
+        ahead of any figure, so the reading path landed on choices rather than
+        on the answer the page exists to give.
+
+        Neither link is lost, both are demoted to a quiet line. "Read the
+        sources" was also a straight duplicate — the section nav a few lines
+        below already carries Sources, pointing at the same anchor — and two
+        controls with different labels going to one place makes a reader wonder
+        whether they do different things. */''}
+  <p class="csnaplinks">
+    <a class="press" href="/compare/?c=${esc(c.ticker)}">Compare with peers</a>
+    <a class="press" href="#sources">Every figure and its source</a>
+  </p>
   ${canModel ? '' : `<p class="csnapwhy">${esc(LAB_COVERAGE[c.id]?.reason || '')}</p>`}
 </section>`;
 }
