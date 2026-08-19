@@ -992,7 +992,7 @@ html[data-estimates="off"] [data-estimate] { display: none !important; }
 .mapbtn:hover { border-color: rgba(214, 255, 0, .5); }
 .mapnote {
   font-size: 11.5px; color: var(--dim); line-height: 1.5;
-  margin: 0; padding: var(--s2) var(--s3) var(--s3);
+  margin: 0; padding: var(--s2) var(--s3) var(--s3); max-width: var(--measure);
 }
 /* Only shown where the pin labels are hidden. */
 .taphint { display: none; }
