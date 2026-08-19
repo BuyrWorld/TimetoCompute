@@ -105,15 +105,29 @@ Nothing is deleted; all five carry forward.
 
 Verified defaults, all silent:
 
-| Location | Current | Problem |
-|---|---|---|
-| `src/lib/chainmap.js:78` | `pillar: 'photonics'` | factory default; correct today only because the sole supplier dataset is all-photonics |
-| `src/lib/chainmap.js:271` | `pillar: 'power-cooling'` | on **every operator** node |
-| `src/lib/chainmap.js:293` | `pillar: 'power-cooling'` | on **every customer** node |
+**Fixed in `a5e484a`.** Four silent defaults, one more than the survey found:
 
-Filtering the live graph by `power-cooling` therefore returns six genuine
-power/cooling reference nodes *plus every operator and every customer on the map*.
-`pillar` is required, has no default, and takes `null` where none applies.
+| Location | Was | Now |
+|---|---|---|
+| `chainmap.js:78` | `pillar: 'photonics'` factory default | `null` — a domain claim is never a safe default |
+| `chainmap.js:277` | `'power-cooling'` on **every operator** | `null` |
+| `chainmap.js:299` | `'power-cooling'` on **every customer** | `null` |
+| `chainmap.js:331` | `'power-cooling'` on withheld counterparties | `null` |
+
+Filtering by `power-cooling` returned **20** nodes when 8 are power or cooling.
+Now 8. `photonics` and `hbm-packaging` are unchanged at 8 and 5.
+
+Flipping the default silently dropped `photonics` from 8 to 6 mid-change, because
+`interconnect-deployed` and `interconnect-copper` were riding it. `inputNodes`,
+`componentNodes` and `interconnectNodes` now each declare `'photonics'`
+explicitly. Verified across both architecture modes.
+
+**This also settles the sidebar question.** The map says POWER + COOLING is "Not
+tracked" while drawing eight power and cooling nodes, which looked like a
+contradiction. It is not: all eight are reference tier, and `tracked: false` means
+T2C holds no *sourced supplier record*, not that the nodes are absent. The data is
+right; the wording is the problem. "Not tracked" reads as "not in the chain" when
+it means "no supplier record" — a copy fix for `editorial-voice`, not a data fix.
 
 ---
 
@@ -197,14 +211,20 @@ Gross utility power vs critical IT load stays a **measure** on records, not a no
 ### 6 · Cooling and thermal
 | Node type | Status | Current id |
 |---|---|---|
-| Liquid cooling | BUNDLED — see below | `ref-liquid-cooling` |
+| Direct-to-chip cooling | HAS — split out | `ref-cooling-direct` |
+| Immersion cooling | HAS — split out | `ref-cooling-immersion` |
+| Rear-door heat exchangers | HAS — split out | `ref-cooling-rear-door` |
 | Air cooling | GAP — absent even as a baseline | — |
 | Water consumption vs withdrawal, heat reuse | GAP | — |
 
-⚠ `ref-liquid-cooling` is a single node covering direct-to-chip, immersion and
-rear-door. The buildout-analyst's own error list names *"liquid cooled used as one
-thing"* as a recurring sector mistake, and this is it. Splitting is cheap now and
-expensive once Milestones 2–3 hang records off it.
+✅ **Done ahead of the rebuild.** `ref-liquid-cooling` was a single node covering
+all three, which is the error the buildout-analyst's own list names as *"liquid
+cooled used as one thing"*. Split in `27e553d`, because it was cheap before
+Milestones 2–3 hang records off it and expensive after.
+
+Two of the three carry fewer than the three-or-four examples every other
+reference node has: the four companies on the old node were redistributed and
+none was invented. Sourcing more is research brief 4.
 
 ### 7 · Facility and construction
 | Node type | Status | Current id |
@@ -286,7 +306,7 @@ column. Each needs confirming or overriding.
 | 7 | Merge `CORRIDORS` (4) and `PILLARS` (3)? | **Merge.** One taxonomy; `hbm-packaging` beats `hbm` as the id. |
 | 5 | What may `materials` claim? Its prose names gallium, indium, rare earths, aluminium and concrete; none exist as nodes. | **Change the model, not the prose.** Add them as `structural`. |
 | 9 | Is stage 10 in scope? | **In, mostly `unknown`.** |
-| 6 | Is `pillar: 'power-cooling'` on operators/customers intentional? | **No — a bug.** Fixable independently. |
+| ~~6~~ | ~~Is `pillar: 'power-cooling'` on operators/customers intentional?~~ | **Closed — it was a bug.** Fixed in `a5e484a`; see below. |
 
 **On decision 9, a warning worth recording:** end-application mix is rarely
 disclosed per contract. This will be the emptiest stage on the site, and the

@@ -103,9 +103,9 @@ counterparties are the only ones whose credit is worth stating.
 ### What is wrong today
 
 The only water-related content is "facility water" listed as an input to the
-liquid cooling node in `data/chainreference.js`. There is no coverage of
-withdrawal against consumption, of water rights, or of permitting in
-water-stressed regions.
+direct-to-chip and rear-door cooling nodes in `data/chainreference.js`. There is
+no coverage of withdrawal against consumption, of water rights, or of permitting
+in water-stressed regions.
 
 ### What a reader could conclude wrongly
 
@@ -131,3 +131,53 @@ queue does.
 
 No page currently implies anything false about water. This gap is worth filling
 because the absence will eventually mislead, not because it does today.
+
+---
+
+## 4 · Example makers for the three cooling approaches
+
+**Chain stage** 6 · cooling and thermal
+**Priority** Useful
+
+Raised 19 Aug 2026, when `ref-liquid-cooling` was split into
+`ref-cooling-direct`, `ref-cooling-immersion` and `ref-cooling-rear-door`
+(`27e553d`).
+
+### What is wrong today
+
+Every other reference node in `data/chainreference.js` carries three or four
+example companies. Two of the three cooling nodes carry fewer, because the four
+companies on the node before the split were redistributed and **none was added**.
+Assigning a vendor to a specific cooling approach is a factual claim, and an
+assistant's undated training data is the wrong source for one.
+
+### What a reader could conclude wrongly
+
+That immersion and rear-door cooling are served by a single supplier each, when
+the thin list reflects what T2C has verified rather than how concentrated those
+markets are. A one-name list reads as a market structure claim.
+
+This is also why `src/lib/chainmap.js` now always renders the example **count**
+rather than a bare company name on a reference node — a single name displayed as
+the node's org is indistinguishable from an evidenced supplier record.
+
+### Where it is disclosed
+
+- Vendor product pages and datasheets, which state which approach a product implements
+- OCP (Open Compute Project) cooling working-group materials and member lists
+- Operator RFPs and construction filings naming a cooling vendor for a specific hall
+- Trade-body membership lists for immersion and direct-to-chip specifically
+
+### What the record should contain
+
+- For each of the three nodes, example makers who demonstrably operate in **that
+  approach**, not in liquid cooling generally — the whole point of the split
+- Each name traceable to a document stating which approach it supplies
+- No supplier relationship asserted to any tracked operator unless a document
+  names both parties, per the standing rule that operating in the same market is
+  not evidence of supply
+
+### What would close it
+
+Three or four verified example makers per node, matching the convention every
+other reference node already follows.
