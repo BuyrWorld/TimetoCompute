@@ -43,6 +43,15 @@ body { font-size: 17px; line-height: 1.55; }
 .snaphealth .hbar i{display:block;height:100%;background:var(--ok);border-radius:3px}
 .snapacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
 .cta.small{font-size:12.5px;padding:8px 13px;min-height:44px}
+/* A card-level primary repeats once per card, so the filled lime block lands
+   six times on /companies/ alone. The system spends lime once per viewport, on
+   one primary action — six equal lime blocks is the signal spent six times and
+   therefore not a signal. The outline keeps this the stronger of the card's two
+   actions against the ghost "Compare" beside it, and fills on hover, so the
+   hierarchy inside the card survives while the page stops shouting.
+   Lime on --surface stays above 15:1, so nothing is harder to read. */
+.cta.small.primary{background:transparent;color:var(--brand);border-color:var(--brand)}
+.cta.small.primary:hover{background:var(--brand);color:var(--brand-ink);filter:none}
 .snapcompare[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
 
 /* ---- About / profile ---- */
