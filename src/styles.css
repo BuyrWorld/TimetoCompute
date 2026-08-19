@@ -248,11 +248,11 @@ main{padding:20px 0 0}
 .ledrow .when{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--dim);font-weight:600;line-height:1.4}
 .ledrow .when b{display:block;color:var(--ink);font-weight:700;font-size:12.5px}
 .ledrow .what h4{font-size:13.5px;font-weight:800;margin-bottom:3px}
-.ledrow .what p{font-size:12.5px;color:var(--soft);line-height:1.55}
+.ledrow .what p{font-size:12.5px;color:var(--soft);line-height:1.55;max-width:var(--measure)}
 .ledrow .delta{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:700;white-space:nowrap;text-align:right}
 .ledrow .delta .arrow{color:var(--dim);padding:0 4px}
 .ledmeta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
-.imp{font-size:12px;color:var(--dim);line-height:1.55;margin-top:7px;padding-left:10px;border-left:2px solid var(--line)}
+.imp{font-size:12px;color:var(--dim);line-height:1.55;margin-top:7px;padding-left:10px;border-left:2px solid var(--line);max-width:var(--measure)}
 @media(max-width:720px){.ledrow{grid-template-columns:1fr;gap:8px}.ledrow .delta{text-align:left}}
 
 .empty{padding:30px 20px;text-align:center}
