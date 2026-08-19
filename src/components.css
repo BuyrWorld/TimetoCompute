@@ -31,7 +31,7 @@ details.ev summary::before{content:"\25B8";display:inline-block;transition:trans
 details.ev[open] summary::before{transform:rotate(90deg)}
 details.ev summary:hover{color:var(--ok)}
 .evbody{border-left:2px solid var(--line);padding:9px 0 4px 11px;margin-top:5px}
-.evnote{font-size:12px;color:var(--soft);line-height:1.55;margin-bottom:9px;font-family:'Archivo',sans-serif;text-align:left}
+.evnote{font-size:12px;color:var(--soft);line-height:1.55;margin-bottom:9px;font-family:'Archivo',sans-serif;text-align:left;max-width:var(--measure)}
 .evmeta{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:11px;margin-bottom:9px}
 .evmeta dt{color:var(--dim);font-family:'IBM Plex Mono',monospace}
 .evmeta dd{color:var(--ink);font-family:'Archivo',sans-serif}

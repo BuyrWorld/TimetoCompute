@@ -356,7 +356,7 @@ select{cursor:pointer}
 .big{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-weight:700;font-size:clamp(46px,9vw,74px);line-height:.95;letter-spacing:-.045em}
 .pbar{height:10px;background:var(--surface-3);border-radius:3px;overflow:hidden;margin-top:12px}
 .pbar i{display:block;height:100%;background:var(--ok);transition:width .4s ease}
-.note{font-size:13px;color:var(--soft);line-height:1.6}
+.note{font-size:13px;color:var(--soft);line-height:1.6;max-width:var(--measure)}
 .note b{font-weight:700;color:var(--ink)}
 .steps{counter-reset:s}
 .step{display:grid;grid-template-columns:26px 1fr;gap:12px;padding:13px 0;border-bottom:1px solid var(--line-2)}
