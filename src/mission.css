@@ -137,7 +137,7 @@ html[data-theme="light"] {
 .mhead h2, .mhead h3 {
   font-size: 15px; font-weight: 800; margin: 0; letter-spacing: -.01em;
 }
-.mnote { color: var(--dim); font-size: 13px; margin: var(--s1) 0 0; }
+.mnote { color: var(--dim); font-size: 13px; margin: var(--s1) 0 0; max-width: var(--measure); }
 
 /* ============================================================
    3. Segmented meter — the ▮▮▮▮▯ bar
