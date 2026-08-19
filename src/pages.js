@@ -781,8 +781,14 @@ export function chainBody() {
     <div class="cor-list" role="group" aria-label="Supply-chain corridors">
       ${CORRIDORS.map(c => `<article class="cor-card${c.tracked ? ' is-live' : ' is-gap'}">
         <h3 class="cor-h">${esc(c.label)}</h3>
+        ${/* The count itself is not repeated here. The page head already states
+              how many confirmed relationships exist, and the closing table
+              states it again where it frames the data — a reader meeting the
+              same figure a third time on the way down learns nothing new from
+              it. What a corridor card has to say is whether it is tracked at
+              all, which is the fact that differs between cards. */''}
         <p class="cor-state">${c.tracked
-          ? `<b>${g.counts.confirmed} relationships</b> · all confirmed`
+          ? '<b>Tracked</b> · every relationship confirmed'
           : '<b>Not yet tracked</b> · no records'}</p>
         <p class="cor-plain">${esc(c.plain)}</p>
         ${c.needs ? `<p class="cor-needs">${esc(c.needs)}</p>` : ''}
