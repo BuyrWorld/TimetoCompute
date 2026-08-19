@@ -729,9 +729,20 @@ export function siteBody(site) {
     </div>
 
     <div>
-      ${section('status', 'Site status', '',
-        `${statusLadder(site.path)}
-         ${nextMilestonePanel(site.next)}`)}
+      ${/* The status ladder is no longer drawn here. It rendered the same
+            site.path array as the Path to billing rail above, so the page
+            showed one timeline twice and a reader scanning both had no way to
+            know they could never disagree.
+
+            The rail is the one kept because it carries more, not less: every
+            stage including the undisclosed ones, with more source links, more
+            effective dates, and the note that a stage marked Not disclosed has
+            no gate on record — which is not the same as a stage the site has
+            yet to reach. The ladder's contents were a subset of that.
+
+            What is next has no other home, so it keeps this column and the
+            heading now says what the column is actually for. */''}
+      ${section('status', 'What happens next', '', nextMilestonePanel(site.next))}
 
       ${section('contracts', 'Customer contracts', '', siteContracts(site.contracts))}
 
