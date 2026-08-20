@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  STAGES, STAGE_BY_N, CHAIN_STAGE_BY_ID, NODE_STAGE, stageOfNode
+  CHAIN_STAGES, STAGE_BY_N, CHAIN_STAGE_BY_ID, NODE_STAGE, stageOfNode
 } from '../data/chainstages.js';
 import { REFERENCE_NODES, REFERENCE_EDGES } from '../data/chainreference.js';
 import { chainMap } from '../src/lib/chainmap.js';
@@ -20,19 +20,19 @@ import { COMMERCIAL_STAGES, COMMERCIAL_STAGE_BY_ID } from '../data/chainmap.js';
 import { EXPLAINER_BY_STAGE } from '../data/explainers.js';
 
 test('there are ten stages, numbered 1 to 10 without gaps', () => {
-  assert.equal(STAGES.length, 10);
-  assert.deepEqual(STAGES.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.equal(CHAIN_STAGES.length, 10);
+  assert.deepEqual(CHAIN_STAGES.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 });
 
 test('every stage carries an id, a label and plain English', () => {
-  for (const s of STAGES) {
+  for (const s of CHAIN_STAGES) {
     assert.ok(s.id && s.label && s.plain && s.scope, `stage ${s.n} is missing a field`);
     assert.ok(!/^[A-Z]/.test(s.plain), `stage ${s.n} plain text should not start capitalised`);
   }
 });
 
 test('stage ids and numbers are unique', () => {
-  assert.equal(new Set(STAGES.map(s => s.id)).size, 10);
+  assert.equal(new Set(CHAIN_STAGES.map(s => s.id)).size, 10);
   assert.equal(Object.keys(STAGE_BY_N).length, 10);
   assert.equal(Object.keys(CHAIN_STAGE_BY_ID).length, 10);
 });
@@ -270,4 +270,20 @@ test('the two id spaces do not overlap', () => {
   const overlap = COMMERCIAL_STAGES.map(s => s.id).filter(id => chainIds.has(id));
   assert.deepEqual(overlap, [],
     'a chain stage and a commercial rung share an id');
+});
+
+/**
+ * `STAGES` meant two different things for about a minute during this refactor:
+ * the canonical ten in data/chainstages.js and the homepage seven re-exported
+ * from src/lib/chain.js. That is the STAGE_BY_ID trap again, and it was caught
+ * by reading rather than by a test. This is the test.
+ */
+test('the canonical list and the homepage view are not both called STAGES', () => {
+  assert.notEqual(CHAIN_STAGES.length, HOMEPAGE_STAGES.length,
+    'the two lists happen to be the same length, so this test cannot tell them apart — ' +
+    'check the names are still distinct by hand');
+  assert.ok(CHAIN_STAGES.every(s => typeof s.n === 'number'),
+    'a canonical stage is identified by its number');
+  assert.ok(HOMEPAGE_STAGES.every(s => typeof s.axis === 'string'),
+    'a homepage entry is identified by its axis');
 });

@@ -31,6 +31,7 @@ import { getMeasure, isKnown } from './compute.js';
 import { path as projectPath } from './sites.js';
 import { EXPLAINER_BY_STAGE } from '../../data/explainers.js';
 import { PHOTONICS_SUPPLIERS, EVIDENCE_GRADES } from '../../data/suppliers.js';
+import { CHAIN_VIEW } from '../../data/chainstages.js';
 
 /**
  * Frame colour carries meaning, per the pack: cyan for photonics, lime for
@@ -38,91 +39,9 @@ import { PHOTONICS_SUPPLIERS, EVIDENCE_GRADES } from '../../data/suppliers.js';
  * otherwise. It is never the only signal — every stage also states its status
  * in words.
  */
-/**
- * Two facts per stage, and they are not the same fact:
- *
- *   DID IT HAPPEN?  A data centre that is billing a customer proves that
- *                   materials were mined, wafers were fabbed, chips were
- *                   packaged and optics were installed. You cannot bill for
- *                   compute that was never built. Every stage upstream of an
- *                   evidenced one therefore certainly happened.
- *
- *   DOES T2C TRACK IT?  Separately, and stage by stage. Photonics has supplier
- *                   records; materials, wafers and chips have none. This line
- *                   used to read "Separately: no" for every upstream stage,
- *                   which stopped being true without anyone noticing.
- *
- * Collapsing these into one "not tracked" state made the chain read as though
- * the upstream might not have occurred, which is false. Each stage now carries
- * both, and the interface says both.
- */
-export const STAGES = [
-  {
-    id: 'materials', label: 'Materials', icon: 'materials', asset: 'stage-materials',
-    axis: 'chain', stages: [1],
-    frame: 'amber', tracked: false,
-    plain: 'Copper, substrates, rare earths and steel are mined and refined into the components ' +
-      'everything downstream is built from.',
-    role: 'Miners and refiners sell to component makers.',
-    needs: 'Supplier records with lead times and order status, sourced to primary disclosure.'
-  },
-  {
-    id: 'wafers', label: 'Wafers', icon: 'wafer', asset: 'stage-wafer',
-    axis: 'chain', stages: [2],
-    frame: 'neutral', tracked: false,
-    plain: 'A foundry grows silicon ingots, slices them into wafers and prints circuits onto them, ' +
-      'before they are cut into individual dies.',
-    role: 'Foundries sell fabrication capacity to chip designers.',
-    needs: 'Foundry capacity and allocation records tied to a named product generation.'
-  },
-  {
-    id: 'chips', label: 'Chips + HBM', icon: 'chip', asset: 'stage-chips-hbm',
-    axis: 'chain', stages: [2, 4],
-    frame: 'neutral', tracked: false,
-    plain: 'Dies are packaged with high-bandwidth memory stacked beside them, then assembled into ' +
-      'accelerator boards. This is usually the headline bottleneck.',
-    role: 'Chip designers and memory makers sell accelerators to server builders.',
-    needs: 'Qualification, volume-order and shipment records per supplier and generation.'
-  },
-  {
-    id: 'photonics', label: 'Photonics', icon: 'photonics', asset: 'stage-photonics',
-    axis: 'chain', stages: [3],
-    /* Derived, not declared. See the note at the top of this file: this was
-       `false` while seven sourced supplier records sat behind it. */
-    frame: 'cyan', tracked: PHOTONICS_SUPPLIERS.length > 0,
-    plain: 'Lasers and optical transceivers move data between racks fast enough that thousands of ' +
-      'accelerators behave as one machine.',
-    role: 'Optics makers sell transceivers to network and server builders.',
-    needs: null
-  },
-  {
-    id: 'factory', label: 'AI Factory', icon: 'factory', asset: 'stage-ai-factory',
-    axis: 'chain', stages: [5, 6, 7, 8],
-    frame: 'lime', tracked: true,
-    plain: 'An operator secures power, builds the halls, energises them and installs the equipment. ' +
-      'This takes years and is where most announced capacity stalls.',
-    role: 'Operators sell capacity to the companies training and running models.',
-    needs: null
-  },
-  {
-    id: 'accepted', label: 'Accepted', icon: 'accepted', asset: 'stage-accepted',
-    axis: 'commercial', stages: [], commercialStage: 'accepted',
-    frame: 'lime', tracked: true,
-    plain: 'The customer tests the delivered capacity and formally accepts it under the contract. ' +
-      'Acceptance is the milestone that normally starts the revenue clock.',
-    role: 'The customer signs off; the operator has delivered.',
-    needs: null
-  },
-  {
-    id: 'revenue', label: 'Revenue', icon: 'revenue', asset: 'stage-revenue',
-    axis: 'commercial', stages: [], commercialStage: 'recognised',
-    frame: 'lime', tracked: true,
-    plain: 'Billing begins once the contract\'s conditions are met and the operator discloses it. ' +
-      'Acceptance and billing are different stages and T2C never assumes one proves the other.',
-    role: 'The operator is finally paid for the megawatts.',
-    needs: null
-  }
-];
+/* The homepage compression now lives in the data layer with the rest of the
+   chain vocabulary; this file computes state over it and nothing more. */
+export const STAGES = CHAIN_VIEW;
 
 /** Projects whose path has reached a given stage id. */
 const projectsAt = stageId =>

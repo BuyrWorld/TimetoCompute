@@ -1,334 +1,245 @@
-# Canonical chain model — specification
+# Canonical chain model
 
-Milestone 1 of the chain build. This is the spec, not the implementation. No data
-file is written and no view is refactored until it is signed off.
+Milestone 1 of the chain build. **Complete.** This document was written as a
+spec, and is now a record — building it disproved two of its own claims, and both
+corrections are kept below rather than quietly edited out.
 
 Input: the `buildout-analyst` survey of 19 Aug 2026, which found the chain defined
 in **five** places rather than the three the brief assumed.
 
-**Approved so far:** the axis split (§1). Everything in §7 is still open, and the
-stage list in §4 is written under the provisional answers recorded there.
-
 ---
 
-## 1 · The axis split — APPROVED
+## 1 · The axis split
 
 Three axes. They describe different things and attach to different objects.
 
 | Axis | Describes | Attaches to | Values |
 |---|---|---|---|
-| **Stage** | where it sits, atoms → end users | a node (a product class) | 1–10, per the domain map |
-| **Commercial maturity** | how far one delivery has progressed | a **record** (project / contract) | `capacity` → `qualified` → `ordered` → `shipping` → `accepted` → `recognised` |
+| **Stage** | what kind of thing this is | a node | 1–10 |
+| **Commercial maturity** | how far one delivery has progressed | a **record** | `capacity` → `recognised` |
 | **Coverage** | how well T2C knows this link | a node | `sourced` / `structural` / `unknown` |
 
-The load-bearing consequence: **a product class has no commercial stage.** "HBM
-stack" is never "accepted". A specific operator's site is. Acceptance and revenue
-are facts about deliveries, not positions in a supply chain.
+A product class has no commercial stage. "HBM stack" is never "accepted"; a
+specific operator's site is. So `accepted` and `revenue` left the chain: they are
+commercial states, and the homepage entries reporting them are marked
+`axis: 'commercial'` with no chain position.
 
-### What this changes immediately
+`recognised` won the naming conflict. `src/lib/chain.js` and
+`src/lib/chainmap.js` ran the identical
+`COMPANIES.filter(c => isKnown(getMeasure(c, 'revenueLiveMw')))` under two
+variable names and two ids.
 
-`STAGES` (`src/lib/chain.js:48-105`) currently ends with three hexagons that are
-commercial states wearing chain-position clothing:
+### Correction 1 — a stage is a domain, not a position in a queue
 
-| id | label | actually |
+The spec assumed "atoms to end users" meant stage numbers rise along every edge.
+Four edges run backward against it:
+
+```
+ref-power-semis       (5 power)   -> ref-rack-integration (4 compute)
+ref-cooling-direct    (6 cooling) -> ref-rack-integration (4 compute)
+ref-cooling-immersion (6 cooling) -> ref-rack-integration (4 compute)
+ref-cooling-rear-door (6 cooling) -> ref-rack-integration (4 compute)
+```
+
+Not a numbering mistake. Power and cooling are not a later step than compute —
+they are parallel tracks that converge on the rack, built by different industries
+on different lead times. **Stage answers what kind of thing something is; the
+edges carry the flow.** A `flow` field groups the ten into three tracks
+(`silicon`, `site`, `demand`) so a view can lay them out without inferring order
+from the numbers.
+
+A test pins those four as *expected*. A test asserting numbers always rise would
+be wrong rather than failing.
+
+### Correction 2 — column is not derivable from stage
+
+The spec said the stage list would replace the map's five columns. It cannot.
+Five nodes prove it:
+
+| Node | Column says | Stage says |
 |---|---|---|
-| `factory` | AI Factory | a chain position (stage 7–8) — keep |
-| `accepted` | Accepted | a commercial state — **leaves the chain** |
-| `revenue` | Revenue | a commercial state — **leaves the chain** |
+| `ref-transformers` | components | 5 power |
+| `ref-power-semis` | components | 5 power |
+| `ref-switch-silicon` | systems | 3 photonics |
+| `ref-network-fabric` | systems | 3 photonics |
+| `ref-hbm-die` | inputs | 2 processes |
 
-Consequently:
+A transformer is a component by where it sits in the flow and a power thing by
+what it is. Both true, neither recoverable from the other. The node carries both
+and no mapping is attempted.
 
-- **`recognised` wins over `revenue`.** Verified: `src/lib/chain.js:121` and
-  `src/lib/chainmap.js:748` run the identical query —
-  `COMPANIES.filter(c => isKnown(getMeasure(c, 'revenueLiveMw')))` — under two
-  variable names and two ids. Only the commercial-ladder name survives.
-- **`COMMERCIAL_STAGES` (`data/chainmap.js:209-240`) becomes the sole home of that
-  vocabulary.** Nothing else may define an acceptance or revenue state.
-- The chain map was already right: it keeps `commercialStage` separate from
-  `column`. The homepage was the one conflating them.
+This does not reintroduce the problem the milestone exists to fix. A
+*disagreement* is one fact asserted differently in two files. Two different facts
+on one node in one file is a node with two attributes.
 
 ---
 
 ## 2 · Node schema
 
-Extends the schema in `t2c-build-plan.md` §Milestone 1 with two corrections found
-while surveying the existing data.
+Two corrections to the schema in `t2c-build-plan.md`, both found by reading the
+existing data rather than the plan.
 
-```js
-{
-  id:          'wafer-silicon',        // stable, kebab, no 'ref-' prefix
-  label:       'Silicon wafer',
-  stage:       2,                      // 1–10, canonical
-  pillar:      'hbm-packaging',        // or null — REQUIRED, never defaulted
-  coverage:    'structural',           // sourced | structural | unknown
+**`suppliers` and `examples` are different fields and both survive.** The plan
+listed `suppliers: []` only. Reference nodes already carry `examples: [...]` —
+companies named *without* asserting they supply anyone T2C tracks. Collapsing
+them would manufacture supplier relationships no document supports.
 
-  suppliers:   [],                     // companies T2C holds a SOURCED record for
-  examples:    ['Shin-Etsu Chemical'], // illustrative only — NOT asserted suppliers
-  sources:     [],                     // primary documents; empty unless sourced
+**The plan's `description (plain English, one line)` is thinner than what
+exists.** Reference nodes carry five content fields — `simple`, `technical`,
+`whyItMatters`, `inputs`, `outputs`. Adopting the plan literally would delete
+four.
 
-  upstream:    ['polysilicon'],
-  downstream:  ['litho-tools'],
-
-  simple:      '…',                    // existing field, carried forward
-  technical:   '…',
-  whyItMatters:'…',
-  inputs:      '…',
-  outputs:     '…'
-}
-```
-
-### Correction 1 — `suppliers` and `examples` are not the same field
-
-The build plan lists `suppliers: []` only. The existing reference nodes carry
-`examples: [...]` (`data/chainreference.js:82`), which names companies *without*
-asserting they supply anyone T2C tracks.
-
-Collapsing the two would manufacture supplier relationships that no document
-supports — the exact inference the standing rule forbids: *do not infer that a
-company is a direct supplier merely because it operates in the same market.*
-**Both fields survive, and the distinction must be visible in the UI.**
-
-### Correction 2 — the plan's `description` field is thinner than what exists
-
-The plan specifies `description (plain English, one line)`. Reference nodes today
-carry five content fields: `simple`, `technical`, `whyItMatters`, `inputs`,
-`outputs`. Adopting the plan's schema literally would delete four of them.
-Nothing is deleted; all five carry forward.
-
-### Removed from the node
-
-- **No `commercialStage`.** Per §1, that belongs to records.
-- **No `column`.** The chain map's five columns become a derived view (§5).
-- **No `tracked` boolean.** Replaced by three-state `coverage`.
-
-### `pillar` must be explicit
-
-Verified defaults, all silent:
-
-**Fixed in `a5e484a`.** Four silent defaults, one more than the survey found:
-
-| Location | Was | Now |
-|---|---|---|
-| `chainmap.js:78` | `pillar: 'photonics'` factory default | `null` — a domain claim is never a safe default |
-| `chainmap.js:277` | `'power-cooling'` on **every operator** | `null` |
-| `chainmap.js:299` | `'power-cooling'` on **every customer** | `null` |
-| `chainmap.js:331` | `'power-cooling'` on withheld counterparties | `null` |
-
-Filtering by `power-cooling` returned **20** nodes when 8 are power or cooling.
-Now 8. `photonics` and `hbm-packaging` are unchanged at 8 and 5.
-
-Flipping the default silently dropped `photonics` from 8 to 6 mid-change, because
-`interconnect-deployed` and `interconnect-copper` were riding it. `inputNodes`,
-`componentNodes` and `interconnectNodes` now each declare `'photonics'`
-explicitly. Verified across both architecture modes.
-
-**This also settles the sidebar question.** The map says POWER + COOLING is "Not
-tracked" while drawing eight power and cooling nodes, which looked like a
-contradiction. It is not: all eight are reference tier, and `tracked: false` means
-T2C holds no *sourced supplier record*, not that the nodes are absent. The data is
-right; the wording is the problem. "Not tracked" reads as "not in the chain" when
-it means "no supplier record" — a copy fix for `editorial-voice`, not a data fix.
+**`pillar` is required with no default.** Four silent defaults were found, one
+more than the survey reported: the `node()` factory defaulted every node to
+`photonics`, and operators, customers and the withheld-counterparties node were
+each stamped `power-cooling`. Filtering by POWER + COOLING returned 20 nodes when
+8 are power or cooling.
 
 ---
 
 ## 3 · Coverage states
 
-From `t2c-build-plan.md`. Restated because the stage list depends on it.
-
 | State | Meaning | Shown as |
 |---|---|---|
 | `sourced` | A primary document names this and T2C holds it | Solid, full colour |
-| `structural` | Genuinely part of the chain; T2C has no supplier record | Solid outline, muted, labelled |
+| `structural` | Genuinely part of the chain; no supplier record | Solid outline, muted, labelled |
 | `unknown` | T2C cannot yet confirm the shape of this link | Dashed, labelled |
 
-**A `structural` node is present and correct. It is not a gap**, and must never be
-rendered as an absence or an error.
+**A `structural` node is present and correct. It is not a gap.**
 
 ---
 
-## 4 · The canonical stage list
+## 4 · The ten stages
 
-Ten stages, keyed to the buildout-analyst domain map. Node types are **product
-classes, never companies** — the rule `data/chainreference.js` already declares.
+Node types are product classes, never companies. `BUNDLED` means one node covers
+several types that may want splitting; `GAP` means nothing exists anywhere.
 
-Status is against all five current definitions. `HAS` means a node exists;
-`BUNDLED` means one node covers several types that may need splitting; `GAP`
-means nothing anywhere.
+| # | Stage | Has | Gaps |
+|---|---|---|---|
+| 1 | Raw materials | InP/GaAs substrate, silicon wafer, copper, electrical steel | rare earths, helium, ultrapure water, refrigerants |
+| 2 | Specialty processes | litho/etch/deposition (BUNDLED), advanced packaging (BUNDLED), wafer growth (BUNDLED) | epitaxy, test and burn-in |
+| 3 | Photonics | CW lasers, EMLs, pluggable vs CPO, fibre, copper DAC, switch silicon | modulators/DSPs/retimers as types, optical circuit switching |
+| 4 | Compute | accelerators (BUNDLED), HBM stacks, rack integration (BUNDLED), network fabric | CPUs |
+| 5 | Power | grid interconnection, transformers, power semiconductors | behind-the-meter generation, curtailment |
+| 6 | Cooling | **direct-to-chip, immersion, rear-door — split in `27e553d`** | air cooling, water metrics, heat reuse |
+| 7 | Facility | shell/fit-out (BUNDLED) | land and permitting, commissioning |
+| 8 | Operators | `operator-*` nodes | powered-shell vs full-stack as a node distinction |
+| 9 | Buyers | `customer-*` plus `customer-withheld` | buyer categories, contract types |
+| 10 | End applications | — | everything; rarely disclosed per contract |
 
-### 1 · Raw materials and inputs
-| Node type | Status | Current id |
-|---|---|---|
-| InP / GaAs substrate | HAS | `input-axt` ⚠ company-derived |
-| Polysilicon / silicon wafer | HAS | `ref-silicon-wafer` |
-| Refined copper | HAS | `ref-copper` |
-| Grain-oriented electrical steel | HAS | `ref-electrical-steel` |
-| Rare earths | GAP | — |
-| Helium | GAP | — |
-| Ultrapure water | GAP | — |
-| Refrigerants / dielectric fluids | GAP | — |
-
-### 2 · Specialty processes
-| Node type | Status | Current id |
-|---|---|---|
-| Wafer growth / slicing | BUNDLED | `ref-silicon-wafer` |
-| Epitaxy | GAP | — |
-| Lithography / etch / deposition | BUNDLED (3 types, 1 node) | `ref-litho-tools` |
-| Advanced packaging | BUNDLED (2.5D / hybrid bond / panel) | `ref-advanced-packaging` |
-| Test and burn-in | GAP | — |
-
-### 3 · Photonics and interconnect
-| Node type | Status | Current id |
-|---|---|---|
-| CW lasers | HAS | `component-cw-laser` |
-| EMLs | HAS | `component-eml` |
-| Modulators / drivers / DSPs / retimers | GAP as node types | — |
-| Pluggable vs co-packaged optics | HAS | `interconnect-deployed`, `interconnect-next` |
-| Fibre | HAS | `component-optical-fibre` |
-| Copper DAC / AEC | HAS | `interconnect-copper` |
-| Switch silicon | HAS | `ref-switch-silicon` |
-| Optical circuit switching | GAP | — |
-
-### 4 · Compute silicon and systems
-| Node type | Status | Current id |
-|---|---|---|
-| GPUs / custom accelerators | BUNDLED | `ref-accelerator` |
-| CPUs | GAP | — |
-| HBM stacks | HAS | `ref-hbm-stack` |
-| Rack-scale systems | BUNDLED (no scale-up/scale-out split) | `ref-rack-integration` |
-| Network fabric | HAS | `ref-network-fabric` |
-
-### 5 · Power
-| Node type | Status | Current id |
-|---|---|---|
-| Grid interconnection / queue position | HAS — chain map only | `ref-grid` |
-| Transformers / switchgear | HAS | `ref-transformers` |
-| Power semiconductors | HAS | `ref-power-semis` |
-| Behind-the-meter generation, turbines, fuel cells | GAP | — |
-| Curtailment / demand response | GAP | — |
-
-Gross utility power vs critical IT load stays a **measure** on records, not a node.
-
-### 6 · Cooling and thermal
-| Node type | Status | Current id |
-|---|---|---|
-| Direct-to-chip cooling | HAS — split out | `ref-cooling-direct` |
-| Immersion cooling | HAS — split out | `ref-cooling-immersion` |
-| Rear-door heat exchangers | HAS — split out | `ref-cooling-rear-door` |
-| Air cooling | GAP — absent even as a baseline | — |
-| Water consumption vs withdrawal, heat reuse | GAP | — |
-
-✅ **Done ahead of the rebuild.** `ref-liquid-cooling` was a single node covering
-all three, which is the error the buildout-analyst's own list names as *"liquid
-cooled used as one thing"*. Split in `27e553d`, because it was cheap before
-Milestones 2–3 hang records off it and expensive after.
-
-Two of the three carry fewer than the three-or-four examples every other
-reference node has: the four companies on the old node were redistributed and
-none was invented. Sourcing more is research brief 4.
-
-### 7 · Facility and construction
-| Node type | Status | Current id |
-|---|---|---|
-| Shell / powered shell / turnkey fit-out | BUNDLED | `ref-construction` |
-| Land, zoning, permitting | GAP | — |
-| Commissioning / integrated systems testing | GAP — in prose only | — |
-
-### 8 · Operators
-Evidenced `operator-*` nodes, one per tracked company. **No node-type distinction
-between powered-shell and full-stack**, or between lease structures — that lives
-in `data/companies.js`, outside the chain model. Given the standing rule that
-per-megawatt figures must state the business model, this distinction should be
-reachable from the chain, not only from the company record.
-
-### 9 · Compute buyers
-Evidenced `customer-*` nodes plus `customer-withheld`. No buyer-category
-distinction (frontier lab / hyperscaler internal / enterprise / government), and
-no reserved / on-demand / spot distinction.
-
-### 10 · End applications
-**GAP entirely.** Nothing models end use anywhere; the chain stops at a customer
-accepting capacity. Provisionally in scope (§7, decision 9) — see the warning
-recorded there.
+Stage 6 was one node, `ref-liquid-cooling`, which is the error the
+buildout-analyst's own list names as *"liquid cooled used as one thing"*. Split
+before Milestones 2–3 hang records off it. Two of the three carry fewer than the
+usual three-or-four examples because the four companies on the old node were
+redistributed and **none was invented** — that is research brief 4.
 
 ---
 
 ## 5 · Derived views
 
-**No view may define a node.** Each is a grouping declared once, over the
-canonical list.
+**No view defines the chain any more.**
 
-| View | Today | Becomes |
+| View | Was | Is |
 |---|---|---|
-| Homepage hexagon row | `STAGES`, 7 items, own definition | a coarse grouping over stages 1–8 |
-| Homepage "what happens at each stage" | same `STAGES` object | same grouping, second renderer |
-| `/chain/` hexagon track | same `STAGES` again | same grouping, third renderer |
-| Chain map columns | `COLUMNS`, 5, own definition | a grouping over stages 1–10 |
-| Chain map pillars | `PILLARS`, 3 | one taxonomy — see decision 7 |
-| `/chain/` corridors | `CORRIDORS`, 4 | merged into the same taxonomy |
+| Homepage hexagons | `STAGES`, own definition | `CHAIN_VIEW`, a declared compression |
+| Homepage "what happens at each stage" | same object | same, second renderer |
+| `/chain/` hexagon track | same object again | same, third renderer |
+| `/chain/` corridors | `CORRIDORS`, own array | the one taxonomy |
+| Map pillars | `PILLARS`, own array | `MAP_PILLARS`, filtered from it |
+| Map columns | `COLUMNS` | unchanged — an independent axis, per correction 2 |
 
-The homepage's 7 hexagons cannot map onto the map's 5 columns: `wafers`, `chips`
-and `photonics` each span 2–3 columns simultaneously. That is not a bug to
-reconcile — it is why both must become groupings over a finer list rather than
-two lists pretending to be the same one.
+The homepage compression, with the canonical stages each hexagon covers:
 
----
+```
+materials [1]   wafers [2]   chips [2,4]   photonics [3]   factory [5,6,7,8]
+accepted  → commercial rung 'accepted'      (no chain position)
+revenue   → commercial rung 'recognised'    (no chain position)
+```
 
-## 6 · What gets deleted
-
-Nothing is deleted until its replacement renders. Then:
-
-- `STAGES` and `chainState()` — `src/lib/chain.js:48-105`, `:118`
-- `COLUMNS` — `data/chainmap.js:26-47`
-- `REFERENCE_NODES` — `data/chainreference.js:77-276` (content migrates, shape changes)
-- `CORRIDORS` — `src/lib/corridor.js:39-59`
-- the `tracked` boolean everywhere, replaced by `coverage`
-
-**Rename before deleting:** two unrelated exports are both called `STAGE_BY_ID` —
-`data/explainers.js:400` (keyed by `STAGES` ids) and `data/chainmap.js:242` (keyed
-by `COMMERCIAL_STAGES` ids). Disjoint id spaces, same name, two files. Today's
-imports are correct; a future one will not be.
-
-**Check before deleting:** `STAGE_EXPLAINERS` (`data/explainers.js:30-245`) has 7
-entries whose `stageId` matches `STAGES` 1:1, and their URL slugs already differ
-from their ids (`chips` → `chips-hbm`, `factory` → `ai-factory`). Those URLs are
-live and must not break.
+Groups overlap — `chips` draws on 2 and 4 — because compressing ten domains into
+five hexagons is lossy by nature. A test asserts stages 1–8 are each covered.
 
 ---
 
-## 7 · Still open
+## 6 · Three contradictions found, all about the same fact
 
-The stage list above is written under the provisional answers in the right-hand
-column. Each needs confirming or overriding.
+Every one was **whether T2C tracks photonics**, and every one said no while seven
+sourced photonics supplier records sat in `data/suppliers.js` — one of them the
+AXT to Lumentum agreement, the only named company-to-company supply agreement on
+the site.
 
-| # | Decision | Provisional |
+| Where | Said | Fixed in |
 |---|---|---|
-| 4 | A stage spanning 2–3 map columns: one node or several? | **Several.** Canonical holds fine-grained nodes; views compress. |
-| 7 | Merge `CORRIDORS` (4) and `PILLARS` (3)? | **Merge.** One taxonomy; `hbm-packaging` beats `hbm` as the id. |
-| 5 | What may `materials` claim? Its prose names gallium, indium, rare earths, aluminium and concrete; none exist as nodes. | **Change the model, not the prose.** Add them as `structural`. |
-| 9 | Is stage 10 in scope? | **In, mostly `unknown`.** |
-| ~~6~~ | ~~Is `pillar: 'power-cooling'` on operators/customers intentional?~~ | **Closed — it was a bug.** Fixed in `a5e484a`; see below. |
+| `CORRIDORS` on `/chain/` | `tracked: false`, rendered as a gap | `7fedb0a` |
+| `src/lib/chain.js` header | "nothing at all about … photonics. Not thin data: none." | `182fdcf` |
+| `STAGES` photonics entry | `tracked: false`, count "no sourced records yet" | `182fdcf` |
 
-**On decision 9, a warning worth recording:** end-application mix is rarely
-disclosed per contract. This will be the emptiest stage on the site, and the
-temptation to infer "this capacity is for training" from a customer's identity
-will be constant. That inference is precisely what the standing rules forbid.
-Omitting the stage is also a claim — that the chain ends at revenue — which is
-why the provisional answer is to include it and let it be honestly empty.
+The homepage now reads **7 suppliers · 2 with a confirmed award**, and coverage
+went 3 of 7 stages to 4 of 7. The count separates confirmed awards from
+capability records, because four of the seven evidence only that a company makes
+the part and nothing about who it sells to.
+
+**Six more places were pinning those wrong answers in place rather than catching
+them:** the coverage note's prose hardcoded the untracked list, two tests in
+`shell.test.js`, one in `explainers.test.js`, `scripts/audit.js` and
+`scripts/interact.js` all asserted "3 evidenced, 4 implied". The QA harness was
+enforcing the bug. All now derive from `chainState()`.
 
 ---
 
-## 8 · Verification before Milestone 1 is committed
+## 7 · Naming
 
-From the build plan, plus what the survey implies:
+Two exports were both called `STAGE_BY_ID`, in different files, over disjoint id
+spaces — chain stages in `data/explainers.js`, commercial rungs in
+`data/chainmap.js`. Six imports, all correct, and nothing would have failed if
+one had not been: a wrong import returns `undefined` and renders a stage with no
+explainer, silently.
 
-1. The homepage chain and the chain map render from the same source and produce
-   consistent node counts. If they cannot, say why rather than working around it.
-2. No file outside the canonical data file defines a chain node.
-3. Every node has an explicit `pillar` — no node inherits a default.
-4. `suppliers` and `examples` are never merged in rendering.
-5. No node carries a `commercialStage`.
-6. Every live URL under `/explainers/` and `/what-is/` still resolves.
-7. `npm test`, audit, anchors, overflow, interact all pass.
+```
+STAGE_BY_ID (explainers) -> EXPLAINER_BY_STAGE
+STAGE_BY_ID (chainmap)   -> COMMERCIAL_STAGE_BY_ID
+```
 
-Node descriptions are written in the build step, not here: the plan requires the
-`editorial-voice` skill be loaded before any is drafted.
+The same trap reappeared minutes later when the homepage compression moved into
+the data layer: `STAGES` briefly meant the canonical ten in `data/chainstages.js`
+and the homepage seven re-exported from `src/lib/chain.js`. Caught by reading,
+not by a test — so the canonical list is now `CHAIN_STAGES` and there is a test.
+
+---
+
+## 8 · Decisions
+
+| # | Decision | Outcome |
+|---|---|---|
+| 1 | `revenue` vs `recognised` | `recognised`. Closed by the axis split. |
+| 2 | `hbm` vs `hbm-packaging` | `hbm-packaging`. Closed by the taxonomy merge. |
+| 3 | One axis or two | **Three.** Approved, implemented. |
+| 4 | A stage spanning columns: one node or several | **Several.** Canonical holds fine-grained nodes; views compress. |
+| 6 | Is `pillar: 'power-cooling'` on operators intentional | **No — a bug.** Fixed. |
+| 7 | Merge corridors and pillars | **Merged**, and it exposed a live contradiction. |
+| 8 | Are the six commercial rungs authoritative | **Yes**, and the only home for that vocabulary. |
+| 9 | Is stage 10 in scope | **In**, and honestly empty. |
+
+**Still open — 5 · what `materials` may claim.** Its prose names gallium, indium,
+rare earths, aluminium and concrete; none exist as nodes. The answer is to change
+the model rather than the prose — those *are* inputs, and the node list is
+incomplete. Adding them is Milestone 2's job ("add every node structurally, then
+source them over time"), not a fix to make here.
+
+---
+
+## 9 · Verification
+
+Run against the checklist in `t2c-build-plan.md`:
+
+1. ✅ Homepage and map resolve every node through the same `stageOfNode`. The
+   homepage covers canonical stages 1–8; the map draws nodes at 1–9. Stage 9 is
+   buyers, which the homepage reports through the commercial tail rather than as
+   a hexagon — correct per the axis split, not a mismatch.
+2. ✅ No reference node carries a `commercialStage`.
+3. ✅ Every node has an explicit `pillar`; no node inherits a default.
+4. ✅ Every reference node declares a stage.
+5. ✅ `suppliers` and `examples` are never merged in rendering.
+6. ✅ 488 unit tests, audit, anchors, overflow, 171/171 interaction checks.
+
+Tests went 461 → 488 across the milestone.
