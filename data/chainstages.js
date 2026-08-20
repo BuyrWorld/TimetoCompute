@@ -39,6 +39,8 @@
  * link, and is a separate field on the node.
  */
 
+import { REFERENCE_NODES } from './chainreference.js';
+
 /**
  * The ten stages.
  *
@@ -117,37 +119,15 @@ export const CHAIN_STAGE_BY_ID = Object.fromEntries(STAGES.map(s => [s.id, s]));
 /**
  * Where each reference node sits.
  *
- * Kept as a map rather than a field on the node so this commit adds a stage
- * without rewriting data/chainreference.js underneath the views that still read
- * its `column` field. The field moves onto the node when the views are
- * refactored; until then both must agree, and a test asserts they do.
+ * Read from the nodes themselves rather than kept as a second list here. It was
+ * a map in the first increment, which meant two places had to agree about the
+ * same fact — the exact shape of the problem this milestone exists to remove,
+ * reintroduced in miniature. The stage now lives on the node, and this is a
+ * lookup over it rather than a copy of it.
  */
-export const NODE_STAGE = {
-  'ref-silicon-wafer': 1,
-  'ref-copper': 1,
-  'ref-electrical-steel': 1,
-
-  'ref-hbm-die': 2,
-  'ref-hbm-stack': 2,
-  'ref-advanced-packaging': 2,
-  'ref-litho-tools': 2,
-
-  'ref-switch-silicon': 3,
-  'ref-network-fabric': 3,
-
-  'ref-accelerator': 4,
-  'ref-rack-integration': 4,
-
-  'ref-power-semis': 5,
-  'ref-transformers': 5,
-  'ref-grid': 5,
-
-  'ref-cooling-direct': 6,
-  'ref-cooling-immersion': 6,
-  'ref-cooling-rear-door': 6,
-
-  'ref-construction': 7
-};
+export const NODE_STAGE = Object.fromEntries(
+  REFERENCE_NODES.map(n => [n.id, n.stage])
+);
 
 /**
  * Evidenced nodes are derived from records rather than declared, so they are

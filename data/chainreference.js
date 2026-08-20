@@ -77,7 +77,7 @@ export const TIERS = {
 export const REFERENCE_NODES = [
   /* ---------------------------------------------------------------- inputs -- */
   {
-    id: 'ref-silicon-wafer', column: 'inputs', pillar: 'hbm-packaging',
+    id: 'ref-silicon-wafer', stage: 1, column: 'inputs', pillar: 'hbm-packaging',
     title: 'Silicon wafer',
     examples: ['Shin-Etsu Chemical', 'SUMCO', 'GlobalWafers'],
     simple: 'the polished disc every logic and memory chip is built on',
@@ -89,7 +89,7 @@ export const REFERENCE_NODES = [
     outputs: 'Blank wafers for logic, memory and power devices.'
   },
   {
-    id: 'ref-hbm-die', column: 'inputs', pillar: 'hbm-packaging',
+    id: 'ref-hbm-die', stage: 2, column: 'inputs', pillar: 'hbm-packaging',
     title: 'DRAM die',
     examples: ['SK hynix', 'Samsung Electronics', 'Micron Technology'],
     simple: 'the memory chips that get stacked into a high-bandwidth package',
@@ -101,7 +101,7 @@ export const REFERENCE_NODES = [
     outputs: 'Thinned, testable dies ready to stack.'
   },
   {
-    id: 'ref-electrical-steel', column: 'inputs', pillar: 'power-cooling',
+    id: 'ref-electrical-steel', stage: 1, column: 'inputs', pillar: 'power-cooling',
     title: 'Grain-oriented steel',
     examples: ['Nippon Steel', 'JFE Steel', 'ArcelorMittal'],
     simple: 'the specialised steel a transformer core is wound from',
@@ -113,7 +113,7 @@ export const REFERENCE_NODES = [
     outputs: 'Laminations for transformer and switchgear cores.'
   },
   {
-    id: 'ref-copper', column: 'inputs', pillar: 'power-cooling',
+    id: 'ref-copper', stage: 1, column: 'inputs', pillar: 'power-cooling',
     title: 'Refined copper',
     examples: ['Aurubis', 'Mitsui Mining & Smelting', 'Furukawa Electric'],
     simple: 'the metal that carries both power and short-reach data',
@@ -126,7 +126,7 @@ export const REFERENCE_NODES = [
 
   /* ------------------------------------------------------------ components -- */
   {
-    id: 'ref-hbm-stack', column: 'components', pillar: 'hbm-packaging',
+    id: 'ref-hbm-stack', stage: 2, column: 'components', pillar: 'hbm-packaging',
     title: 'HBM stack',
     examples: ['SK hynix', 'Samsung Electronics', 'Micron Technology'],
     simple: 'a tower of memory chips bonded into one very fast package',
@@ -138,7 +138,7 @@ export const REFERENCE_NODES = [
     outputs: 'A finished memory cube for co-packaging with logic.'
   },
   {
-    id: 'ref-advanced-packaging', column: 'components', pillar: 'hbm-packaging',
+    id: 'ref-advanced-packaging', stage: 2, column: 'components', pillar: 'hbm-packaging',
     title: 'Advanced packaging',
     examples: ['TSMC', 'Amkor Technology', 'ASE Technology'],
     simple: 'bonding the processor and its memory onto one substrate',
@@ -150,7 +150,7 @@ export const REFERENCE_NODES = [
     outputs: 'A complete accelerator package.'
   },
   {
-    id: 'ref-litho-tools', column: 'components', pillar: 'hbm-packaging',
+    id: 'ref-litho-tools', stage: 2, column: 'components', pillar: 'hbm-packaging',
     title: 'Lithography tools',
     examples: ['ASML', 'Applied Materials', 'Tokyo Electron'],
     simple: 'the machines that print the circuits in the first place',
@@ -162,7 +162,7 @@ export const REFERENCE_NODES = [
     outputs: 'Installed fab capacity.'
   },
   {
-    id: 'ref-power-semis', column: 'components', pillar: 'power-cooling',
+    id: 'ref-power-semis', stage: 5, column: 'components', pillar: 'power-cooling',
     title: 'Power semiconductors',
     examples: ['onsemi', 'Infineon Technologies', 'Navitas Semiconductor'],
     simple: 'the devices that step facility power down to what a chip can drink',
@@ -174,7 +174,7 @@ export const REFERENCE_NODES = [
     outputs: 'Rack and shelf power conversion.'
   },
   {
-    id: 'ref-transformers', column: 'components', pillar: 'power-cooling',
+    id: 'ref-transformers', stage: 5, column: 'components', pillar: 'power-cooling',
     title: 'Transformers & switchgear',
     examples: ['Eaton', 'Schneider Electric', 'Hitachi Energy'],
     simple: 'the kit that turns grid voltage into hall voltage safely',
@@ -188,7 +188,7 @@ export const REFERENCE_NODES = [
 
   /* --------------------------------------------------------------- systems -- */
   {
-    id: 'ref-accelerator', column: 'systems', pillar: null,
+    id: 'ref-accelerator', stage: 4, column: 'systems', pillar: null,
     title: 'AI accelerator',
     examples: ['NVIDIA', 'AMD', 'Broadcom (custom silicon)'],
     simple: 'the processor everything else in this chain exists to feed',
@@ -200,7 +200,7 @@ export const REFERENCE_NODES = [
     outputs: 'Compute modules for rack integration.'
   },
   {
-    id: 'ref-switch-silicon', column: 'systems', pillar: 'photonics',
+    id: 'ref-switch-silicon', stage: 3, column: 'systems', pillar: 'photonics',
     title: 'Switch silicon',
     examples: ['Broadcom', 'Marvell Technology', 'Cisco Systems'],
     simple: 'the chip inside a switch that moves the traffic',
@@ -212,7 +212,7 @@ export const REFERENCE_NODES = [
     outputs: 'The switching layer of the fabric.'
   },
   {
-    id: 'ref-network-fabric', column: 'systems', pillar: 'photonics',
+    id: 'ref-network-fabric', stage: 3, column: 'systems', pillar: 'photonics',
     title: 'Network fabric',
     examples: ['Arista Networks', 'Cisco Systems', 'NVIDIA (networking)'],
     simple: 'the switches and cabling that make thousands of chips act as one machine',
@@ -224,7 +224,7 @@ export const REFERENCE_NODES = [
     outputs: 'A cluster that behaves as one computer.'
   },
   {
-    id: 'ref-rack-integration', column: 'systems', pillar: null,
+    id: 'ref-rack-integration', stage: 4, column: 'systems', pillar: null,
     title: 'Server & rack integration',
     examples: ['Dell Technologies', 'Super Micro Computer', 'Hon Hai (Foxconn)', 'Quanta Computer'],
     simple: 'assembling chips, memory, power and plumbing into a rack that ships',
@@ -245,7 +245,7 @@ export const REFERENCE_NODES = [
        before the split, redistributed. None was added: assigning a vendor to a
        cooling type is a factual claim, and the ones kept are the associations
        that define those companies rather than a reading of a current market. */
-    id: 'ref-cooling-direct', column: 'systems', pillar: 'power-cooling',
+    id: 'ref-cooling-direct', stage: 6, column: 'systems', pillar: 'power-cooling',
     title: 'Direct-to-chip cooling',
     examples: ['CoolIT Systems', 'Boyd'],
     simple: 'fluid piped to a metal plate sitting on the hot chip',
@@ -257,7 +257,7 @@ export const REFERENCE_NODES = [
     outputs: 'Heat moved off the processor and into the facility loop.'
   },
   {
-    id: 'ref-cooling-immersion', column: 'systems', pillar: 'power-cooling',
+    id: 'ref-cooling-immersion', stage: 6, column: 'systems', pillar: 'power-cooling',
     title: 'Immersion cooling',
     examples: ['LiquidStack'],
     simple: 'the whole server sits in a bath of fluid that does not conduct electricity',
@@ -269,7 +269,7 @@ export const REFERENCE_NODES = [
     outputs: 'Thermal headroom without a fan in the server.'
   },
   {
-    id: 'ref-cooling-rear-door', column: 'systems', pillar: 'power-cooling',
+    id: 'ref-cooling-rear-door', stage: 6, column: 'systems', pillar: 'power-cooling',
     title: 'Rear-door heat exchangers',
     examples: ['Vertiv'],
     simple: 'a radiator bolted to the back of the rack',
@@ -283,7 +283,7 @@ export const REFERENCE_NODES = [
 
   /* -------------------------------------------------------- infrastructure -- */
   {
-    id: 'ref-grid', column: 'infrastructure', pillar: 'power-cooling',
+    id: 'ref-grid', stage: 5, column: 'infrastructure', pillar: 'power-cooling',
     title: 'Grid interconnection',
     examples: ['Vistra', 'Constellation Energy', 'Talen Energy'],
     simple: 'getting the utility to actually deliver the power',
@@ -295,7 +295,7 @@ export const REFERENCE_NODES = [
     outputs: 'Energised megawatts at the fence.'
   },
   {
-    id: 'ref-construction', column: 'infrastructure', pillar: null,
+    id: 'ref-construction', stage: 7, column: 'infrastructure', pillar: null,
     title: 'Build & fit-out',
     examples: ['Turner Construction', 'DPR Construction', 'Holder Construction'],
     simple: 'the shell, the halls and everything bolted into them',

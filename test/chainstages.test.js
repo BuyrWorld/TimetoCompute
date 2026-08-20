@@ -43,6 +43,25 @@ test('no stage is assigned to a node that does not exist', () => {
   assert.deepEqual(orphans, [], 'a stage entry outlived its node');
 });
 
+/**
+ * The stage lives on the node now. NODE_STAGE is a lookup over the nodes rather
+ * than a second list, so an omission can no longer be caught by the two
+ * disagreeing — nothing would disagree, and the node would simply have no stage.
+ * This is the test that catches it instead.
+ */
+test('every reference node declares its own stage', () => {
+  const undeclared = REFERENCE_NODES
+    .filter(n => typeof n.stage !== 'number')
+    .map(n => n.id);
+  assert.deepEqual(undeclared, [], 'a node reached the chain without a stage');
+});
+
+test('a node stage is always a real stage number', () => {
+  for (const n of REFERENCE_NODES) {
+    assert.ok(STAGE_BY_N[n.stage], `${n.id} claims stage ${n.stage}, which does not exist`);
+  }
+});
+
 test('every stage number used is a real stage', () => {
   for (const [id, n] of Object.entries(NODE_STAGE)) {
     assert.ok(STAGE_BY_N[n], `${id} claims stage ${n}, which does not exist`);
