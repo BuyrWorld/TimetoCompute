@@ -242,11 +242,15 @@ export function chainStageGuide(stages) {
  * doubt, which is false.
  */
 export function chainCoverageNote(cov) {
+  /* The untracked count is derived, never listed here. This sentence used to
+     name "materials, wafers, chips and optics" as the untracked stages and went
+     on saying it after photonics gained seven supplier records — the copy was a
+     second, stale copy of a fact the data already held. */
   return `<p class="cn-coverage">
     Every megawatt now billing depended on materials, wafers, chips and optics that were
     <b>certainly made</b> — you cannot bill for compute that was never built. T2C tracks
-    <span class="cn-covfig">${cov.tracked} of ${cov.total}</span> stages, the delivery end,
-    where it holds sourced records naming who did what. The upstream stages are shown as
+    <span class="cn-covfig">${cov.tracked} of ${cov.total}</span> stages, where it holds
+    sourced records naming who did what. The other ${cov.untracked.length} are shown as
     completed but untracked: no supplier, order or shipment record sits behind them.
     <a class="press" href="/methodology/#chain">What it would take to track them</a>
   </p>`;

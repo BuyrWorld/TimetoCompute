@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { chainState, STAGES } from '../src/lib/chain.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const OUT = path.join(ROOT, 'dist');
@@ -156,12 +157,16 @@ const chainNodes = (home.match(/class="cn-node/g) || []).length;
 if (chainNodes !== 7) fail(`homepage chain has ${chainNodes} stages; the model has 7`);
 // A stage upstream of an evidenced one certainly happened. Drawing it as unknown
 // would say the opposite, so the two facts are asserted separately.
-if ((home.match(/>Happened</g) || []).length < 4) fail('implied stages do not say they happened');
-if ((home.match(/Not tracked by T2C/g) || []).length < 4) {
+// Counts derived from the model, never written here: these read < 4 while the
+// model said 4 implied, then silently pinned the page to a stale fact when
+// photonics gained supplier records and the implied count fell to 3.
+const impliedCount = chainState().filter(s => s.happened === 'implied').length;
+if ((home.match(/>Happened</g) || []).length < impliedCount) fail('implied stages do not say they happened');
+if ((home.match(/Not tracked by T2C/g) || []).length < impliedCount) {
   fail('implied stages do not say T2C fails to track them');
 }
 const guideItems = (home.match(/class="cn-guideitem /g) || []).length;
-if (guideItems !== 7) fail(`homepage explains ${guideItems} chain stages; the model has 7`);
+if (guideItems !== STAGES.length) fail(`homepage explains ${guideItems} chain stages; the model has ${STAGES.length}`);
 // Nothing above the fold may load eagerly except a genuine LCP image.
 const eagerImgs = (home.match(/loading="eager"/g) || []).length;
 if (eagerImgs > 1) fail(`homepage has ${eagerImgs} eagerly-loaded images; at most 1 is allowed`);

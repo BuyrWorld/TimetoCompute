@@ -232,17 +232,25 @@ test('the homepage answers its questions in order', () => {
 
 /* ================= the supply chain ================= */
 
-test('the chain shows all seven stages and marks which are evidenced', () => {
+test('the chain shows every stage and marks which are evidenced', () => {
+  /* Counts are derived from chainState, never written here. This test used to
+     assert 3 evidenced and 4 implied, which was correct until photonics gained
+     supplier records and then quietly pinned the page to a stale fact — the test
+     was holding the bug in place rather than catching it. */
+  const st = chainState();
+  const evidenced = st.filter(s => s.happened === 'evidenced').length;
+  const implied = st.filter(s => s.happened === 'implied').length;
+
   for (const r of ['index.html', 'chain/index.html']) {
     const html = read(r);
     const nodes = [...html.matchAll(/class="cn-node([^"]*)"/g)].map(m => m[1]);
-    assert.equal(nodes.length, 7, `${r} has ${nodes.length} chain stages, expected 7`);
-    assert.equal(nodes.filter(n => n.includes('is-evidenced')).length, 3,
-      `${r} does not mark exactly 3 evidenced stages`);
-    // The four upstream stages are lit, not blanked: billing capacity proves the
+    assert.equal(nodes.length, st.length, `${r} has ${nodes.length} chain stages, expected ${st.length}`);
+    assert.equal(nodes.filter(n => n.includes('is-evidenced')).length, evidenced,
+      `${r} does not mark exactly ${evidenced} evidenced stages`);
+    // The upstream stages are lit, not blanked: billing capacity proves the
     // chips it runs on were made.
-    assert.equal(nodes.filter(n => n.includes('is-implied')).length, 4,
-      `${r} does not mark the 4 upstream stages as implied`);
+    assert.equal(nodes.filter(n => n.includes('is-implied')).length, implied,
+      `${r} does not mark the ${implied} upstream stages as implied`);
     assert.equal(nodes.filter(n => n.includes('is-gap')).length, 0,
       `${r} draws a stage as unknown when a later stage proves it happened`);
   }
@@ -251,10 +259,11 @@ test('the chain shows all seven stages and marks which are evidenced', () => {
 test('an implied stage holds both facts at once, in words', () => {
   const html = read('index.html');
   // It happened...
-  assert.ok((html.match(/>Happened</g) || []).length >= 4,
+  const implied = chainState().filter(x => x.happened === 'implied').length;
+  assert.ok((html.match(/>Happened</g) || []).length >= implied,
     'implied stages do not say they happened');
   // ...and T2C does not track it. Neither claim may rest on styling.
-  assert.ok((html.match(/Not tracked by T2C/g) || []).length >= 4,
+  assert.ok((html.match(/Not tracked by T2C/g) || []).length >= implied,
     'implied stages do not say T2C fails to track them');
   assert.ok(/certainly made/.test(html), 'the coverage note drops the implication');
   assert.ok(/completed but untracked/.test(html),
@@ -319,7 +328,9 @@ test('the front page explains what happens at every stage, not only the gaps', (
 test('a tracked stage offers its records as a second, separate action', () => {
   const html = read('index.html');
   const hrefs = [...html.matchAll(/class="cn-records press" href="([^"]+)"/g)].map(m => m[1]);
-  assert.equal(hrefs.length, 3, `expected 3 tracked stages to offer records, found ${hrefs.length}`);
+  const linked = chainState().filter(x => x.href).length;
+  assert.equal(hrefs.length, linked,
+    `expected ${linked} tracked stages to offer records, found ${hrefs.length}`);
   for (const h of hrefs) {
     const file = h.split('?')[0].replace(/^\//, '') + 'index.html';
     assert.ok(exists(file), `a chain stage links to ${h}, which was not built`);

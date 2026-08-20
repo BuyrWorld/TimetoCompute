@@ -6,6 +6,7 @@
  *
  *   node scripts/interact.js
  */
+import { chainState } from '../src/lib/chain.js';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -206,11 +207,18 @@ const run = async () => {
     dim: parseFloat(getComputedStyle(e.querySelector('.cn-asset')).opacity)
   })));
   const untracked = chain.filter(c => !c.evidenced);
-  check('the chain shows all seven stages', chain.length === 7, `${chain.length}`);
-  check('three stages are evidenced',
-    chain.filter(c => c.evidenced).length === 3, `${chain.filter(c => c.evidenced).length}`);
-  check('the four upstream stages are lit as implied, not drawn as unknown',
-    chain.filter(c => c.implied).length === 4 && chain.filter(c => c.gap).length === 0,
+  /* Derived from the model. These were 7/3/4 literals, which pinned the page to a
+     stale fact the moment photonics gained supplier records and the evidenced
+     count went from three to four. */
+  const model = chainState();
+  const wantEvidenced = model.filter(s => s.happened === 'evidenced').length;
+  const wantImplied = model.filter(s => s.happened === 'implied').length;
+  check('the chain shows every stage', chain.length === model.length,
+    `${chain.length} of ${model.length}`);
+  check(`${wantEvidenced} stages are evidenced`,
+    chain.filter(c => c.evidenced).length === wantEvidenced, `${chain.filter(c => c.evidenced).length}`);
+  check('the upstream stages are lit as implied, not drawn as unknown',
+    chain.filter(c => c.implied).length === wantImplied && chain.filter(c => c.gap).length === 0,
     `implied ${chain.filter(c => c.implied).length}, gap ${chain.filter(c => c.gap).length}`);
   check('an implied stage is visibly illuminated rather than greyed out',
     chain.filter(c => c.implied).every(c => c.dim > 0.5),

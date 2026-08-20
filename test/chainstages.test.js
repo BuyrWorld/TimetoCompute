@@ -15,6 +15,8 @@ import { chainMap } from '../src/lib/chainmap.js';
 import { PILLARS, MAP_PILLARS } from '../data/chainmap.js';
 import { CORRIDORS } from '../src/lib/corridor.js';
 import { PHOTONICS_SUPPLIERS } from '../data/suppliers.js';
+import { STAGES as HOMEPAGE_STAGES, chainState } from '../src/lib/chain.js';
+import { COMMERCIAL_STAGES } from '../data/chainmap.js';
 
 test('there are ten stages, numbered 1 to 10 without gaps', () => {
   assert.equal(STAGES.length, 10);
@@ -158,5 +160,74 @@ test('the tracks with no supplier records are not marked tracked', () => {
     const p = PILLARS.find(x => x.id === id);
     assert.equal(p.tracked, false,
       `${id} is marked tracked, but no supplier dataset backs it`);
+  }
+});
+
+/* --------------------------------------------- the homepage compression ---- */
+
+/**
+ * The homepage row compresses ten canonical stages into five hexagons plus a
+ * two-step commercial tail. It no longer asserts a chain of its own: each entry
+ * names the canonical stages it covers, and the commercial pair names the
+ * commercial rung it reports rather than pretending to be a position in the
+ * chain.
+ */
+test('every homepage chain stage names the canonical stages it compresses', () => {
+  const chain = HOMEPAGE_STAGES.filter(s => s.axis === 'chain');
+  assert.ok(chain.length > 0);
+  for (const s of chain) {
+    assert.ok(Array.isArray(s.stages) && s.stages.length > 0,
+      `${s.id} does not say which canonical stages it covers`);
+    for (const n of s.stages) {
+      assert.ok(STAGE_BY_N[n], `${s.id} claims canonical stage ${n}, which does not exist`);
+    }
+  }
+});
+
+test('the homepage covers every canonical stage from atoms to operators', () => {
+  const covered = new Set(HOMEPAGE_STAGES.flatMap(s => s.stages || []));
+  const missing = [1, 2, 3, 4, 5, 6, 7, 8].filter(n => !covered.has(n));
+  assert.deepEqual(missing, [],
+    'a canonical stage has no hexagon representing it on the homepage');
+});
+
+/**
+ * Stages 9 and 10 are deliberately absent from the chain hexagons. Buyers and
+ * end applications are who pays and what for, which the commercial tail reports
+ * as states rather than as positions in the chain.
+ */
+test('the commercial tail reports rungs, not chain positions', () => {
+  const commercial = HOMEPAGE_STAGES.filter(s => s.axis === 'commercial');
+  assert.deepEqual(commercial.map(s => s.id), ['accepted', 'revenue']);
+  for (const s of commercial) {
+    assert.deepEqual(s.stages, [], `${s.id} claims a chain position it does not have`);
+    assert.ok(COMMERCIAL_STAGES.some(c => c.id === s.commercialStage),
+      `${s.id} reports commercial rung "${s.commercialStage}", which is not a rung`);
+  }
+});
+
+test('every homepage stage declares which axis it belongs to', () => {
+  for (const s of HOMEPAGE_STAGES) {
+    assert.ok(['chain', 'commercial'].includes(s.axis), `${s.id} has no axis`);
+  }
+});
+
+/**
+ * The homepage said photonics was untracked while seven sourced supplier records
+ * sat behind it, and went on saying it. Derived now, and asserted here.
+ */
+test('the homepage photonics stage is tracked because the records exist', () => {
+  const photonics = HOMEPAGE_STAGES.find(s => s.id === 'photonics');
+  assert.equal(photonics.tracked, PHOTONICS_SUPPLIERS.length > 0);
+  assert.equal(photonics.needs, null, 'a tracked stage must not still ask to be tracked');
+});
+
+test('a tracked homepage stage reports a real count', () => {
+  for (const s of chainState()) {
+    if (!s.tracked) continue;
+    assert.ok(s.count && s.count.primary && s.count.secondary,
+      `${s.id} is tracked but reports no count`);
+    assert.ok(!/undefined|NaN/.test(s.count.primary + s.count.secondary),
+      `${s.id} count is malformed: ${JSON.stringify(s.count)}`);
   }
 });

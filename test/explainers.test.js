@@ -22,6 +22,7 @@ import { GLOSSARY } from '../data/glossary.js';
 import {
   supplierRows, glossaryFor, chainContext, neighbours, childrenOf, relatedSignals, explainerRoutes
 } from '../src/lib/explain.js';
+import { chainState } from '../src/lib/chain.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const read = rel => fs.readFileSync(path.join(ROOT, 'dist', rel), 'utf8');
@@ -240,8 +241,11 @@ test('the chain strip reports the same state as the homepage', () => {
   // Two copies of the evidenced/implied mapping drifting apart is a bug this
   // codebase has already shipped once.
   const ctx = chainContext('materials');
-  assert.equal(ctx.filter(s => s.happened === 'evidenced').length, 3);
-  assert.equal(ctx.filter(s => s.happened === 'implied').length, 4);
+  const home = chainState();
+  assert.equal(ctx.filter(s => s.happened === 'evidenced').length,
+    home.filter(s => s.happened === 'evidenced').length);
+  assert.equal(ctx.filter(s => s.happened === 'implied').length,
+    home.filter(s => s.happened === 'implied').length);
 });
 
 test('adjacent stages are offered, and the ends do not wrap', () => {

@@ -3,17 +3,25 @@
  *
  * THE HONEST PART, and the reason this file reads the way it does:
  *
- * T2C tracks the DELIVERY end of the chain. It holds sourced records for AI
- * infrastructure operators, their sites, contracts and gates. It holds nothing
- * at all about materials, wafers, chips, HBM or photonics — no suppliers, no
- * relationships, no qualification, no shipments. Not thin data: none.
+ * T2C tracks the DELIVERY end of the chain: sourced records for AI infrastructure
+ * operators, their sites, contracts and gates. It also holds photonics supplier
+ * records — seven of them, one a named company-to-company supply agreement.
  *
- * So the chain declares all seven stages, because the seven stages are the
- * product's argument, and marks four of them `tracked: false` with what would be
- * needed to track them. An untracked stage renders as an explicit gap, never as
- * an illustration standing in for evidence. A reader can see exactly how much of
- * the chain T2C can currently stand behind, which is more useful — and far more
- * defensible — than seven nodes that look equally authoritative.
+ * This paragraph used to say T2C held "nothing at all about materials, wafers,
+ * chips, HBM or photonics — no suppliers, no relationships, no qualification, no
+ * shipments. Not thin data: none." That was true when it was written and stopped
+ * being true when data/suppliers.js arrived. The homepage went on marking
+ * photonics `tracked: false` and rendering it as an empty gap while seven sourced
+ * supplier records sat behind it. Understating the evidence is a smaller sin than
+ * overstating it, but it is the same failure: the page stopped matching the data.
+ *
+ * `tracked` is therefore DERIVED for photonics rather than declared, so it cannot
+ * drift from the records a second time.
+ *
+ * The chain declares all seven stages, because the seven stages are the product's
+ * argument, and marks the ones with no supplier record `tracked: false` with what
+ * would be needed to track them. An untracked stage renders as an explicit gap,
+ * never as an illustration standing in for evidence.
  *
  * Counts on tracked stages are computed from the records, never written here.
  */
@@ -22,6 +30,7 @@ import { PROJECTS } from '../../data/projects.js';
 import { getMeasure, isKnown } from './compute.js';
 import { path as projectPath } from './sites.js';
 import { STAGE_BY_ID } from '../../data/explainers.js';
+import { PHOTONICS_SUPPLIERS, EVIDENCE_GRADES } from '../../data/suppliers.js';
 
 /**
  * Frame colour carries meaning, per the pack: cyan for photonics, lime for
@@ -38,8 +47,10 @@ import { STAGE_BY_ID } from '../../data/explainers.js';
  *                   compute that was never built. Every stage upstream of an
  *                   evidenced one therefore certainly happened.
  *
- *   DOES T2C TRACK IT?  Separately: no. There is no supplier, order or shipment
- *                   record on file for any upstream stage.
+ *   DOES T2C TRACK IT?  Separately, and stage by stage. Photonics has supplier
+ *                   records; materials, wafers and chips have none. This line
+ *                   used to read "Separately: no" for every upstream stage,
+ *                   which stopped being true without anyone noticing.
  *
  * Collapsing these into one "not tracked" state made the chain read as though
  * the upstream might not have occurred, which is false. Each stage now carries
@@ -48,6 +59,7 @@ import { STAGE_BY_ID } from '../../data/explainers.js';
 export const STAGES = [
   {
     id: 'materials', label: 'Materials', icon: 'materials', asset: 'stage-materials',
+    axis: 'chain', stages: [1],
     frame: 'amber', tracked: false,
     plain: 'Copper, substrates, rare earths and steel are mined and refined into the components ' +
       'everything downstream is built from.',
@@ -56,6 +68,7 @@ export const STAGES = [
   },
   {
     id: 'wafers', label: 'Wafers', icon: 'wafer', asset: 'stage-wafer',
+    axis: 'chain', stages: [2],
     frame: 'neutral', tracked: false,
     plain: 'A foundry grows silicon ingots, slices them into wafers and prints circuits onto them, ' +
       'before they are cut into individual dies.',
@@ -64,6 +77,7 @@ export const STAGES = [
   },
   {
     id: 'chips', label: 'Chips + HBM', icon: 'chip', asset: 'stage-chips-hbm',
+    axis: 'chain', stages: [2, 4],
     frame: 'neutral', tracked: false,
     plain: 'Dies are packaged with high-bandwidth memory stacked beside them, then assembled into ' +
       'accelerator boards. This is usually the headline bottleneck.',
@@ -72,14 +86,18 @@ export const STAGES = [
   },
   {
     id: 'photonics', label: 'Photonics', icon: 'photonics', asset: 'stage-photonics',
-    frame: 'cyan', tracked: false,
+    axis: 'chain', stages: [3],
+    /* Derived, not declared. See the note at the top of this file: this was
+       `false` while seven sourced supplier records sat behind it. */
+    frame: 'cyan', tracked: PHOTONICS_SUPPLIERS.length > 0,
     plain: 'Lasers and optical transceivers move data between racks fast enough that thousands of ' +
       'accelerators behave as one machine.',
     role: 'Optics makers sell transceivers to network and server builders.',
-    needs: 'Transceiver order and shipment records, and the cluster bandwidth they serve.'
+    needs: null
   },
   {
     id: 'factory', label: 'AI Factory', icon: 'factory', asset: 'stage-ai-factory',
+    axis: 'chain', stages: [5, 6, 7, 8],
     frame: 'lime', tracked: true,
     plain: 'An operator secures power, builds the halls, energises them and installs the equipment. ' +
       'This takes years and is where most announced capacity stalls.',
@@ -88,6 +106,7 @@ export const STAGES = [
   },
   {
     id: 'accepted', label: 'Accepted', icon: 'accepted', asset: 'stage-accepted',
+    axis: 'commercial', stages: [], commercialStage: 'accepted',
     frame: 'lime', tracked: true,
     plain: 'The customer tests the delivered capacity and formally accepts it under the contract. ' +
       'Acceptance is the milestone that normally starts the revenue clock.',
@@ -96,6 +115,7 @@ export const STAGES = [
   },
   {
     id: 'revenue', label: 'Revenue', icon: 'revenue', asset: 'stage-revenue',
+    axis: 'commercial', stages: [], commercialStage: 'recognised',
     frame: 'lime', tracked: true,
     plain: 'Billing begins once the contract\'s conditions are met and the operator discloses it. ' +
       'Acceptance and billing are different stages and T2C never assumes one proves the other.',
@@ -120,7 +140,21 @@ export function chainState() {
   const billing = projectsAt('billing');
   const billingCompanies = COMPANIES.filter(c => isKnown(getMeasure(c, 'revenueLiveMw')));
 
+  /* Photonics counts what T2C actually holds: supplier records, and how many of
+     those carry a confirmed award rather than a capability or a demonstration.
+     The distinction is the same one the supplier table makes, and it is the
+     reason the count cannot just be "7 suppliers" — four of the seven are
+     capability records, which evidence that a company makes the part and nothing
+     about who it sells to. */
+  const confirmedOptics = PHOTONICS_SUPPLIERS.filter(s => EVIDENCE_GRADES[s.grade].confirmed);
+
   const counts = {
+    photonics: {
+      primary: `${PHOTONICS_SUPPLIERS.length} suppliers`,
+      secondary: confirmedOptics.length
+        ? `${confirmedOptics.length} with a confirmed award`
+        : 'None with a confirmed award'
+    },
     factory: {
       primary: `${PROJECTS.length} sites`,
       secondary: `${COMPANIES.length} operators tracked`
@@ -175,6 +209,7 @@ export function chainState() {
 
 /** Where a tracked stage leads. An untracked stage leads nowhere, by design. */
 function stageHref(id) {
+  if (id === 'photonics') return '/chain-mapping/';
   if (id === 'factory') return '/sites/';
   if (id === 'accepted') return '/sites/?stage=acceptance';
   if (id === 'revenue') return '/sites/?stage=billing';
