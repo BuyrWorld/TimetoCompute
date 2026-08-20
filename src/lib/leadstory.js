@@ -154,9 +154,12 @@ export function consequenceFor(s) {
  * who has never bought a megawatt, one for a reader who has. Both ship, so
  * neither audience is patronised or lost.
  */
+/** A stage the journey has actually got to, whether evidenced or implied. */
+const REACHED = new Set(['complete', 'implied']);
+
 export function journeyRail(stages) {
   const lastComplete = stages.reduce((acc, st, i) => (st.status === 'complete' ? i : acc), -1);
-  return stages.map((st, i) => {
+  const out = stages.map((st, i) => {
     const j = JOURNEY_BY_ID[st.id] || { simple: st.label, detailed: st.label };
     const state = st.status === 'complete' ? 'complete'
       // Implied is its own state, never folded into complete: it means the
@@ -178,6 +181,32 @@ export function journeyRail(stages) {
       notes: st.notes || null,
       impliedBy: st.impliedBy || null
     };
+  });
+
+  /**
+   * THE CONNECTOR CARRIES THE TRANSITION, NOT THE DESTINATION.
+   *
+   * It used to be styled from the state of the step it belonged to, which is
+   * not what a connector represents. Two consequences, both visible on Lake
+   * Mariner: a grey line ran between two lit gates, and — worse — a lime line
+   * ran OUT of a gate the journey had not reached, drawing continuity that did
+   * not exist.
+   *
+   * A connector joins two stages, so its state is a fact about the pair:
+   *   reached  both ends reached — the journey covered this ground
+   *   arriving from a reached stage into the one now under way
+   *   stops    from a reached stage into one not yet reached: this is as far
+   *            as it has got, and the line says so rather than running on
+   *   pending  neither end reached
+   */
+  return out.map((step, i) => {
+    if (i === 0) return { ...step, connector: 'none' };
+    const from = REACHED.has(out[i - 1].state);
+    const to = REACHED.has(step.state);
+    const connector = !from ? 'pending'
+      : to ? 'reached'
+        : step.state === 'current' ? 'arriving' : 'stops';
+    return { ...step, connector };
   });
 }
 

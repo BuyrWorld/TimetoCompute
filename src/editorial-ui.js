@@ -83,7 +83,7 @@ export function deliveryRail(rail, { idPrefix = 'rail' } = {}) {
         const noteHtml = step.notes
           ? `<p class="ed-railnote">${esc(step.notes)}</p>`
           : '';
-        return `<li class="ed-railstep is-${esc(step.state)}">
+        return `<li class="ed-railstep is-${esc(step.state)}" data-connector="${esc(step.connector || "none")}">
           ${evidenced
             ? `<button type="button" class="ed-railbtn press" aria-expanded="false"
                  aria-controls="${esc(idPrefix)}-${esc(step.id)}"

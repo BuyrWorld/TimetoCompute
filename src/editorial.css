@@ -213,12 +213,36 @@ html[data-theme="light"] .ed-watch { background: rgba(255, 255, 255, .9); }
   list-style: none; margin: 0; padding: 0; min-width: 760px;
 }
 .ed-railstep { position: relative; text-align: center; }
+
+/* THE CONNECTOR SHOWS THE TRANSITION, NOT THE STEP IT SITS ON.
+   It used to take the state of its own step, which produced two wrong lines on
+   the same rail: a grey one between two lit gates, and a lime one running out
+   of a gate the journey had not reached. Every state below is declared — none
+   falls through to an unstyled default, which is how the grey one survived. */
 .ed-railstep::before {
   content: ''; position: absolute; top: 18px; left: -50%; width: 100%; height: 2px;
   background: var(--surface-3);
 }
-.ed-railstep:first-child::before { display: none; }
-.ed-railstep.is-complete::before { background: var(--brand); }
+.ed-railstep:first-child::before,
+.ed-railstep[data-connector="none"]::before { display: none; }
+
+/* Both ends reached: the journey covered this ground. */
+.ed-railstep[data-connector="reached"]::before { background: var(--brand); }
+
+/* Into the stage now under way. Lime arriving, so the eye follows it to the
+   live gate rather than stopping short of it. */
+.ed-railstep[data-connector="arriving"]::before {
+  background: linear-gradient(90deg, var(--brand), var(--brand) 65%, var(--line));
+}
+
+/* As far as it has got. The line fades out rather than running on, because a
+   solid line into an unreached stage asserts progress that has not happened. */
+.ed-railstep[data-connector="stops"]::before {
+  background: linear-gradient(90deg, var(--brand), var(--line));
+}
+
+/* Neither end reached. */
+.ed-railstep[data-connector="pending"]::before { background: var(--line); }
 
 .ed-railbtn {
   display: block; width: 100%; border: 0; background: none; padding: 0 4px 4px;
@@ -247,7 +271,17 @@ html[data-theme="light"] .ed-watch { background: rgba(255, 255, 255, .9); }
 }
 .is-implied .ed-railsimple { color: var(--soft); }
 .is-implied .ed-railstate { color: var(--brand); opacity: .8; font-style: italic; }
-.ed-railstep.is-implied::before {
+/* A connector INTO an implied stage is itself inferred, so it is dashed as well
+   as lime: the journey went through here, but no document says so. Pattern
+   carries evidenced-versus-inferred and colour carries reached-versus-not, so
+   the two facts stay independently readable and neither rests on hue alone.
+
+   Scoped to the reached states on purpose. An implied stage the journey has not
+   arrived at keeps its grey connector — dashing that too would suggest inferred
+   progress where there is none. */
+.ed-railstep.is-implied[data-connector="reached"]::before,
+.ed-railstep.is-implied[data-connector="arriving"]::before,
+.ed-railstep.is-implied[data-connector="stops"]::before {
   background: repeating-linear-gradient(90deg, var(--brand) 0 5px, transparent 5px 10px);
 }
 
@@ -567,3 +601,45 @@ a.ed-card:hover { border-color: var(--brand); }
   margin: 8px 0 0; max-width: 68ch;
   font-size: 15px; line-height: 1.6; color: var(--dim);
 }
+
+/* ---- phase tracks ---- */
+
+/* Siblings, not a hierarchy. A site's blocks are peers at different points on
+   the same journey, so they get identical treatment and differ only in their
+   label and how far each track has run. Separated by space rather than by a
+   border — two boxed tracks inside a boxed section is two borders where none
+   was needed. */
+.ed-phases { display: flex; flex-direction: column; gap: var(--s4); }
+
+.ed-phasehead {
+  display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap;
+  padding-bottom: 6px; border-bottom: 1px solid var(--line-2);
+}
+.ed-phasename {
+  font-size: 15px; font-weight: 800; color: var(--ink); margin: 0; line-height: 1.3;
+}
+/* The capacity is a figure, so it is mono and tabular like every other figure
+   on the site, and it always carries its basis. */
+.ed-phasecap {
+  font-family: var(--m-mono, 'IBM Plex Mono', monospace); font-variant-numeric: tabular-nums;
+  font-size: 12px; font-weight: 700; color: var(--brand); margin: 0;
+}
+.ed-phasenote {
+  font-size: 12.5px; line-height: 1.6; color: var(--dim);
+  margin: 8px 0 0; max-width: var(--measure);
+}
+
+/* A contradiction in the record, stated rather than tidied away. Amber because
+   it is a caution about the data, not a failure of the site, and it carries the
+   words as well — the marker never rests on colour. */
+.ed-phaseconflict {
+  font-size: 12.5px; line-height: 1.6; color: var(--soft);
+  margin: 10px 0 0; padding: 10px 12px; max-width: var(--measure);
+  border-left: 3px solid var(--warn); background: var(--warn-bg);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.ed-phaseconflict b { color: var(--warn); }
+
+/* The rail inside a phase sits closer to its heading than the phases sit to
+   each other, so the grouping reads without a box around it. */
+.ed-phase .ed-railwrap { padding-top: var(--s2); }
