@@ -144,6 +144,58 @@ export const REFERENCE_NODES = [
     inputs: 'Mining, smelting, refining.',
     outputs: 'Busbar, windings, cable, board foil.'
   },
+  {
+    id: 'ref-rare-earths', stage: 1, column: 'inputs', pillar: 'power-cooling',
+    title: 'Rare earth magnets',
+    examples: [],
+    simple: 'the magnets inside anything that spins',
+    technical: 'Neodymium and dysprosium alloys drawn into permanent magnets for generator ' +
+      'alternators, pump motors and fan drives.',
+    whyItMatters: 'Supply is concentrated in few hands, and the demand competes with every other ' +
+      'electrified industry at once. It reaches a data centre through the generating plant and ' +
+      'the pumps, which is a quieter path than the chips and easy to miss.',
+    inputs: 'Mining, separation, alloying.',
+    outputs: 'Permanent magnets for motors and alternators.'
+  },
+  {
+    id: 'ref-helium', stage: 1, column: 'inputs', pillar: null,
+    title: 'Helium',
+    examples: [],
+    simple: 'the gas that carries other gases through a growth chamber',
+    technical: 'Process-grade helium used as a carrier and purge gas in epitaxial growth and in ' +
+      'deposition steps.',
+    whyItMatters: 'It is recovered as a by-product of natural gas extraction, so its supply ' +
+      'answers to a market that has nothing to do with semiconductors. A shortage upstream of the ' +
+      'fab is not a shortage anyone in this chain can fix.',
+    inputs: 'Natural gas extraction and separation.',
+    outputs: 'Process-grade helium for growth and deposition.'
+  },
+  {
+    id: 'ref-ultrapure-water', stage: 1, column: 'inputs', pillar: null,
+    title: 'Ultrapure water',
+    examples: [],
+    simple: 'water cleaned far past drinking standard, for rinsing wafers',
+    technical: 'Water treated to remove ions, organics and particles, used to rinse wafers ' +
+      'between lithography, etch and deposition steps.',
+    whyItMatters: 'Not the same water as the cooling plant uses, and worth keeping apart from it. ' +
+      'This is a fab input measured against contamination limits; facility water is a site input ' +
+      'measured against a permit.',
+    inputs: 'Municipal or ground water, and a treatment plant.',
+    outputs: 'Ultrapure water for wafer rinsing.'
+  },
+  {
+    id: 'ref-dielectric-fluid', stage: 1, column: 'inputs', pillar: 'power-cooling',
+    title: 'Dielectric fluid',
+    examples: [],
+    simple: 'liquid that carries heat but will not carry electricity',
+    technical: 'Engineered single-phase and two-phase fluids that servers can be submerged in ' +
+      'without shorting.',
+    whyItMatters: 'The fluid decides the immersion approach as much as the tank does, and ' +
+      'two-phase fluids carry regulatory exposure of their own. It was previously a word inside ' +
+      'the immersion node rather than a product with its own supply.',
+    inputs: 'Base chemical stock, and qualification testing.',
+    outputs: 'A qualified fluid for immersion cooling.'
+  },
 
   /* ------------------------------------------------------------ components -- */
   {
@@ -273,6 +325,71 @@ export const REFERENCE_NODES = [
       'moving the data costs more power than the arithmetic.',
     inputs: 'Switch silicon, optics, fibre, copper.',
     outputs: 'A cluster that behaves as one computer.'
+  },
+  {
+    id: 'ref-optical-modulator', stage: 3, column: 'components', pillar: 'photonics',
+    title: 'Optical modulator',
+    examples: [],
+    simple: 'the part that turns a steady beam of light into data',
+    technical: 'A discrete external modulator, typically a Mach-Zehnder built in silicon ' +
+      'photonics, imposing a signal on light from a separate continuous-wave source.',
+    whyItMatters: 'An EML does this inside the laser package; a co-packaged design does it with ' +
+      'a separate modulator beside the switch. Same function, different product, different ' +
+      'suppliers — so an architecture shift moves the demand rather than growing it.',
+    inputs: 'Continuous-wave laser light, silicon photonics fabrication.',
+    outputs: 'A modulated optical signal ready for the fibre.'
+  },
+  {
+    id: 'ref-optical-dsp', stage: 3, column: 'components', pillar: 'photonics',
+    title: 'Optical DSP and drivers',
+    examples: [],
+    simple: 'the chips that clean the signal up at each end of the link',
+    technical: 'Digital signal processors, retimers and the analogue driver stages that ' +
+      'condition a high-rate signal before it is launched and recover it on arrival.',
+    whyItMatters: 'As signalling rates rise this is what keeps a link usable, and it is where a ' +
+      'growing share of an optical module\'s cost and power now sits. It has been visible on the ' +
+      'site only through the modules it enables, never as a part in its own right.',
+    inputs: 'An electrical signal from the switch or host.',
+    outputs: 'A signal clean enough to survive the reach it is asked for.'
+  },
+  {
+    id: 'ref-optical-circuit-switch', stage: 3, column: 'systems', pillar: 'photonics',
+    title: 'Optical circuit switching',
+    examples: [],
+    simple: 'steering the light itself instead of reading the packets',
+    technical: 'A switch that reconfigures physical light paths between ports, typically with ' +
+      'steerable mirrors, without converting the signal to electrical form.',
+    whyItMatters: 'A different way to build a fabric, with different economics and a different ' +
+      'supplier set from packet switching. It changes topology rather than speed, so comparing it ' +
+      'to switch silicon on bandwidth alone misses what it is for.',
+    inputs: 'Fibre, steerable switching elements.',
+    outputs: 'A reconfigured path between two points in the fabric.'
+  },
+  {
+    id: 'ref-host-cpu', stage: 4, column: 'systems', pillar: null,
+    title: 'Host CPU',
+    examples: [],
+    simple: 'the ordinary processor that runs the machine around the accelerators',
+    technical: 'Server-class processors handling orchestration, data movement and storage for ' +
+      'the accelerators sharing their tray.',
+    whyItMatters: 'A rack shortage gets attributed to the accelerator almost automatically. The ' +
+      'host processor is a separate market with separate constraints, and a tray cannot be built ' +
+      'without one either.',
+    inputs: 'Advanced packaging, silicon wafers.',
+    outputs: 'A host processor for the compute tray.'
+  },
+  {
+    id: 'ref-scale-up-fabric', stage: 4, column: 'systems', pillar: null,
+    title: 'Scale-up fabric',
+    examples: [],
+    simple: 'the very fast wiring that makes a rack of chips behave as one chip',
+    technical: 'The memory-coherent interconnect joining accelerators inside a tray or pod, ' +
+      'distinct from the Ethernet or InfiniBand fabric that joins racks to each other.',
+    whyItMatters: 'The network fabric node on this map is scale-out — between racks. This is ' +
+      'scale-up, inside them, on different silicon from different vendors. A bottleneck here ' +
+      'would be misread as a switch silicon problem.',
+    inputs: 'Accelerators, the interconnect silicon that joins them.',
+    outputs: 'A pod that behaves as one memory-coherent machine.'
   },
   {
     id: 'ref-rack-integration', stage: 4, column: 'systems', pillar: null,
@@ -479,6 +596,81 @@ export const REFERENCE_NODES = [
       'Concrete arriving on time says nothing about whether the systems prove out.',
     inputs: 'A fitted-out hall, and a commissioning agent.',
     outputs: 'An energised, proven hall ready for racks.'
+  },
+
+  /* --------------------------------------------------------- monetisation -- */
+  /* Buyers. T2C holds evidenced records for five named customers, all of them
+     frontier labs, platforms, a reseller and a chipmaker. Those five are not the
+     whole demand side, and a reader seeing only them would reasonably conclude
+     the market is a handful of mega-buyers. These three name the categories that
+     exist without a T2C record behind any of them. */
+  {
+    id: 'ref-buyer-enterprise', stage: 9, column: 'monetisation', pillar: null,
+    title: 'Enterprise buyers',
+    examples: [],
+    simple: 'ordinary companies buying compute to run models, not to build them',
+    technical: 'Businesses contracting for inference capacity to serve vendor or fine-tuned ' +
+      'models, usually in smaller and more numerous agreements than a frontier lab signs.',
+    whyItMatters: 'Demand looks more concentrated than it is when only the largest buyers are ' +
+      'visible. The contract sizes, terms and credit here are a different shape from a ' +
+      'hyperscaler\'s, and they move for different reasons.',
+    inputs: 'Accepted capacity.',
+    outputs: 'Contracted demand, at smaller unit size.'
+  },
+  {
+    id: 'ref-buyer-government', stage: 9, column: 'monetisation', pillar: null,
+    title: 'Public-sector buyers',
+    examples: [],
+    simple: 'governments buying compute, usually for research or sovereignty',
+    technical: 'National programmes and public bodies procuring capacity through tender, often ' +
+      'tied to scientific computing or to keeping workloads inside a jurisdiction.',
+    whyItMatters: 'Procurement runs on public rules and appropriation cycles rather than ' +
+      'commercial ones, so both the timing and the credit behave unlike any other buyer here.',
+    inputs: 'Accepted capacity, and a public procurement process.',
+    outputs: 'Publicly funded contracted demand.'
+  },
+  {
+    id: 'ref-buyer-ai-native', stage: 9, column: 'monetisation', pillar: null,
+    title: 'AI-native buyers',
+    examples: [],
+    simple: 'young companies whose whole business is training or serving a model',
+    technical: 'Compute-first companies contracting for training or serving capacity, often on ' +
+      'shorter terms and against a funding round rather than a balance sheet.',
+    whyItMatters: 'Counterparty credit is the least examined risk in this sector, and it is ' +
+      'sharpest here. A contract is only worth what the counterparty can pay for its full term.',
+    inputs: 'Accepted capacity, and the funding to commit to it.',
+    outputs: 'Contracted demand, carrying the most credit risk on the page.'
+  },
+
+  /* Applications. This stage had no node of any tier — the only one on the map
+     where even industry structure was absent, while every other unevidenced area
+     at least described its shape. Training and inference are the split the
+     domain map names twice; the rest is deliberately not modelled yet. */
+  {
+    id: 'ref-training-workload', stage: 10, column: 'monetisation', pillar: null,
+    title: 'Training',
+    examples: [],
+    simple: 'building a model, which needs a lot of machines held together for a long time',
+    technical: 'Large contiguous runs across a tightly coupled cluster, reserved ahead and held ' +
+      'at high utilisation for the duration.',
+    whyItMatters: 'It is why scale-up fabric and memory bandwidth matter at all — a training run ' +
+      'wants one enormous machine rather than many small ones. It buys capacity as a reservation, ' +
+      'which is a different commercial shape from serving.',
+    inputs: 'A cluster behaving as one machine, held for the run.',
+    outputs: 'A trained model.'
+  },
+  {
+    id: 'ref-inference-serving', stage: 10, column: 'monetisation', pillar: null,
+    title: 'Inference serving',
+    examples: [],
+    simple: 'running a finished model for whoever is asking it something',
+    technical: 'Latency-sensitive serving of a deployed model, with demand that varies by the ' +
+      'hour and capacity often bought on demand rather than reserved.',
+    whyItMatters: 'The economics invert against training. Utilisation is variable, the memory and ' +
+      'network shape is different, and applying training assumptions to it is one of the errors ' +
+      'this site exists to avoid.',
+    inputs: 'A deployed model, and capacity available when asked.',
+    outputs: 'Served requests.'
   }
 ];
 
@@ -512,10 +704,21 @@ export const REFERENCE_EDGES = [
   ['ref-test-burn-in', 'ref-accelerator', 'only a part that passes test ships as an accelerator'],
   ['ref-test-burn-in', 'ref-switch-silicon', 'high-radix switch ASICs are packaged and tested the same way'],
   ['ref-silicon-wafer', 'ref-epitaxy', 'epitaxial layers are grown on a polished substrate'],
+  ['ref-helium', 'ref-epitaxy', 'helium is the carrier gas in the growth chamber'],
+  ['ref-ultrapure-water', 'ref-litho-tools', 'wafers are rinsed in ultrapure water between lithography and etch'],
+  ['ref-rare-earths', 'ref-behind-the-meter-generation', 'permanent magnets are wound into turbine and generator alternators'],
+  ['ref-dielectric-fluid', 'ref-cooling-immersion', 'the fluid the servers are submerged in'],
   ['ref-epitaxy', 'ref-power-semis', 'silicon carbide and gallium nitride devices are grown before they are fabricated'],
   ['ref-switch-silicon', 'ref-network-fabric', 'the ASIC is the switch'],
 
   ['ref-accelerator', 'ref-rack-integration', 'accelerators are built into compute trays'],
+  ['ref-host-cpu', 'ref-rack-integration', 'the host processor is built into the same tray'],
+  ['ref-accelerator', 'ref-scale-up-fabric', 'accelerators are wired into a scale-up domain before any traffic reaches a switch'],
+  ['ref-scale-up-fabric', 'ref-rack-integration', 'the scale-up fabric is assembled into the same pod'],
+  ['ref-test-burn-in', 'ref-host-cpu', 'host processors are packaged and tested the same way'],
+  ['ref-optical-modulator', 'ref-switch-silicon', 'a discrete modulator sits in the optical engine beside the switch'],
+  ['ref-optical-dsp', 'ref-network-fabric', 'the DSP conditions and recovers the signal at each end of the link'],
+  ['ref-optical-circuit-switch', 'ref-network-fabric', 'an alternative topology, steering light instead of switching packets'],
   ['ref-network-fabric', 'ref-rack-integration', 'fabric is cabled and tested with the rack'],
   ['ref-power-semis', 'ref-rack-integration', 'power shelves convert facility power at the rack'],
   ['ref-cooling-direct', 'ref-rack-integration', 'cold plates and manifolds are fitted in the rack'],
@@ -555,7 +758,16 @@ export const REFERENCE_EDGES = [
     'licensed trades perform the electrical and mechanical fit-out'],
   ['ref-construction', 'ref-commissioning',
     'the fitted-out hall is proved by integrated systems testing before it is energised'],
-  ['ref-grid', 'ref-commissioning', 'a hall is proved against the power actually delivered']
+  ['ref-grid', 'ref-commissioning', 'a hall is proved against the power actually delivered'],
+
+  /* What each kind of buyer contracts for. Government demand for scientific
+     computing is real and is deliberately not drawn: there is no node for it
+     yet, and inventing an edge to a node that does not exist would be worse
+     than the gap. */
+  ['ref-buyer-ai-native', 'ref-training-workload', 'compute-first companies buy capacity to train their own models'],
+  ['ref-buyer-government', 'ref-training-workload', 'sovereign and research programmes fund training capacity directly'],
+  ['ref-buyer-enterprise', 'ref-inference-serving', 'enterprises mostly buy capacity to run models rather than build them'],
+  ['ref-scale-up-fabric', 'ref-training-workload', 'a training run needs the pod to behave as one machine']
 ];
 
 /**
@@ -569,7 +781,12 @@ export const REFERENCE_EDGES = [
 export const REFERENCE_HANDOFFS = [
   { from: 'ref-rack-integration', toColumn: 'infrastructure', via: 'tested racks are installed and energised by operators' },
   { from: 'ref-construction', toColumn: 'infrastructure', via: 'the commissioned hall is the operator\'s site' },
-  { from: 'ref-network-fabric', toColumn: 'infrastructure', via: 'the fabric is deployed inside the operator\'s halls' }
+  { from: 'ref-network-fabric', toColumn: 'infrastructure', via: 'the fabric is deployed inside the operator\'s halls' },
+  /* Without this the buyer nodes have nothing pointing at them and sit as
+     orphans in the monetisation column. There is no reference node for an
+     operator — operators are evidenced records — so the handoff comes from the
+     last structural step before capacity is sellable. */
+  { from: 'ref-commissioning', toColumn: 'monetisation', via: 'a proven hall is capacity a customer can accept and pay for' }
 ];
 
 /**

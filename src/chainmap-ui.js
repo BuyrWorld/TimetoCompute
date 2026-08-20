@@ -143,7 +143,7 @@ export function filterRail({ traceModes, traceMode, pillars, pillar, showInferre
         <li><i class="cm-swatch cm-swatch--evidenced" aria-hidden="true"></i>
           <b>T2C record</b><span>A sourced maker, with its document</span></li>
         <li><i class="cm-swatch cm-swatch--reference" aria-hidden="true"></i>
-          <b>Reference</b><span>Industry structure, example companies</span></li>
+          <b>Structural</b><span>Real part of the chain, no supplier record yet</span></li>
         <li><i class="cm-line cm-line--direct" aria-hidden="true"></i>
           <b>Agreement</b><span>Two named companies, named and dated</span></li>
         <li><i class="cm-line cm-line--structural" aria-hidden="true"></i>
