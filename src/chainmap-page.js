@@ -19,7 +19,7 @@ import {
   chainMap, commercialTimeline, chainGeometry, singleMakerNodes, adjacency
 } from './lib/chainmap.js';
 import {
-  ARCHITECTURES, PILLARS, TRACE_MODES, REACH_BANDS,
+  ARCHITECTURES, MAP_PILLARS, TRACE_MODES, REACH_BANDS,
   BOUNDARY_STATEMENT, BOUNDARY_SUPPORT
 } from '../data/chainmap.js';
 import { COMPANIES } from '../data/companies.js';
@@ -38,7 +38,7 @@ export function chainMappingBody() {
   <div class="cm-layout">
     ${filterRail({
       traceModes: TRACE_MODES, traceMode: 'product',
-      pillars: PILLARS, pillar: null, showInferred: true
+      pillars: MAP_PILLARS, pillar: null, showInferred: true
     })}
 
     <div class="cm-main">

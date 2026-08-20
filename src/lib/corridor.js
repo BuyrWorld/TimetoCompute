@@ -18,6 +18,7 @@
  */
 import { COMPANIES } from '../../data/companies.js';
 import { PROJECTS, CONTRACTS } from '../../data/projects.js';
+import { PILLARS } from '../../data/chainmap.js';
 import { SOURCE_BY_ID } from '../../data/sources.js';
 import { path as projectPath } from './sites.js';
 
@@ -36,27 +37,15 @@ export const RELATIONSHIP_TYPES = [
   }
 ];
 
-export const CORRIDORS = [
-  {
-    id: 'ai-factory', label: 'AI-factory delivery', tracked: true,
-    plain: 'Operators building the data centres, the sites they are building, and the customers who have signed for the capacity.'
-  },
-  {
-    id: 'photonics', label: 'Photonics', tracked: false,
-    plain: 'Optical transceivers and the interconnect fabric between racks.',
-    needs: 'Transceiver order, qualification and shipment records tied to a named product generation.'
-  },
-  {
-    id: 'hbm', label: 'HBM + advanced packaging', tracked: false,
-    plain: 'High-bandwidth memory and the packaging that binds it to the accelerator.',
-    needs: 'Supplier qualification and volume-order records per memory generation.'
-  },
-  {
-    id: 'power-cooling', label: 'Power + cooling', tracked: false,
-    plain: 'Grid connections, transformers, switchgear and the cooling plant that make a hall usable.',
-    needs: 'Equipment supplier records per site. T2C tracks the utility GATES today, but not who supplied the plant.'
-  }
-];
+/**
+ * The corridors are the chain's tracks, seen from /chain/.
+ *
+ * They used to be declared here, separately from the pillars on
+ * /chain-mapping/, and the two disagreed: this list said photonics was not
+ * tracked while T2C held seven photonics supplier records, so the corridor card
+ * rendered a tracked area as a gap. One taxonomy now, in data/chainmap.js.
+ */
+export const CORRIDORS = PILLARS;
 
 const COMPANY_BY_ID = Object.fromEntries(COMPANIES.map(c => [c.id, c]));
 

@@ -12,6 +12,9 @@ import {
 } from '../data/chainstages.js';
 import { REFERENCE_NODES, REFERENCE_EDGES } from '../data/chainreference.js';
 import { chainMap } from '../src/lib/chainmap.js';
+import { PILLARS, MAP_PILLARS } from '../data/chainmap.js';
+import { CORRIDORS } from '../src/lib/corridor.js';
+import { PHOTONICS_SUPPLIERS } from '../data/suppliers.js';
 
 test('there are ten stages, numbered 1 to 10 without gaps', () => {
   assert.equal(STAGES.length, 10);
@@ -105,4 +108,55 @@ test('the backward edges are the four expected convergences, and no others', () 
     'ref-cooling-rear-door->ref-rack-integration',
     'ref-power-semis->ref-rack-integration'
   ], 'power and cooling converge on the rack; anything else here is a real error');
+});
+
+/* ------------------------------------------------------- one taxonomy ------ */
+
+/**
+ * Corridors and pillars are the same taxonomy seen from two pages. They used to
+ * be two arrays that disagreed: /chain/ declared photonics untracked while
+ * /chain-mapping/ declared it tracked, and T2C held seven photonics supplier
+ * records the whole time. These tests exist so that cannot recur.
+ */
+test('corridors and pillars are the same objects, not two lists', () => {
+  assert.equal(CORRIDORS, PILLARS,
+    'the corridor list must be the pillar list, not a copy of it');
+});
+
+test('the map filters only by pillars a node can actually carry', () => {
+  assert.ok(MAP_PILLARS.every(p => p.onMap));
+  assert.ok(!MAP_PILLARS.some(p => p.id === 'ai-factory'),
+    'no node carries an ai-factory pillar, so the map cannot filter by it');
+});
+
+test('every track carries both description lengths', () => {
+  for (const p of PILLARS) {
+    assert.ok(p.definition, `${p.id} has no definition for the map drawer`);
+    assert.ok(p.plain, `${p.id} has no plain text for the corridor card`);
+  }
+});
+
+test('an untracked track says what it would need, a tracked one does not', () => {
+  for (const p of PILLARS) {
+    if (p.tracked) assert.ok(!p.needs, `${p.id} is tracked but still lists what it needs`);
+    else assert.ok(p.needs, `${p.id} is a gap and must say what would close it`);
+  }
+});
+
+/**
+ * The specific drift that caused the contradiction. `tracked` is declared, not
+ * derived, so this asserts the declaration still matches the records behind it.
+ */
+test('photonics is marked tracked because photonics supplier records exist', () => {
+  const photonics = PILLARS.find(p => p.id === 'photonics');
+  assert.equal(photonics.tracked, PHOTONICS_SUPPLIERS.length > 0,
+    'photonics tracked state has drifted from the supplier records again');
+});
+
+test('the tracks with no supplier records are not marked tracked', () => {
+  for (const id of ['hbm-packaging', 'power-cooling']) {
+    const p = PILLARS.find(x => x.id === id);
+    assert.equal(p.tracked, false,
+      `${id} is marked tracked, but no supplier dataset backs it`);
+  }
 });

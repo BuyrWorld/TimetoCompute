@@ -56,23 +56,57 @@ export const COLUMN_BY_ID = Object.fromEntries(COLUMNS.map(c => [c.id, c]));
  * would imply T2C had decided the other two do not matter — when the truth is
  * that it holds no sourced supplier record for either.
  */
+/**
+ * The chain's tracks — ONE taxonomy, two surfaces.
+ *
+ * /chain/ calls these corridors and /chain-mapping/ calls them pillars. They
+ * were two separate arrays, and they contradicted each other: photonics was
+ * declared tracked here and NOT tracked in CORRIDORS, while T2C holds seven
+ * photonics supplier records. A reader visiting both pages was told both things,
+ * and the corridor card rendered photonics as a gap.
+ *
+ * `definition` is the fuller sentence the map drawer uses; `plain` is the shorter
+ * one the corridor card uses. Two lengths of one description is not two
+ * descriptions — the reference nodes carry `simple` and `technical` for the same
+ * reason.
+ *
+ * `onMap` marks the tracks the map can filter by. AI-factory delivery is not a
+ * pillar any node carries, so it is a corridor only.
+ *
+ * `tracked` means T2C holds sourced records in this area. Declared once, here,
+ * and a test asserts the photonics value still matches the supplier records
+ * rather than drifting away from them a second time.
+ */
 export const PILLARS = [
   {
-    id: 'photonics', label: 'Photonics', tracked: true,
-    definition: 'Lasers, modulators, transceivers and fibre — everything that moves data as light.'
+    id: 'ai-factory', label: 'AI-factory delivery', tracked: true, onMap: false,
+    definition: 'Operators, the sites they are building, and the customers who have signed for ' +
+      'the capacity.',
+    plain: 'Operators building the data centres, the sites they are building, and the customers ' +
+      'who have signed for the capacity.'
   },
   {
-    id: 'hbm-packaging', label: 'HBM + Packaging', tracked: false,
+    id: 'photonics', label: 'Photonics', tracked: true, onMap: true,
+    definition: 'Lasers, modulators, transceivers and fibre — everything that moves data as light.',
+    plain: 'Optical transceivers and the interconnect fabric between racks.'
+  },
+  {
+    id: 'hbm-packaging', label: 'HBM + packaging', tracked: false, onMap: true,
     definition: 'Stacked memory and the advanced packaging that puts it beside the processor.',
+    plain: 'High-bandwidth memory and the packaging that binds it to the accelerator.',
     needs: 'Supplier, qualification and volume-order records naming a memory maker or a packaging house.'
   },
   {
-    id: 'power-cooling', label: 'Power + Cooling', tracked: false,
+    id: 'power-cooling', label: 'Power + cooling', tracked: false, onMap: true,
     definition: 'Grid connection, transformers, switchgear and the cooling plant.',
+    plain: 'Grid connections, transformers, switchgear and the cooling plant that make a hall usable.',
     needs: 'Equipment supplier records. T2C tracks each site\'s power GATES, but no named transformer, ' +
       'switchgear or cooling supplier sits behind them.'
   }
 ];
+
+/** The tracks the map can filter by — every pillar a node can actually carry. */
+export const MAP_PILLARS = PILLARS.filter(p => p.onMap);
 
 export const PILLAR_BY_ID = Object.fromEntries(PILLARS.map(p => [p.id, p]));
 
