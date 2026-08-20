@@ -196,7 +196,18 @@ const PROJECT_RECORDS = [
   },
   {
     id: 'wulf-justified', companyId: 'terawulf', name: 'Justified Data Campus (Anthropic)', country: 'US', flag: '🇺🇸',
-    capacityMw: 401, powerBasis: 'critical-it', valueStatus: 'actual', confidence: 'confirmed',
+    /* RETAGGED from `actual` to `target`. The schema defines actual as "a current,
+       operating figure as at the stated date" and marks it aggregatable, so 401 MW
+       of unbuilt capacity was being summed into the site's current-capacity total.
+       Nothing here is energised, construction is not disclosed, and first delivery
+       is guided to H2 2027 — this is not a current operating figure.
+
+       `target` understates the firmness: a signed 20-year lease is a contractual
+       commitment, not a management intention. But the property that matters is
+       whether it counts as capacity that exists today, and it does not. The
+       contracted quantity is not lost by this change — it is separately recorded
+       as the `wulf-anthropic` contract, which is where a signed 401 MW belongs. */
+    capacityMw: 401, powerBasis: 'critical-it', valueStatus: 'target', confidence: 'confirmed',
     sourceIds: ['wulf-anthropic-lease'], asOf: '2026-08-04',
     note:
       'Approximately 401 MW critical IT on a 20-year initial lease, approximately $19bn contracted ' +
