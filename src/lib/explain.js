@@ -12,7 +12,7 @@
  * than borrowing one from elsewhere.
  */
 import {
-  STAGE_EXPLAINERS, COMPONENT_EXPLAINERS, EXPLAINER_BY_SLUG, STAGE_BY_ID, explainerHref
+  STAGE_EXPLAINERS, COMPONENT_EXPLAINERS, EXPLAINER_BY_SLUG, EXPLAINER_BY_STAGE, explainerHref
 } from '../../data/explainers.js';
 import { suppliersFor, SUPPLIER_ROLES, EVIDENCE_GRADES } from '../../data/suppliers.js';
 import { GLOSSARY_BY_ID, GLOSSARY_TERMS } from '../../data/glossary.js';
@@ -33,7 +33,7 @@ export function chainContext(slug) {
   const anchor = e.kind === 'stage' ? e : EXPLAINER_BY_SLUG[e.parent];
 
   return chainState().map(s => {
-    const ex = STAGE_BY_ID[s.id];
+    const ex = EXPLAINER_BY_STAGE[s.id];
     return {
       id: s.id,
       label: s.label,

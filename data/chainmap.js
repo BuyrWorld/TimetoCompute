@@ -49,15 +49,11 @@ export const COLUMNS = [
 export const COLUMN_BY_ID = Object.fromEntries(COLUMNS.map(c => [c.id, c]));
 
 /**
- * Filter pillars.
- *
- * The pack's preview shows three. T2C can evidence one of them. The other two
- * are declared rather than hidden, because a filter bar showing only Photonics
- * would imply T2C had decided the other two do not matter — when the truth is
- * that it holds no sourced supplier record for either.
- */
-/**
  * The chain's tracks — ONE taxonomy, two surfaces.
+ *
+ * The untracked ones are declared rather than hidden. A filter bar showing only
+ * the tracked track would imply T2C had decided the others do not matter, when
+ * the truth is that it holds no sourced supplier record for them yet.
  *
  * /chain/ calls these corridors and /chain-mapping/ calls them pillars. They
  * were two separate arrays, and they contradicted each other: photonics was
@@ -273,7 +269,7 @@ export const COMMERCIAL_STAGES = [
   }
 ];
 
-export const STAGE_BY_ID = Object.fromEntries(COMMERCIAL_STAGES.map(s => [s.id, s]));
+export const COMMERCIAL_STAGE_BY_ID = Object.fromEntries(COMMERCIAL_STAGES.map(s => [s.id, s]));
 
 /** Relationship classifications, from the pack's data model. */
 export const RELATIONSHIPS = {

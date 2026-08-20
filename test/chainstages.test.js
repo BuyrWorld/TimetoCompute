@@ -16,7 +16,8 @@ import { PILLARS, MAP_PILLARS } from '../data/chainmap.js';
 import { CORRIDORS } from '../src/lib/corridor.js';
 import { PHOTONICS_SUPPLIERS } from '../data/suppliers.js';
 import { STAGES as HOMEPAGE_STAGES, chainState } from '../src/lib/chain.js';
-import { COMMERCIAL_STAGES } from '../data/chainmap.js';
+import { COMMERCIAL_STAGES, COMMERCIAL_STAGE_BY_ID } from '../data/chainmap.js';
+import { EXPLAINER_BY_STAGE } from '../data/explainers.js';
 
 test('there are ten stages, numbered 1 to 10 without gaps', () => {
   assert.equal(STAGES.length, 10);
@@ -230,4 +231,43 @@ test('a tracked homepage stage reports a real count', () => {
     assert.ok(!/undefined|NaN/.test(s.count.primary + s.count.secondary),
       `${s.id} count is malformed: ${JSON.stringify(s.count)}`);
   }
+});
+
+/* ------------------------------------------------ the two stage lookups ---- */
+
+/**
+ * There used to be two exports called STAGE_BY_ID, in different files, over
+ * disjoint id spaces: one keyed by chain stage (materials..revenue), one by
+ * commercial rung (capacity..recognised). Every import happened to be correct,
+ * and nothing would have failed if one had not been. They are now named for what
+ * they hold, and these tests assert the id spaces stay disjoint so a future
+ * collision is a test failure rather than a silent wrong lookup.
+ */
+test('the explainer lookup is keyed by chain stage, not by commercial rung', () => {
+  const keys = Object.keys(EXPLAINER_BY_STAGE);
+  const homeIds = new Set(HOMEPAGE_STAGES.map(s => s.id));
+  for (const k of keys) {
+    assert.ok(homeIds.has(k), `${k} is not a chain stage id`);
+  }
+});
+
+test('the commercial lookup is keyed by commercial rung, not by chain stage', () => {
+  const keys = Object.keys(COMMERCIAL_STAGE_BY_ID);
+  const rungs = new Set(COMMERCIAL_STAGES.map(s => s.id));
+  for (const k of keys) {
+    assert.ok(rungs.has(k), `${k} is not a commercial rung`);
+  }
+});
+
+test('the two id spaces do not overlap', () => {
+  /* `accepted` is the one word both vocabularies could plausibly claim. It
+     belongs to the commercial ladder; the homepage entry that reports it is
+     marked axis 'commercial' and carries no chain position. If a chain stage
+     ever takes an id that is also a rung, the lookups become ambiguous again. */
+  const chainIds = new Set(
+    HOMEPAGE_STAGES.filter(s => s.axis === 'chain').map(s => s.id)
+  );
+  const overlap = COMMERCIAL_STAGES.map(s => s.id).filter(id => chainIds.has(id));
+  assert.deepEqual(overlap, [],
+    'a chain stage and a commercial rung share an id');
 });

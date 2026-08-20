@@ -11,7 +11,7 @@ import { CATALYSTS, CATALYST_STATUS, CATALYST_CATEGORIES } from '../../data/cata
 import { PROFILES } from '../../data/profiles.js';
 import { CUSTOMERS, CUSTOMER_KINDS, CUSTOMER_BY_NAME, isUndisclosedCustomer } from '../../data/customers.js';
 import { ART, ART_BY_ID } from '../../data/artpack.js';
-import { EXPLAINERS, EXPLAINER_BY_SLUG, STAGE_BY_ID } from '../../data/explainers.js';
+import { EXPLAINERS, EXPLAINER_BY_SLUG, EXPLAINER_BY_STAGE } from '../../data/explainers.js';
 import { PHOTONICS_SUPPLIERS, SUPPLIER_ROLES, EVIDENCE_GRADES } from '../../data/suppliers.js';
 import { allRecords, getMeasure, isKnown, aggregate, headlineKpis } from './compute.js';
 import { MAX_TICKERS, normaliseSelection } from './compare.js';
@@ -360,7 +360,7 @@ export function runChecks() {
       fail(`Explainer ${e.slug}: the plain-English translation is not plain`);
     }
     if (e.kind === 'stage') {
-      if (!STAGE_BY_ID[e.stageId]) fail(`Explainer ${e.slug} claims unknown stage ${e.stageId}`);
+      if (!EXPLAINER_BY_STAGE[e.stageId]) fail(`Explainer ${e.slug} claims unknown stage ${e.stageId}`);
       for (const c of e.components || []) {
         if (!EXPLAINER_BY_SLUG[c]) fail(`Explainer ${e.slug} lists unknown component ${c}`);
       }

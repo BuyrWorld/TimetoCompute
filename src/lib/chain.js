@@ -29,7 +29,7 @@ import { COMPANIES } from '../../data/companies.js';
 import { PROJECTS } from '../../data/projects.js';
 import { getMeasure, isKnown } from './compute.js';
 import { path as projectPath } from './sites.js';
-import { STAGE_BY_ID } from '../../data/explainers.js';
+import { EXPLAINER_BY_STAGE } from '../../data/explainers.js';
 import { PHOTONICS_SUPPLIERS, EVIDENCE_GRADES } from '../../data/suppliers.js';
 
 /**
@@ -187,7 +187,7 @@ export function chainState() {
     /* Every stage now has an explainer, so every node in the chain leads
        somewhere real. The explainer owns the plain-English one-liner, so the
        node and the page it opens cannot describe the stage differently. */
-    const ex = STAGE_BY_ID[s.id];
+    const ex = EXPLAINER_BY_STAGE[s.id];
     return {
       ...s,
       happened,

@@ -397,7 +397,7 @@ export const COMPONENT_EXPLAINERS = [
 
 export const EXPLAINERS = [...STAGE_EXPLAINERS, ...COMPONENT_EXPLAINERS];
 export const EXPLAINER_BY_SLUG = Object.fromEntries(EXPLAINERS.map(e => [e.slug, e]));
-export const STAGE_BY_ID = Object.fromEntries(STAGE_EXPLAINERS.map(e => [e.stageId, e]));
+export const EXPLAINER_BY_STAGE = Object.fromEntries(STAGE_EXPLAINERS.map(e => [e.stageId, e]));
 
 /** Where an explainer lives. Stages hub at /explainers/, components at /what-is/. */
 export const explainerHref = e =>

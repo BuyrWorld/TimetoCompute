@@ -15,7 +15,7 @@
  */
 import { esc, date } from './lib/format.js';
 import { RELATIONSHIPS, CONFIDENCES, MATURITIES } from '../data/chainmap.js';
-import { STAGE_BY_ID } from '../data/chainmap.js';
+import { COMMERCIAL_STAGE_BY_ID } from '../data/chainmap.js';
 import { TIERS } from '../data/chainreference.js';
 import { sourcesFor, hexPoints } from './lib/chainmap.js';
 
@@ -318,7 +318,7 @@ function hexNode(n, p, index, mode, isSingle) {
   const rel = RELATIONSHIPS[n.relationship] || RELATIONSHIPS.unknown;
   const conf = CONFIDENCES[n.confidence] || CONFIDENCES.unverified;
   const mat = MATURITIES[n.maturity] || MATURITIES.unknown;
-  const stage = n.commercialStage ? STAGE_BY_ID[n.commercialStage] : null;
+  const stage = n.commercialStage ? COMMERCIAL_STAGE_BY_ID[n.commercialStage] : null;
   const descId = `cm-nodedesc-${esc(mode)}-${esc(n.id)}`;
   /* An operator's node title IS its company name, so printing both stacked
      "IREN Limited / IREN Limited" — two lines saying one thing. The second line
@@ -439,7 +439,7 @@ export function chainMapList(graph) {
     rel: RELATIONSHIPS[n.relationship] || RELATIONSHIPS.unknown,
     conf: CONFIDENCES[n.confidence] || CONFIDENCES.unverified,
     mat: MATURITIES[n.maturity] || MATURITIES.unknown,
-    stage: n.commercialStage ? STAGE_BY_ID[n.commercialStage] : null,
+    stage: n.commercialStage ? COMMERCIAL_STAGE_BY_ID[n.commercialStage] : null,
     tierShort: n.tier === 'reference' ? TIERS.reference.short : 'T2C RECORD'
   })));
 
@@ -530,7 +530,7 @@ export function drawerPayload(graph) {
     const rel = RELATIONSHIPS[n.relationship] || RELATIONSHIPS.unknown;
     const conf = CONFIDENCES[n.confidence] || CONFIDENCES.unverified;
     const mat = MATURITIES[n.maturity] || MATURITIES.unknown;
-    const stage = n.commercialStage ? STAGE_BY_ID[n.commercialStage] : null;
+    const stage = n.commercialStage ? COMMERCIAL_STAGE_BY_ID[n.commercialStage] : null;
     return {
       id: n.id, title: n.title, org: n.org, ticker: n.orgTicker, exchange: n.orgExchange,
       column: n.column, simple: n.simple, technical: n.technical,
