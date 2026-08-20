@@ -351,7 +351,7 @@
 .cm-hexrel[data-rel="direct"], .cm-hexrel[data-rel="reported"] { fill: var(--brand); }
 .cm-hexrel[data-rel="inferred"], .cm-hexrel[data-rel="unknown"] { fill: var(--warn); }
 
-/* THE TWO TIERS. An evidenced node is solid and lit; an industry-reference node
+/* COVERAGE. A sourced node is solid and lit; a structural node
    is drawn cooler, with a dashed body, so it reads as scaffolding rather than as
    a record. It is never faded below the readability floor — the reference chain
    is the point of the page now, not decoration behind it. */
@@ -359,13 +359,13 @@
   font-family: var(--m-mono); font-size: 7.5px; font-weight: 700;
   letter-spacing: .09em; fill: var(--t2c-cyan); opacity: .8;
 }
-.cm-hexg[data-tier="reference"] .cm-hexbody {
+.cm-hexg[data-coverage="structural"] .cm-hexbody {
   stroke: rgb(43 217 245 / 38%); stroke-dasharray: 5 3;
   fill: rgb(9 17 21 / 92%);
 }
-.cm-hexg[data-tier="reference"] .cm-hexlabel { fill: var(--soft); }
-.cm-hexg[data-tier="reference"] .cm-hexorg { fill: var(--dim); }
-.cm-hexg[data-tier="reference"]:hover .cm-hexbody { stroke: rgb(43 217 245 / 75%); }
+.cm-hexg[data-coverage="structural"] .cm-hexlabel { fill: var(--soft); }
+.cm-hexg[data-coverage="structural"] .cm-hexorg { fill: var(--dim); }
+.cm-hexg[data-coverage="structural"]:hover .cm-hexbody { stroke: rgb(43 217 245 / 75%); }
 
 /* Context stays READABLE. The pack's floor is 55–70% — a filtered-out node the
    reader cannot see is a filter that hides its own effect. */
@@ -394,21 +394,21 @@
 .cm-hudchip.is-cyan b { color: var(--t2c-cyan); }
 
 
-/* ---- the drawer's tier banner ---- */
-.cm-dtier {
+/* ---- the drawer's coverage banner ---- */
+.cm-dcov {
   display: grid; gap: 4px; margin: 0 0 var(--s2);
   padding: 10px 12px; border-radius: var(--m-radius-sm);
   border: 1px solid var(--line-2); background: var(--surface-2);
 }
-.cm-dtier b {
+.cm-dcov b {
   font-family: var(--m-mono); font-size: 9.5px; font-weight: 700;
   letter-spacing: .12em; text-transform: uppercase; color: var(--brand);
 }
-.cm-dtier span { font-size: 11.5px; line-height: 1.5; color: var(--dim); }
-.cm-dtier[data-tier=reference] {
+.cm-dcov span { font-size: 11.5px; line-height: 1.5; color: var(--dim); }
+.cm-dcov[data-coverage=structural] {
   border-color: rgb(43 217 245 / 40%); background: var(--t2c-cyan-soft);
 }
-.cm-dtier[data-tier=reference] b { color: var(--t2c-cyan); }
+.cm-dcov[data-coverage=structural] b { color: var(--t2c-cyan); }
 .cm-dexamples {
   list-style: none; margin: 0; padding: 0; display: grid; gap: 5px;
 }
@@ -477,18 +477,18 @@
 .cm-listempty b { color: var(--warn); }
 
 
-/* ---- the tier tag, shared by table and cards ---- */
+/* ---- the coverage tag, shared by table and cards ---- */
 /* Present on BOTH list surfaces because without it a REFERENCE row — industry
    structure with example companies — is indistinguishable from a row T2C holds
    a document for. The graph has always carried this badge; the list did not,
    which made the list the one surface where the distinction disappeared. */
-.cm-tiertag {
+.cm-covtag {
   display: inline-block; white-space: nowrap;
   font-family: var(--m-mono); font-size: 8.5px; font-weight: 700;
   letter-spacing: .09em; padding: 2px 6px; border-radius: 3px;
 }
-.cm-tiertag[data-tier="evidenced"] { color: var(--brand); border: 1px solid rgb(214 255 0 / 45%); }
-.cm-tiertag[data-tier="reference"] { color: var(--t2c-cyan); border: 1px dashed rgb(43 217 245 / 45%); }
+.cm-covtag[data-coverage="sourced"] { color: var(--brand); border: 1px solid rgb(214 255 0 / 45%); }
+.cm-covtag[data-coverage="structural"] { color: var(--t2c-cyan); border: 1px dashed rgb(43 217 245 / 45%); }
 
 /* ---- cards: the mobile form of the list ---- */
 /* Hidden above 640px, where the table is the better instrument for comparing.
@@ -504,7 +504,7 @@
   border: 1px solid var(--line-2); border-radius: var(--m-radius-sm);
   transition: opacity var(--t2c-fast) var(--t2c-ease), transform var(--t2c-fast) var(--t2c-ease);
 }
-.cm-cardbtn[data-tier="reference"] { border-style: dashed; border-color: rgb(43 217 245 / 30%); }
+.cm-cardbtn[data-coverage="structural"] { border-style: dashed; border-color: rgb(43 217 245 / 30%); }
 .cm-cardtop { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .cm-cardcol {
   font-family: var(--m-mono); font-size: 9px; letter-spacing: .1em;

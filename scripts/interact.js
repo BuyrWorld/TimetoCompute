@@ -940,23 +940,24 @@ const run = async () => {
   const cmEmpty = await page.$$eval('.cm-mode:not([hidden]) .cm-emptyplate', els => els.length);
   check('no column is left empty', cmEmpty === 0, cmEmpty + ' empty');
 
-  const cmTiers = await page.evaluate(() => ({
-    ev: document.querySelectorAll('.cm-mode:not([hidden]) .cm-hexg[data-tier="evidenced"]').length,
-    ref: document.querySelectorAll('.cm-mode:not([hidden]) .cm-hexg[data-tier="reference"]').length
+  const cmCoverage = await page.evaluate(() => ({
+    sourced: document.querySelectorAll('.cm-mode:not([hidden]) .cm-hexg[data-coverage="sourced"]').length,
+    structural: document.querySelectorAll('.cm-mode:not([hidden]) .cm-hexg[data-coverage="structural"]').length
   }));
-  check('both tiers are drawn', cmTiers.ev > 0 && cmTiers.ref > 0, JSON.stringify(cmTiers));
-  /* A reference node must never be styled as an evidenced one. If the two ever
+  check('both coverage states are drawn',
+    cmCoverage.sourced > 0 && cmCoverage.structural > 0, JSON.stringify(cmCoverage));
+  /* A structural node must never be styled as a sourced one. If the two ever
      converged the map would present industry structure as a T2C finding, which
      is the single failure this whole design exists to prevent. */
-  const tierStyles = await page.evaluate(() => {
+  const covStyles = await page.evaluate(() => {
     const g = s => getComputedStyle(document.querySelector(
-      '.cm-mode:not([hidden]) .cm-hexg[data-tier="' + s + '"] .cm-hexbody'));
-    const a = g('evidenced'), b = g('reference');
+      '.cm-mode:not([hidden]) .cm-hexg[data-coverage="' + s + '"] .cm-hexbody'));
+    const a = g('sourced'), b = g('structural');
     return { same: a.stroke === b.stroke && a.strokeDasharray === b.strokeDasharray,
-      refDashed: b.strokeDasharray !== 'none' && b.strokeDasharray !== '' };
+      structuralDashed: b.strokeDasharray !== 'none' && b.strokeDasharray !== '' };
   });
-  check('a reference node is visibly not an evidenced one', !tierStyles.same);
-  check('reference nodes are drawn dashed', tierStyles.refDashed);
+  check('a structural node is visibly not a sourced one', !covStyles.same);
+  check('structural nodes are drawn dashed', covStyles.structuralDashed);
 
   /* THE TWO LINK SHAPES. A thin curve is a named agreement between two named
      companies; a wide band is T2C's own framing of how a deployment is built.
@@ -1054,20 +1055,20 @@ const run = async () => {
      node must say what it is BEFORE any of its content, and must state that
      naming a company is not a supply claim. Without this the panel reads
      exactly like an evidenced one. */
-  await page.click('.cm-mode:not([hidden]) .cm-hexg[data-tier="reference"]');
+  await page.click('.cm-mode:not([hidden]) .cm-hexg[data-coverage="structural"]');
   await new Promise(r => setTimeout(r, 350));
   const refPanel = await page.evaluate(() => {
-    const t = document.querySelector('.cm-dtier');
+    const t = document.querySelector('.cm-dcov');
     const body = document.getElementById('cmDrawerBody');
     return {
-      tier: t ? t.getAttribute('data-tier') : null,
-      leads: body && body.firstElementChild && body.firstElementChild.classList.contains('cm-dtier'),
+      coverage: t ? t.getAttribute("data-coverage") : null,
+      leads: body && body.firstElementChild && body.firstElementChild.classList.contains('cm-dcov'),
       caveat: (document.querySelector('.cm-dcaveat') || {}).textContent || '',
       examples: document.querySelectorAll('.cm-dexamples li').length,
       sources: document.querySelectorAll('.cm-dsrc a').length
     };
   });
-  check('a reference node declares its tier first', refPanel.tier === 'reference' && refPanel.leads,
+  check('a structural node declares its coverage first', refPanel.coverage === "structural" && refPanel.leads,
     JSON.stringify(refPanel));
   check('a reference node lists example companies', refPanel.examples > 0, String(refPanel.examples));
   check('and says naming one is not a supply claim',

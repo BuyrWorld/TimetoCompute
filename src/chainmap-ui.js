@@ -16,7 +16,7 @@
 import { esc, date } from './lib/format.js';
 import { RELATIONSHIPS, CONFIDENCES, MATURITIES } from '../data/chainmap.js';
 import { COMMERCIAL_STAGE_BY_ID } from '../data/chainmap.js';
-import { TIERS } from '../data/chainreference.js';
+import { COVERAGE } from '../data/chainreference.js';
 import { sourcesFor, hexPoints } from './lib/chainmap.js';
 
 const ICON = '/assets/t2c/chain-mapping/chain-mapping-icons.svg';
@@ -137,7 +137,7 @@ export function filterRail({ traceModes, traceMode, pillars, pillar, showInferre
       </label>
 
       <!-- The legend is the contract between the drawing and the reader. It
-           names the two TIERS a node can have and the two kinds of link, because
+           names the coverage states a node can have and the two kinds of link, because
            those four things are the only vocabulary the map uses. -->
       <ul class="cm-legend" role="list">
         <li><i class="cm-swatch cm-swatch--evidenced" aria-hidden="true"></i>
@@ -341,10 +341,10 @@ function hexNode(n, p, index, mode, isSingle) {
   if (org) rows.push({ cls: 'cm-hexorg', text: org, h: 11 });
   /* A reference node says REFERENCE, not its relationship grade. Showing
      "ECOSYSTEM" there would put it in the same vocabulary as a node T2C actually
-     holds a record for, and the whole point of the tier is that they are not
+     holds a record for, and the whole point of the coverage state is that they are not
      the same kind of claim. */
-  rows.push(n.tier === 'reference'
-    ? { cls: 'cm-hextier', text: TIERS.reference.short, h: 11 }
+  rows.push(n.coverage === 'structural'
+    ? { cls: 'cm-hextier', text: COVERAGE.structural.short, h: 11 }
     : { cls: 'cm-hexrel', text: rel.label.toUpperCase(), h: 11, rel: n.relationship });
 
   const stackH = rows.reduce((a, r) => a + r.h, 0);
@@ -358,7 +358,7 @@ function hexNode(n, p, index, mode, isSingle) {
   return `<g class="cm-hexg" data-node="${esc(n.id)}" data-column="${esc(n.column)}"
       data-pillar="${esc(n.pillar)}" data-rel="${esc(n.relationship)}"
       data-maturity="${esc(n.maturity)}" data-single="${isSingle}"
-      data-org="${n.org ? 'yes' : 'no'}" data-tier="${esc(n.tier)}"
+      data-org="${n.org ? 'yes' : 'no'}" data-coverage="${esc(n.coverage)}"
       tabindex="0" role="button" aria-describedby="${descId}"
       aria-label="${esc(n.title)}${n.org ? ', ' + esc(n.org) : ''}"
       style="--cm-hex-delay:${index * 26}ms">
@@ -368,9 +368,9 @@ function hexNode(n, p, index, mode, isSingle) {
     <polygon class="cm-hexhalo" points="${hexPoints(p.x, p.y, 157, 67)}" />
     <polygon class="cm-hexbody" points="${hexPoints(p.x, p.y)}" />
     ${label}
-    <desc id="${descId}">${esc(TIERS[n.tier].label)}. ${esc(n.simple || n.technical)}.${
-      n.tier === 'reference'
-        ? ` Example companies: ${esc((n.examples || []).join(', '))}. ${esc(TIERS.reference.definition)}`
+    <desc id="${descId}">${esc(COVERAGE[n.coverage].label)}. ${esc(n.simple || n.technical)}.${
+      n.coverage === 'structural'
+        ? ` Example companies: ${esc((n.examples || []).join(', '))}. ${esc(COVERAGE.structural.definition)}`
         : ` Relationship ${esc(rel.label)}, evidence ${esc(conf.label)}, maturity ${esc(mat.label)}${
             stage ? `, commercial stage ${esc(stage.label)}` : ', no commercial stage on record'}${
             isSingle ? '. One maker on file' : ''}.`}</desc>
@@ -440,13 +440,13 @@ export function chainMapList(graph) {
     conf: CONFIDENCES[n.confidence] || CONFIDENCES.unverified,
     mat: MATURITIES[n.maturity] || MATURITIES.unknown,
     stage: n.commercialStage ? COMMERCIAL_STAGE_BY_ID[n.commercialStage] : null,
-    tierShort: n.tier === 'reference' ? TIERS.reference.short : 'T2C RECORD'
+    covShort: n.coverage === 'structural' ? COVERAGE.structural.short : 'T2C RECORD'
   })));
 
   return `<div class="cm-listview" hidden>
     <div class="tw cm-listtable">
       <table class="cm-table">
-        <caption class="vh">Every node in the chain map, with the tier it belongs to, its
+        <caption class="vh">Every node in the chain map, with its coverage, its
           evidence and its commercial stage</caption>
         <thead><tr>
           <th scope="col">Column</th><th scope="col">Node</th><th scope="col">Tier</th>
@@ -455,13 +455,13 @@ export function chainMapList(graph) {
           <th scope="col">Maturity</th><th scope="col">Commercial stage</th>
         </tr></thead>
         <tbody>
-          ${rows.map(({ c, n, rel, conf, mat, stage, tierShort }) => `
+          ${rows.map(({ c, n, rel, conf, mat, stage, covShort }) => `
             <tr data-row-node="${esc(graph.architecture)}-${esc(n.id)}">
               <td>${esc(c.label)}</td>
               <th scope="row" class="tleft">
                 <button type="button" class="cm-rowbtn" data-node="${esc(n.id)}">${esc(n.title)}</button>
               </th>
-              <td><span class="cm-tiertag" data-tier="${esc(n.tier)}">${esc(tierShort)}</span></td>
+              <td><span class="cm-covtag" data-coverage="${esc(n.coverage)}">${esc(covShort)}</span></td>
               <td class="tleft">${esc(n.org || '—')}</td>
               <td><span class="cm-tag" data-rel="${esc(n.relationship)}">${esc(rel.label)}</span></td>
               <td>${esc(conf.label)}</td>
@@ -472,19 +472,19 @@ export function chainMapList(graph) {
       </table>
     </div>
 
-    ${/* The card list. Identifier first, then the tier, then the qualifiers —
+    ${/* The card list. Identifier first, then the coverage, then the qualifiers —
           every field the table carries, none dropped for space. */''}
     <ul class="cm-cards" role="list">
-      ${rows.map(({ c, n, rel, conf, mat, stage, tierShort }, i) => `
+      ${rows.map(({ c, n, rel, conf, mat, stage, covShort }, i) => `
         <li>
           <button type="button" class="cm-cardbtn" data-node="${esc(n.id)}"
             style="--cm-card-delay:${i * 26}ms"
             data-column="${esc(n.column)}" data-pillar="${esc(n.pillar)}"
-            data-rel="${esc(n.relationship)}" data-tier="${esc(n.tier)}"
+            data-rel="${esc(n.relationship)}" data-coverage="${esc(n.coverage)}"
             data-org="${n.org ? 'yes' : 'no'}">
             <span class="cm-cardtop">
               <span class="cm-cardcol">${esc(c.label)}</span>
-              <span class="cm-tiertag" data-tier="${esc(n.tier)}">${esc(tierShort)}</span>
+              <span class="cm-covtag" data-coverage="${esc(n.coverage)}">${esc(covShort)}</span>
             </span>
             <span class="cm-cardid">${esc(n.title)}</span>
             ${n.org && n.org !== n.title ? `<span class="cm-cardorg">${esc(n.org)}</span>` : ''}
@@ -534,9 +534,10 @@ export function drawerPayload(graph) {
     return {
       id: n.id, title: n.title, org: n.org, ticker: n.orgTicker, exchange: n.orgExchange,
       column: n.column, simple: n.simple, technical: n.technical,
-      /* The tier travels with the payload so the drawer cannot render an
+      /* The coverage travels with the payload so the drawer cannot render an
          industry-reference node with an evidenced node's authority. */
-      tier: n.tier, tierLabel: TIERS[n.tier].label, tierNote: TIERS[n.tier].definition,
+      coverage: n.coverage, coverageLabel: COVERAGE[n.coverage].label,
+      coverageNote: COVERAGE[n.coverage].definition,
       examples: n.examples || null,
       why: n.whyItMatters, inputs: n.inputs, outputs: n.outputs,
       relationship: n.relationship, relationshipLabel: rel.label, relationshipDef: rel.definition,

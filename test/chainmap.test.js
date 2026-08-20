@@ -212,7 +212,7 @@ test('a column emptied by a filter still states why', () => {
    default, because on its own it taught nobody how the chain works. */
 test('the reference layer can be switched off entirely', () => {
   const g = chainMap({ reference: false });
-  assert.ok(g.nodes.every(n => n.tier === 'evidenced'));
+  assert.ok(g.nodes.every(n => n.coverage === 'sourced'));
   assert.ok(g.columns.find(c => c.id === 'systems').empty,
     'without the reference layer, Systems is empty — that was the original finding');
   assert.match(g.columns.find(c => c.id === 'systems').emptyReason,
@@ -493,13 +493,13 @@ test('the workspace is at /chain-mapping/ and the old route survives', () => {
  * opens by default, and what a text-only export or a screen reader is most
  * likely to reach.
  */
-test('every list row and every card states its tier', () => {
+test('every list row and every card states its coverage', () => {
   const html = page();
   const nodes = (html.match(/class="cm-hexg"/g) || []).length;
-  const tags = (html.match(/class="cm-tiertag" data-tier=/g) || []).length;
+  const tags = (html.match(/class="cm-covtag" data-coverage=/g) || []).length;
   /* One in the table row and one on the card, across both architecture modes —
      the same node count the graph draws. */
-  assert.equal(tags, nodes * 2, `${tags} tier tags for ${nodes} nodes`);
+  assert.equal(tags, nodes * 2, `${tags} coverage tags for ${nodes} nodes`);
   assert.ok(html.includes('>REFERENCE<'), 'no REFERENCE badge reaches the list');
   assert.ok(html.includes('>T2C RECORD<'), 'no evidenced badge reaches the list');
 });
@@ -521,7 +521,7 @@ test('the cards carry the attributes the filters act on', () => {
   const cards = [...html.matchAll(/class="cm-cardbtn"([\s\S]{0,300}?)>/g)];
   assert.ok(cards.length > 0);
   for (const [, attrs] of cards) {
-    for (const a of ['data-node', 'data-column', 'data-pillar', 'data-rel', 'data-tier', 'data-org']) {
+    for (const a of ['data-node', 'data-column', 'data-pillar', 'data-rel', 'data-coverage', 'data-org']) {
       assert.ok(attrs.includes(a), `a card is missing ${a}, so a filter cannot reach it`);
     }
   }
@@ -589,7 +589,7 @@ test('the trace readout sits outside the canvas so list view keeps it', () => {
  */
 test('no stage or evidence badge moves, pulses or fades', () => {
   const css = read('src/chainmap.css');
-  const BADGES = ['.cm-stage', '.cm-tag', '.cm-tiertag', '.cm-dtier', '.cm-ladderrow'];
+  const BADGES = ['.cm-stage', '.cm-tag', '.cm-covtag', '.cm-dcov', '.cm-ladderrow'];
   for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     const sel = selector.trim();
     if (!BADGES.some(f => sel.split(',').some(p => p.trim().startsWith(f)))) continue;

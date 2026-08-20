@@ -35,7 +35,7 @@ import {
 } from '../../data/chainmap.js';
 import { PHOTONICS_SUPPLIERS, EVIDENCE_GRADES, SUPPLIER_ROLES } from '../../data/suppliers.js';
 import {
-  TIERS, REFERENCE_NODES, REFERENCE_EDGES, REFERENCE_HANDOFFS,
+  COVERAGE, REFERENCE_NODES, REFERENCE_EDGES, REFERENCE_HANDOFFS,
   EVIDENCED_TO_REFERENCE, SUPERSEDED_BY_EVIDENCE
 } from '../../data/chainreference.js';
 import { EXPLAINER_BY_SLUG, explainerHref } from '../../data/explainers.js';
@@ -84,11 +84,11 @@ const node = o => ({
   architectureModes: ['deployed', 'next'],
   maturity: 'unknown', relationship: 'unknown', confidence: 'unverified',
   commercialStage: null, evidenceIds: [], explainerHref: null, inputs: null, outputs: null,
-  /* Every node declares which tier it belongs to. Defaulting to `evidenced` is
-     safe because a reference node has to opt in explicitly — the failure mode
-     that matters is a reference node quietly inheriting an evidenced node's
-     authority, never the other way round. */
-  tier: 'evidenced', examples: null,
+  /* Every node declares its coverage. Defaulting to `sourced` is safe because a
+     structural node has to opt in explicitly — the failure mode that matters is a
+     structural node quietly inheriting a sourced node's authority, never the
+     other way round. */
+  coverage: 'sourced', examples: null,
   ...o
 });
 
@@ -97,7 +97,7 @@ const node = o => ({
 /**
  * The industry structure, as product-class nodes.
  *
- * These carry `tier: 'reference'` and name example companies rather than sourced
+ * These carry `coverage: 'structural'` and name example companies rather than sourced
  * makers. Everything downstream — the badge, the drawer, the list view, the
  * readout — keys off that one field, so a reference node cannot be rendered as
  * though T2C held a record for it.
@@ -105,7 +105,7 @@ const node = o => ({
 function referenceNodes() {
   return REFERENCE_NODES.map(r => node({
     ...r,
-    tier: 'reference',
+    coverage: 'structural',
     /* Always the count, never the bare company name. A reference node showing a
        single org reads exactly like an evidenced one, which would assert a
        supplier relationship no document supports. Until the cooling split every
@@ -512,8 +512,8 @@ export function chainMap({
          but its sources hang off its projects rather than the node — and the
          page must not use one where it means the other. */
       evidenced: visible.filter(n => n.evidenceIds.length).length,
-      evidencedNodes: visible.filter(n => n.tier === 'evidenced').length,
-      referenceNodes: visible.filter(n => n.tier === 'reference').length
+      evidencedNodes: visible.filter(n => n.coverage === 'sourced').length,
+      referenceNodes: visible.filter(n => n.coverage === 'structural').length
     }
   };
 }

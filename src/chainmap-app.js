@@ -230,10 +230,10 @@
 
   function drawerHtml(n) {
     var h = '';
-    /* The tier leads. A reader who opens a reference node must be told what it
+    /* The coverage leads. A reader who opens a structural node must be told what it
        is before they read anything else in the panel, not after — by then they
        have already taken the content as a T2C finding. */
-    h += '<p class="cm-dtier" data-tier="' + esc(n.tier) + '"><b>' + esc(n.tierLabel) + '</b>' +
+    h += '<p class="cm-dcov" data-coverage="' + esc(n.coverage) + '"><b>' + esc(n.coverageLabel) + '</b>' +
       '<span>' + esc(n.tierNote) + '</span></p>';
     h += '<p class="cm-dsimple">' + esc(n.simple || '') + '</p>';
     h += '<section class="cm-dsec"><h3>What is this?</h3><p>' + esc(n.technical) + '</p>';
@@ -256,7 +256,7 @@
        breath, the three things they are not: exhaustive, ranked, or connected to
        any tracked operator. Listing them without that sentence is how a
        reference panel quietly becomes a supplier claim. */
-    if (n.tier === 'reference' && n.examples && n.examples.length) {
+    if (n.coverage === 'structural' && n.examples && n.examples.length) {
       h += '<section class="cm-dsec"><h3>Who operates at this stage</h3>' +
         '<ul class="cm-dexamples">' +
         n.examples.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') +
@@ -555,7 +555,7 @@
     if (!hud) return;
     var nodes = qsa('.cm-hexg', m);
     var shown = nodes.filter(function (n) { return !n.classList.contains('is-context'); });
-    var evidencedNodes = nodes.filter(function (n) { return n.getAttribute('data-tier') === 'evidenced'; });
+    var evidencedNodes = nodes.filter(function (n) { return n.getAttribute('data-coverage') === 'sourced'; });
     var allEdges = qsa('.cm-edge', m);
     var structural = allEdges.filter(function (e) { return e.classList.contains('is-structural'); });
     var evidencedEdges = allEdges.length - structural.length;

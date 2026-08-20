@@ -41,25 +41,46 @@
  */
 
 /**
- * The two tiers a node can belong to.
+ * How well T2C knows a node — the three coverage states.
  *
- * Kept as data rather than a boolean so the label and the caveat travel with
- * the tier everywhere it is rendered, and a new surface cannot forget them.
+ * Kept as data rather than a boolean so the label and the caveat travel with the
+ * state everywhere it is rendered, and a new surface cannot forget them.
+ *
+ * This was `TIERS`, with two states named `evidenced` and `reference`. It became
+ * `COVERAGE` because a two-state field could only say "T2C holds a record" or
+ * "T2C does not", and those two answers were carrying a third meaning between
+ * them. A node can be genuinely part of the chain with no supplier record — that
+ * is `structural`, and it is a complete and correct node, not a gap. A node whose
+ * shape T2C cannot yet confirm is something else again, and had nowhere to live.
+ *
+ * THE DISTINCTION THAT MATTERS MOST: `structural` is not a failure state. A
+ * structural node has a real description and real edges. It is missing a supplier
+ * record, and nothing else. Rendering it as an absence, an error or an empty slot
+ * would misrepresent the chain — the industry does not stop existing where T2C's
+ * records do.
  */
-export const TIERS = {
-  evidenced: {
-    id: 'evidenced',
+export const COVERAGE = {
+  sourced: {
+    id: 'sourced',
     label: 'T2C record',
-    short: 'EVIDENCED',
-    definition: 'T2C holds a sourced record for the makers named on this node.'
+    short: 'SOURCED',
+    definition: 'A primary document names the makers on this node, and T2C holds it.'
   },
-  reference: {
-    id: 'reference',
-    label: 'Industry reference',
-    short: 'REFERENCE',
+  structural: {
+    id: 'structural',
+    label: 'Structural',
+    short: 'STRUCTURAL',
     definition:
-      'Structure of the chain, with example companies. T2C holds no supplier record here, and ' +
-      'naming a company is not a claim that it supplies any tracked operator.'
+      'Genuinely part of the chain, with example companies. T2C holds no supplier record here, ' +
+      'and naming a company is not a claim that it supplies any tracked operator.'
+  },
+  unknown: {
+    id: 'unknown',
+    label: 'Shape unconfirmed',
+    short: 'UNKNOWN',
+    definition:
+      'T2C cannot yet confirm the shape of this link. It is drawn dashed so the uncertainty is ' +
+      'visible rather than implied by an empty space.'
   }
 };
 
