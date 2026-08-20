@@ -347,3 +347,72 @@ export function schedule({
     announcedAt, sourceIds, confidence, verifiedAt, notes, scope
   };
 }
+
+/**
+ * A PHASE of a site — one block of capacity with its own progress.
+ *
+ * WHY THIS EXISTS. A site record held one linear run of gates, and real builds
+ * do not work that way. An operator energises a block, starts billing it, and
+ * begins the next block, so two parts of one site sit at different stages at
+ * once. Forced onto one track that renders as a contradiction: Lake Mariner
+ * showed construction IN PROGRESS positioned before energised COMPLETE, which
+ * is incoherent — you cannot energise a hall you have not built.
+ *
+ * The record was not wrong. Both facts were true of different blocks. The
+ * schema had nowhere to say which block each belonged to.
+ *
+ * `scope` on a schedule was the first half of this fix, and its comment above
+ * describes the same bug from the other end: a CB-4 guidance date measured
+ * against the pre-existing 102 MW produced "early by 1 day", an artifact of
+ * comparing one block's target to another block's actual. Gates now carry the
+ * same idea, properly.
+ *
+ * THE RULES THAT KEEP THIS HONEST:
+ *
+ *   A phase's capacity is disclosed or it is null. Never the remainder after
+ *   subtracting the phases that are disclosed — that arithmetic looks like a
+ *   figure and is an inference.
+ *
+ *   Site capacity is the sum of its phases ONLY when every phase carries a
+ *   capacity on the same basis. Otherwise the site keeps its own disclosed
+ *   figure and the phases are a breakdown of it, not a computation of it.
+ *
+ *   Two blocks whose split is not disclosed stay one phase. Lake Mariner
+ *   discloses 336 MW "across CB-4 and CB-5" and does not say how it divides, so
+ *   CB-4 and CB-5 are one phase here. Splitting them evenly would invent two
+ *   figures where the source gives one.
+ */
+export function phase({
+  id,
+  name,
+  capacityMw = null,
+  powerBasis = null,
+  status = 'notDisclosed',
+  gates = [],
+  sourceIds = [],
+  note = null
+}) {
+  if (!id) throw new Error('A phase needs an id');
+  if (!name) throw new Error(`Phase ${id} needs a name a reader would recognise`);
+  if (capacityMw !== null && !(capacityMw > 0)) throw new Error(`Phase ${id} has a non-positive capacity`);
+  if (capacityMw !== null && !POWER_BASIS[powerBasis]) {
+    throw new Error(`Phase ${id} states a capacity with no valid basis — two blocks quoting the same number may be measuring different things`);
+  }
+  if (!GATE_STATUS[status]) throw new Error(`Phase ${id} has an unknown status: ${status}`);
+  return { id, name, capacityMw, powerBasis, status, gates, sourceIds, note };
+}
+
+/**
+ * Site capacity from phases, or null when the phases cannot honestly be summed.
+ *
+ * Returns null rather than a partial total if any phase lacks a capacity or
+ * states a different basis. A partial sum presented as a site total is the
+ * error this whole model exists to prevent — it would look like a disclosure.
+ */
+export function phaseCapacity(phases) {
+  if (!Array.isArray(phases) || !phases.length) return null;
+  if (phases.some(p => p.capacityMw === null)) return null;
+  const bases = new Set(phases.map(p => p.powerBasis));
+  if (bases.size !== 1) return null;
+  return { mw: phases.reduce((n, p) => n + p.capacityMw, 0), basis: [...bases][0] };
+}

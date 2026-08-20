@@ -9,11 +9,11 @@
  * three different things depending on whether it is gross site capacity, energised
  * utility capacity, or critical IT under construction.
  */
-import { gate, schedule } from './schema.js';
+import { gate, schedule, phase } from './schema.js';
 
 const V = '2026-08-15';
 
-export const PROJECTS = [
+const PROJECT_RECORDS = [
   /* ---------------- IREN ---------------- */
   {
     id: 'iren-childress', companyId: 'iren', name: 'Childress, Texas', country: 'US', flag: '🇺🇸',
@@ -147,12 +147,51 @@ export const PROJECTS = [
         notes: '"Completed delivery of CB-3 in early July" 2026. Already delivered; recorded for the record, not as an outstanding target.'
       })
     ],
+    /* PHASED. Two blocks at different stages, which is why the single track read
+       as a contradiction: construction IN PROGRESS sat before energised COMPLETE.
+       Both were true of different blocks and the record could not say so.
+
+       The split is the source's own, taken from the gate notes that already
+       carried it: 102 MW revenue-generating, 336 MW under construction. 102 + 336
+       is 438, which is the published site total, so nothing is recomputed.
+
+       CB-4 AND CB-5 ARE ONE PHASE, deliberately. The filing gives 336 MW "across
+       CB-4 and CB-5" and does not divide it. Two phases of 168 MW would be an
+       invention dressed as a breakdown. They separate when a filing separates
+       them, and their differing schedules are already recorded per scope above.
+
+       WHERE CB-3 LANDS IS NOT DISCLOSED. The 102 MW is measured at 30 June 2026;
+       CB-3 was delivered in early July, after that date. Whether its capacity is
+       inside the 102, inside the 336, or additional to both, the filing does not
+       say — so it is recorded as the scoped schedule it is and assigned to
+       neither phase. */
+    phases: [
+      phase({
+        id: 'in-service', name: 'Energised capacity',
+        capacityMw: 102, powerBasis: 'critical-it', status: 'complete',
+        sourceIds: ['wulf-q2-2026-results'],
+        note: 'Revenue-generating critical IT as of 30 June 2026.',
+        gates: [
+          gate({ id: 'criticalItEnergised', status: 'complete', effectiveAt: '2026-06-30', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V, notes: '102 MW.' }),
+          gate({ id: 'revenueCommenced', status: 'complete', effectiveAt: '2026-06-30', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V, notes: 'Explicitly revenue-generating.' })
+        ]
+      }),
+      phase({
+        id: 'cb-4-cb-5', name: 'CB-4 and CB-5',
+        capacityMw: 336, powerBasis: 'critical-it', status: 'inProgress',
+        sourceIds: ['wulf-q2-2026-results'],
+        note: 'Additional critical IT under construction. The filing does not divide this between the two buildings.',
+        gates: [
+          gate({ id: 'constructionStarted', status: 'inProgress', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V, notes: '336 MW additional critical IT.' })
+        ]
+      })
+    ],
+    /* Site-wide gates only — the ones true of the whole campus rather than of one
+       block. Grid power reaches the site once; the customer agreement covers the
+       site. Everything that differs by block moved to the phase it belongs to. */
     gates: [
       gate({ id: 'utilityEnergised', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V }),
-      gate({ id: 'criticalItEnergised', status: 'complete', effectiveAt: '2026-06-30', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V, notes: '102 MW.' }),
-      gate({ id: 'constructionStarted', status: 'inProgress', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V, notes: '336 MW additional critical IT.' }),
-      gate({ id: 'customerContracted', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V }),
-      gate({ id: 'revenueCommenced', status: 'complete', effectiveAt: '2026-06-30', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V, notes: 'Explicitly revenue-generating.' })
+      gate({ id: 'customerContracted', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V })
     ]
   },
   {
@@ -406,6 +445,26 @@ export const PROJECTS = [
     ]
   }
 ];
+
+/**
+ * Phase gates are folded back into the flat `gates` array.
+ *
+ * Twelve places read `project.gates` — the evidence score, the score model, the
+ * illustration picker, the validator. A phased site would have gone quiet in all
+ * of them at once if its gates had moved out of reach: Lake Mariner would have
+ * stopped reporting that it is billing, which is worse than the rendering bug
+ * this milestone exists to fix.
+ *
+ * So `gates` keeps meaning what it has always meant — every gate on this site —
+ * and `siteGates` holds the site-wide ones for anything that needs the
+ * distinction. The phase a gate belongs to travels on the gate as `phaseId`,
+ * which is what the path rebuild in the next milestone reads.
+ */
+export const PROJECTS = PROJECT_RECORDS.map(p => {
+  if (!p.phases || !p.phases.length) return { ...p, siteGates: p.gates || [], phases: [] };
+  const phaseGates = p.phases.flatMap(f => (f.gates || []).map(g => ({ ...g, phaseId: f.id })));
+  return { ...p, siteGates: p.gates || [], gates: [...(p.gates || []), ...phaseGates] };
+});
 
 export const COUNTRY_NAMES = { US: 'United States', CA: 'Canada', ES: 'Spain', AU: 'Australia', FI: 'Finland' };
 
