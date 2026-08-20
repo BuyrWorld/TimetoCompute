@@ -112,7 +112,13 @@ function referenceNodes() {
        reference node carried three or four examples, so the single-example branch
        that used to sit here was never reached — it was removed rather than left
        waiting for the first node that would have tripped it. */
-    org: `${r.examples.length} example ${r.examples.length === 1 ? 'maker' : 'makers'}`,
+    /* A structural node with no examples yet is complete and correct — it has a
+       real description and real edges, and only the illustrative companies are
+       missing. It says so rather than rendering "0 example makers", which would
+       read as a failure to find any. */
+    org: r.examples.length
+      ? `${r.examples.length} example ${r.examples.length === 1 ? 'maker' : 'makers'}`
+      : 'Examples not sourced yet',
     maturity: 'deployed',
     /* `ecosystem` is the correct relationship for "operates in this area, no
        award evidenced" — the same grade a capability record gets, because that

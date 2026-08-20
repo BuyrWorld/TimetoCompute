@@ -370,7 +370,9 @@ function hexNode(n, p, index, mode, isSingle) {
     ${label}
     <desc id="${descId}">${esc(COVERAGE[n.coverage].label)}. ${esc(n.simple || n.technical)}.${
       n.coverage === 'structural'
-        ? ` Example companies: ${esc((n.examples || []).join(', '))}. ${esc(COVERAGE.structural.definition)}`
+        ? `${(n.examples || []).length
+          ? ` Example companies: ${esc(n.examples.join(', '))}.`
+          : ' No example companies sourced yet.'} ${esc(COVERAGE.structural.definition)}`
         : ` Relationship ${esc(rel.label)}, evidence ${esc(conf.label)}, maturity ${esc(mat.label)}${
             stage ? `, commercial stage ${esc(stage.label)}` : ', no commercial stage on record'}${
             isSingle ? '. One maker on file' : ''}.`}</desc>

@@ -304,28 +304,110 @@ export const REFERENCE_NODES = [
 
   /* -------------------------------------------------------- infrastructure -- */
   {
+    /* Queue position used to live inside this node, alongside the agreement and
+       the substation work — three things at one maturity, so a reader could not
+       tell an early study from an energised connection. It is its own node now,
+       and this one narrows to what happens after the study returns. */
     id: 'ref-grid', stage: 5, column: 'infrastructure', pillar: 'power-cooling',
     title: 'Grid interconnection',
     examples: ['Vistra', 'Constellation Energy', 'Talen Energy'],
     simple: 'getting the utility to actually deliver the power',
-    technical: 'Interconnection agreements, generation contracts and the substation work between ' +
-      'the network and the campus.',
+    technical: 'The interconnection agreement itself, and the substation and protection work ' +
+      'between the network and the campus.',
     whyItMatters: 'Secured power is not energised power. Queue position and utility schedules ' +
       'govern dates far more than construction does.',
-    inputs: 'Generation, transmission capacity, regulatory approval.',
+    inputs: 'A completed queue study, transmission capacity, regulatory approval.',
     outputs: 'Energised megawatts at the fence.'
   },
   {
+    id: 'ref-interconnection-queue', stage: 5, column: 'infrastructure', pillar: 'power-cooling',
+    title: 'Interconnection queue',
+    examples: [],
+    simple: 'waiting in line for the utility to study whether the grid can take you',
+    technical: 'A request enters the grid operator\'s queue and moves through feasibility, ' +
+      'system-impact and facilities studies. Each one names the network upgrades the connection ' +
+      'would require.',
+    whyItMatters: 'A queue position is not secured power and it is not a date. Two sites ' +
+      'announcing the same capacity can be years apart, depending on where they sit in the queue ' +
+      'and what their studies come back asking for.',
+    inputs: 'A request to the grid operator, and transmission capacity to study.',
+    outputs: 'A queue position, and any network upgrade the connection is obliged to fund.'
+  },
+  {
+    id: 'ref-behind-the-meter-generation', stage: 5, column: 'infrastructure', pillar: 'power-cooling',
+    title: 'Behind-the-meter generation',
+    examples: [],
+    simple: 'making the power on site instead of waiting for the grid',
+    technical: 'Gas turbines, reciprocating engines or fuel cells sited on the campus, supplying ' +
+      'the load directly rather than through the utility connection.',
+    whyItMatters: 'This is the route around the queue, and it trades one permitting exposure for ' +
+      'another. Air permits and fuel supply replace the interconnection study, and neither is quick.',
+    inputs: 'Fuel supply, air and environmental permits, generating plant.',
+    outputs: 'Power at the fence without a grid queue position.'
+  },
+  {
+    id: 'ref-demand-response', stage: 5, column: 'infrastructure', pillar: 'power-cooling',
+    title: 'Curtailment and demand response',
+    examples: [],
+    simple: 'agreeing to draw less when the grid is short',
+    technical: 'Curtailment clauses inside an interconnection agreement, and enrolment in ' +
+      'demand-response programmes that pay a site to cut load when instructed.',
+    whyItMatters: 'Interruptible power and firm power are different products. A megawatt a site ' +
+      'can be told to give back is not the same as one it may always draw.',
+    inputs: 'Grid conditions, and the terms of the connection agreement.',
+    outputs: 'A curtailment instruction, and the load reduction that answers it.'
+  },
+  {
+    /* This node used to output "a commissioned hall", which quietly claimed
+       commissioning as part of construction. Commissioning is its own gate and
+       fails for its own reasons, so it is its own node and this one now ends
+       where the fit-out ends. */
     id: 'ref-construction', stage: 7, column: 'infrastructure', pillar: null,
     title: 'Build & fit-out',
     examples: ['Turner Construction', 'DPR Construction', 'Holder Construction'],
     simple: 'the shell, the halls and everything bolted into them',
-    technical: 'Site works, structure, mechanical and electrical fit-out, commissioning and ' +
-      'handover of the data hall itself.',
+    technical: 'Site works, structure, and the mechanical and electrical fit-out of the data ' +
+      'hall itself.',
     whyItMatters: 'Concrete is the predictable part. It is the electrical and mechanical fit-out ' +
       'that decides whether a date holds.',
-    inputs: 'Land, power, equipment, labour.',
-    outputs: 'A commissioned hall waiting for racks.'
+    inputs: 'An entitled site, power, equipment, labour.',
+    outputs: 'A fitted-out hall, ready for commissioning.'
+  },
+  {
+    id: 'ref-land-permitting', stage: 7, column: 'infrastructure', pillar: null,
+    title: 'Land and permitting',
+    examples: [],
+    simple: 'securing the ground, and the right to build on it',
+    technical: 'Site selection, land purchase or option, zoning and rezoning, environmental ' +
+      'review, and the public process where objections are heard.',
+    whyItMatters: 'Projects stall and die here, before any concrete is poured. It is a schedule ' +
+      'risk that construction stops carrying once it has started.',
+    inputs: 'A candidate site, local planning law, environmental review.',
+    outputs: 'An entitled, permitted parcel that can break ground.'
+  },
+  {
+    id: 'ref-construction-labour', stage: 7, column: 'infrastructure', pillar: null,
+    title: 'Construction and fit-out labour',
+    examples: [],
+    simple: 'the electricians and trades who actually install it',
+    technical: 'Licensed electrical and mechanical trades for the fit-out, and the general ' +
+      'construction workforce for the shell.',
+    whyItMatters: 'A site can have its concrete poured and its equipment delivered and still ' +
+      'wait on licensed electricians. Labour is a constraint of its own, separate from materials.',
+    inputs: 'Trained trades, and a regional labour market with them free.',
+    outputs: 'A hall fitted out and ready to be proved.'
+  },
+  {
+    id: 'ref-commissioning', stage: 7, column: 'infrastructure', pillar: null,
+    title: 'Commissioning',
+    examples: [],
+    simple: 'proving the whole hall works together before anyone trusts it',
+    technical: 'Integrated systems testing, where power, cooling and controls are run together ' +
+      'under load and checked against the design intent.',
+    whyItMatters: 'A separate gate from construction, and it fails for separate reasons. ' +
+      'Concrete arriving on time says nothing about whether the systems prove out.',
+    inputs: 'A fitted-out hall, and a commissioning agent.',
+    outputs: 'An energised, proven hall ready for racks.'
   }
 ];
 
@@ -363,7 +445,30 @@ export const REFERENCE_EDGES = [
   ['ref-cooling-rear-door', 'ref-rack-integration', 'a heat exchanger is hung on the back of the rack'],
 
   ['ref-transformers', 'ref-grid', 'the substation is what the interconnection terminates into'],
-  ['ref-grid', 'ref-construction', 'a hall is commissioned against delivered power']
+
+  /* Power. The queue comes before the agreement, on-site generation goes around
+     it, and curtailment is a condition attached to it. */
+  ['ref-interconnection-queue', 'ref-grid',
+    'a completed study and any network-upgrade obligation come before the agreement is signed'],
+  ['ref-behind-the-meter-generation', 'ref-transformers',
+    'on-site generation is stepped down and synchronised through the same switchgear as grid power'],
+  ['ref-grid', 'ref-demand-response',
+    'an interconnection agreement often carries curtailment as a condition of service'],
+
+  /* Facility. Permitting gates the ground, labour does the fit-out, and
+     commissioning proves the result against the power delivered.
+
+     The last edge here used to point at construction and read "a hall is
+     commissioned against delivered power" — it was describing commissioning
+     while pointing at the node before it. Now that commissioning is its own
+     node, it points where it always meant to. */
+  ['ref-land-permitting', 'ref-construction',
+    'a hall cannot break ground before the land is secured and the permits are granted'],
+  ['ref-construction-labour', 'ref-construction',
+    'licensed trades perform the electrical and mechanical fit-out'],
+  ['ref-construction', 'ref-commissioning',
+    'the fitted-out hall is proved by integrated systems testing before it is energised'],
+  ['ref-grid', 'ref-commissioning', 'a hall is proved against the power actually delivered']
 ];
 
 /**
