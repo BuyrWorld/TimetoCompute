@@ -180,9 +180,22 @@ export function dependencies(project) {
  * Only `notDisclosed` stages are ever implied. A gate a company has explicitly
  * reported as not started, sitting before a completed one, is a contradiction in
  * the record; it stays visible as such rather than being quietly overwritten.
+ *
+ * A SIGNATURE IMPLIES NOTHING PHYSICAL, and this is the correction that matters
+ * most here. `contracted` used to anchor the backfill like any other stage, so a
+ * signed lease marked everything before it as "must have happened". Five sites
+ * were affected. Justified Data Campus showed CONSTRUCTION as implied at a
+ * campus that has not broken ground and is guided to deliver in H2 2027, and
+ * three Applied Digital sites showed ENERGISED as implied — the gate a reader
+ * cares about most — on the strength of a customer signature alone.
+ *
+ * Nothing about a contract proves a hall exists. Only the physically sequential
+ * stages can imply the ones before them, so the anchor is now the last completed
+ * stage among those, and `contracted` anchors nothing.
  */
 function markImplied(stages) {
-  const lastComplete = stages.reduce((acc, s, i) => (s.status === 'complete' ? i : acc), -1);
+  const lastComplete = stages.reduce(
+    (acc, s, i) => (s.status === 'complete' && SEQUENTIAL.includes(s.id) ? i : acc), -1);
   if (lastComplete < 1) return stages;
 
   const anchor = stages[lastComplete];
@@ -201,7 +214,12 @@ function markImplied(stages) {
 
 /** The horizontal path to billing, with each stage's own evidence. */
 export function path(project) {
-  const byId = gatesById(project);
+  return pathFromGates(project.gates || []);
+}
+
+/** The seven stages, rolled up from whichever set of gates is handed in. */
+function pathFromGates(gates) {
+  const byId = Object.fromEntries(gates.map(g => [g.id, g]));
   const stages = PATH.map(stage => {
     const r = rollup(byId, stage.gates);
     return {
@@ -213,6 +231,77 @@ export function path(project) {
     };
   });
   return markImplied(stages);
+}
+
+/**
+ * WHY THE ORDER IS NOT THE ORDER IT IS DRAWN IN.
+ *
+ * Six of the seven stages are physically sequential — a hall cannot be
+ * energised before it is built, or billed before it is energised. `contracted`
+ * is not: a customer signs whenever the commercial deal closes, routinely long
+ * before the concrete is poured. It is drawn in position because that is where
+ * a reader looks for it, and it is excluded from the sequence check because
+ * treating it as sequential flags six healthy sites as broken.
+ */
+const SEQUENTIAL = ['announced', 'power', 'construction', 'energised', 'acceptance', 'billing'];
+const UNREACHED = new Set(['notStarted', 'inProgress', 'conditional']);
+
+/**
+ * Stages that contradict the ones after them.
+ *
+ * A stage that is demonstrably unfinished cannot be followed by a finished one:
+ * you cannot energise a hall you have not built. `notDisclosed` and `implied`
+ * are not contradictions — one is an absence of knowledge, the other a
+ * deliberate backfill meaning "this must have happened".
+ *
+ * A conflict is REPORTED, never corrected. Reordering the stages would hide a
+ * data problem behind a tidy rendering, and the tidy rendering would be a lie.
+ */
+export function pathConflicts(stages) {
+  const by = Object.fromEntries(stages.map(s => [s.id, s]));
+  const out = [];
+  for (let i = 0; i < SEQUENTIAL.length; i++) {
+    const a = by[SEQUENTIAL[i]];
+    if (!a || !UNREACHED.has(a.status)) continue;
+    for (let j = i + 1; j < SEQUENTIAL.length; j++) {
+      const b = by[SEQUENTIAL[j]];
+      if (b && b.status === 'complete') out.push({ from: a.id, fromStatus: a.status, to: b.id });
+    }
+  }
+  return out;
+}
+
+/**
+ * One path per phase, for a site that has them.
+ *
+ * Each phase is rendered from the site-wide gates plus its own — grid power
+ * reaches the whole campus, and the customer agreement covers it, so both
+ * belong to every phase's story. What differs by block stays with the block.
+ *
+ * This is what makes Lake Mariner coherent. As one track it showed construction
+ * IN PROGRESS before energised COMPLETE, because it was drawing two blocks over
+ * each other. As two tracks each is internally ordered, and the reader can see
+ * that 102 MW is billing while 336 MW is still being built.
+ *
+ * Returns an empty array for an unphased site: the caller keeps its single path.
+ */
+export function phasePaths(project) {
+  if (!project.phases || !project.phases.length) return [];
+  const siteGates = project.siteGates || project.gates || [];
+  return project.phases.map(ph => {
+    const stages = pathFromGates([...siteGates, ...(ph.gates || [])]);
+    return {
+      id: ph.id,
+      name: ph.name,
+      capacityMw: ph.capacityMw,
+      powerBasis: ph.powerBasis,
+      status: ph.status,
+      note: ph.note,
+      sourceIds: ph.sourceIds || [],
+      stages,
+      conflicts: pathConflicts(stages)
+    };
+  });
 }
 
 /**
@@ -256,6 +345,13 @@ export function siteView(project) {
     asOf: project.asOf || null,
     note: project.note || null,
     path: path(project),
+    /* One path per phase for a phased site, empty otherwise. The single path
+       above still ships: it is what every summary, score and card reads, and it
+       is the right answer to "how far has this site got overall". The phase
+       paths are the right answer to "how far has each block got", which is a
+       different question and the one the track was drawing wrongly. */
+    phasePaths: phasePaths(project),
+    conflicts: pathConflicts(path(project)),
     gateSummary: summary,
     furthest: summary.furthest,
     next: nextMilestone(project),

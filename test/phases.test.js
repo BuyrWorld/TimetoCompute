@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PROJECTS } from '../data/projects.js';
 import { phase, phaseCapacity, POWER_BASIS } from '../data/schema.js';
+import { phasePaths, pathConflicts, path } from '../src/lib/sites.js';
 
 const phased = PROJECTS.filter(p => p.phases && p.phases.length);
 
@@ -152,6 +153,102 @@ test('no source is orphaned by the split', () => {
     ]);
     for (const s of p.sourceIds || []) {
       assert.ok(reachable.has(s), `${p.id} lost site source ${s} in the split`);
+    }
+  }
+});
+
+/* ------------------------------------------------- the path rebuild -------- */
+
+/**
+ * Each phase draws its own track, and each must be internally ordered. Drawing
+ * two blocks over one track is what produced the contradiction this milestone
+ * exists to remove.
+ */
+test('every phase path is internally consistent', () => {
+  for (const p of phased) {
+    for (const ph of phasePaths(p)) {
+      assert.deepEqual(ph.conflicts, [],
+        `${p.id}/${ph.id} contradicts itself: ${JSON.stringify(ph.conflicts)}`);
+    }
+  }
+});
+
+test('a phase track is labelled with its name and its capacity', () => {
+  for (const p of phased) {
+    for (const ph of phasePaths(p)) {
+      assert.ok(ph.name, `${p.id}/${ph.id} has no name to label its track`);
+      assert.ok(ph.capacityMw === null || ph.powerBasis,
+        `${p.id}/${ph.id} would render a capacity with no basis`);
+    }
+  }
+});
+
+test('a phase path carries all seven stages', () => {
+  for (const p of phased) {
+    for (const ph of phasePaths(p)) {
+      assert.equal(ph.stages.length, 7,
+        `${p.id}/${ph.id} renders ${ph.stages.length} stages`);
+    }
+  }
+});
+
+test('an unphased site returns no phase paths and keeps its single track', () => {
+  const plain = PROJECTS.find(p => !p.phases || !p.phases.length);
+  assert.deepEqual(phasePaths(plain), []);
+});
+
+/**
+ * A conflict is reported, never repaired. If a rendering could reorder stages to
+ * look consistent, the tidy version would be a lie a reader could not detect.
+ */
+test('pathConflicts finds a contradiction without reordering it', () => {
+  const stages = [
+    { id: 'announced', status: 'complete' },
+    { id: 'power', status: 'complete' },
+    { id: 'construction', status: 'inProgress' },
+    { id: 'energised', status: 'complete' }
+  ];
+  const found = pathConflicts(stages);
+  assert.equal(found.length, 1);
+  assert.deepEqual(found[0], { from: 'construction', fromStatus: 'inProgress', to: 'energised' });
+  assert.equal(stages[2].id, 'construction', 'the stages were reordered');
+});
+
+test('an unfinished stage before a not-disclosed one is not a conflict', () => {
+  assert.deepEqual(pathConflicts([
+    { id: 'construction', status: 'inProgress' },
+    { id: 'energised', status: 'notDisclosed' }
+  ]), [], 'absence of knowledge is not a contradiction');
+});
+
+/**
+ * THE CORRECTION THAT MATTERS MOST HERE. A signed contract proves nothing
+ * physical. Treating it as sequential told readers that construction had
+ * certainly started at a campus that has not broken ground, and that three other
+ * sites were certainly energised, on the strength of a signature.
+ */
+test('a customer signature does not imply any physical stage', () => {
+  for (const p of PROJECTS) {
+    const st = path(p);
+    const by = Object.fromEntries(st.map(s => [s.id, s]));
+    const physicalComplete = ['announced', 'power', 'construction', 'energised']
+      .some(id => by[id] && by[id].status === 'complete');
+    if (physicalComplete) continue;
+    /* Nothing physical is evidenced, so nothing physical may be implied. */
+    const implied = ['announced', 'power', 'construction', 'energised']
+      .filter(id => by[id] && by[id].status === 'implied');
+    assert.deepEqual(implied, [],
+      `${p.id} implies ${implied.join(', ')} with no completed physical stage behind it`);
+  }
+});
+
+test('contracted never anchors an implication', () => {
+  for (const p of PROJECTS) {
+    for (const s of path(p)) {
+      if (s.status === 'implied') {
+        assert.notEqual(s.impliedBy, 'Customer contracted',
+          `${p.id}/${s.id} is implied by a signature`);
+      }
     }
   }
 });

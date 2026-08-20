@@ -13,7 +13,12 @@
  */
 import { esc, mw, date, NOT_DISCLOSED } from './lib/format.js';
 import { sourceChips, evidenceChip } from './ui.js';
-import { furthestStage } from './lib/sites.js';
+import { furthestStage, PATH } from './lib/sites.js';
+import { journeyRail } from './lib/leadstory.js';
+import { POWER_BASIS } from '../data/schema.js';
+
+/** Stage id to the label a reader sees, for the conflict note. */
+const PATH_LABEL = Object.fromEntries(PATH.map(s => [s.id, s.label]));
 import { ALL_ASSET_WIDTHS } from './lib/assets.js';
 
 /* ================= imagery ================= */
@@ -92,6 +97,54 @@ export function deliveryRail(rail, { idPrefix = 'rail' } = {}) {
       }).join('')}
     </ol>
   </div>`;
+}
+
+/**
+ * A phased site's delivery path — one track per block.
+ *
+ * Lake Mariner drew construction IN PROGRESS before energised COMPLETE as a
+ * single track, because it was laying two blocks over each other. Two blocks,
+ * two tracks, and each is internally ordered: a reader can see 102 MW billing
+ * while 336 MW is still being built, which is what the filing actually says.
+ *
+ * THE CONFLICT MARKER IS THE POINT OF THIS COMPONENT. Where a track really does
+ * contradict itself, it says so in words and keeps the stages in their true
+ * order. Reordering them would produce a tidy rail that lies, and the reader
+ * would have no way to tell. A rendering may never repair its data.
+ */
+export function phaseRails(phases, { idPrefix = 'phase' } = {}) {
+  return `<div class="ed-phases">
+    ${phases.map(ph => {
+      const cap = ph.capacityMw !== null
+        ? `${mw(ph.capacityMw)} ${POWER_BASIS[ph.powerBasis]?.short || ph.powerBasis}`
+        : 'Capacity not disclosed';
+      return `<section class="ed-phase" aria-label="${esc(ph.name)}">
+        <header class="ed-phasehead">
+          <h3 class="ed-phasename">${esc(ph.name)}</h3>
+          <p class="ed-phasecap">${esc(cap)}</p>
+        </header>
+        ${ph.note ? `<p class="ed-phasenote">${esc(ph.note)}</p>` : ''}
+        ${ph.conflicts.length ? conflictNote(ph.conflicts) : ''}
+        ${deliveryRail(journeyRail(ph.stages), { idPrefix: `${idPrefix}-${ph.id}` })}
+      </section>`;
+    }).join('')}
+  </div>`;
+}
+
+/**
+ * What a contradiction in the record looks like when it is admitted rather than
+ * hidden. Named stages, plain words, and no attempt to explain it away.
+ */
+function conflictNote(conflicts) {
+  const lines = conflicts.map(c => {
+    const from = PATH_LABEL[c.from] || c.from;
+    const to = PATH_LABEL[c.to] || c.to;
+    return `${from} is not finished, but ${to} is recorded as complete`;
+  });
+  return `<p class="ed-phaseconflict" role="note">
+    <b>The record contradicts itself here.</b> ${esc(lines.join('; '))}. The stages are
+    shown in their real order rather than rearranged to look consistent.
+  </p>`;
 }
 
 const WATCH_TONE = {

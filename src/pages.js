@@ -35,7 +35,7 @@ import {
   deliveryLeaders, nextCatalyst, promiseReality, megaprojects, imageForSite, EXPLAINER_STEPS
 } from './lib/homepage.js';
 import {
-  whyDrawer, returningSummary, nextCatalystCard, audienceLens, deliveryRail,
+  whyDrawer, returningSummary, nextCatalystCard, audienceLens, deliveryRail, phaseRails,
   megaprojectCard, explainer, deliveryLeaders as edDeliveryLeaders,
   promiseReality as promiseRealityPanel
 } from './editorial-ui.js';
@@ -691,7 +691,16 @@ export function siteBody(site) {
 
   ${section('path', 'Path to billing',
     stage ? `Furthest evidenced: ${esc(stage.label)}` : 'No stage evidenced',
-    `${deliveryRail(journeyRail(site.path), { idPrefix: `site-${site.slug}` })}
+    /* A phased site draws one track per block. Drawing a single track for a site
+       whose blocks sit at different stages is what produced Lake Mariner's
+       construction-before-energised contradiction — two builds laid over each
+       other, with nothing to say which fact belonged to which. */
+    `${site.phasePaths.length
+      ? `${phaseRails(site.phasePaths, { idPrefix: `site-${site.slug}` })}
+         <p class="blocknote">This site is built in phases, and each is shown on its own track.
+           A phase reaches its stages on its own schedule, so one can be billing while another
+           is still being built.</p>`
+      : deliveryRail(journeyRail(site.path), { idPrefix: `site-${site.slug}` })}
      <p class="blocknote">Each stage rolls up the project gates that evidence it. A stage marked
        <b>Not disclosed</b> has no gate on record — which is not the same as a stage the site has
        yet to reach.</p>`)}

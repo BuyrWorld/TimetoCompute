@@ -172,6 +172,13 @@ const PROJECT_RECORDS = [
         sourceIds: ['wulf-q2-2026-results'],
         note: 'Revenue-generating critical IT as of 30 June 2026.',
         gates: [
+          /* utilityEnergised belongs to this phase, not to the site. Grid power
+             reaching the campus is what brought THIS block online; the blocks
+             still being built will be energised when they are finished. Left
+             site-wide it made CB-4 and CB-5 read as energised — a hall under
+             construction shown as live, which is the very error the phase split
+             exists to remove. */
+          gate({ id: 'utilityEnergised', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V }),
           gate({ id: 'criticalItEnergised', status: 'complete', effectiveAt: '2026-06-30', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V, notes: '102 MW.' }),
           gate({ id: 'revenueCommenced', status: 'complete', effectiveAt: '2026-06-30', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V, notes: 'Explicitly revenue-generating.' })
         ]
@@ -186,11 +193,11 @@ const PROJECT_RECORDS = [
         ]
       })
     ],
-    /* Site-wide gates only — the ones true of the whole campus rather than of one
-       block. Grid power reaches the site once; the customer agreement covers the
-       site. Everything that differs by block moved to the phase it belongs to. */
+    /* Site-wide gates only. The customer agreement covers the campus rather than
+       any one block, so it belongs here. Everything that differs by block — and
+       that includes energisation, which happens block by block — moved to the
+       phase it belongs to. */
     gates: [
-      gate({ id: 'utilityEnergised', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V }),
       gate({ id: 'customerContracted', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-q2-2026-results'], verifiedAt: V })
     ]
   },
