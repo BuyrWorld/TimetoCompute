@@ -106,6 +106,7 @@ test('the backward edges are the four expected convergences, and no others', () 
     .filter(([from, to]) => stageOfNode(from) > stageOfNode(to))
     .map(([from, to]) => `${from}->${to}`);
   assert.deepEqual(backward.sort(), [
+    'ref-air-cooling->ref-rack-integration',
     'ref-cooling-direct->ref-rack-integration',
     'ref-cooling-immersion->ref-rack-integration',
     'ref-cooling-rear-door->ref-rack-integration',

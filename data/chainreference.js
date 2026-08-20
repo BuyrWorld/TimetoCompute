@@ -168,7 +168,37 @@ export const REFERENCE_NODES = [
     whyItMatters: 'Packaging capacity rather than wafer capacity has been the binding accelerator ' +
       'constraint through this cycle. It is slow and expensive to add.',
     inputs: 'Logic dies, HBM stacks, interposers, substrates.',
-    outputs: 'A complete accelerator package.'
+    /* This read "A complete accelerator package", which implied it ships. Test
+       and burn-in sits between packaging and a shippable part, and has its own
+       capacity — worth being exact about, given packaging is named on this same
+       node as the binding constraint. */
+    outputs: 'A packaged part, not yet tested.'
+  },
+  {
+    id: 'ref-test-burn-in', stage: 2, column: 'components', pillar: 'hbm-packaging',
+    title: 'Test and burn-in',
+    examples: [],
+    simple: 'running every part hard for hours to find the ones that will fail early',
+    technical: 'Automated test cells and burn-in ovens that exercise a packaged part under ' +
+      'temperature and voltage before it is allowed to ship.',
+    whyItMatters: 'A second capacity pool sitting immediately after the one already named as the ' +
+      'accelerator bottleneck. A packaged part is not a shippable part, and the step between them ' +
+      'is neither instant nor a formality.',
+    inputs: 'Packaged parts, test cells, burn-in ovens.',
+    outputs: 'Qualified accelerators and switch ASICs, cleared to ship.'
+  },
+  {
+    id: 'ref-epitaxy', stage: 2, column: 'components', pillar: null,
+    title: 'Epitaxy',
+    examples: [],
+    simple: 'growing the working layers of a chip onto a bare wafer, one atom at a time',
+    technical: 'Crystal layers deposited on a substrate before any device is fabricated, by ' +
+      'metal-organic vapour phase or molecular beam growth.',
+    whyItMatters: 'It sits upstream of two different chains at once. The same step that grows a ' +
+      'laser\'s active layers grows the silicon carbide and gallium nitride that power devices ' +
+      'are built on, so a constraint here reaches both optics and power.',
+    inputs: 'Substrates, process gases, growth reactors.',
+    outputs: 'An epitaxial wafer ready for device fabrication.'
   },
   {
     id: 'ref-litho-tools', stage: 2, column: 'components', pillar: 'hbm-packaging',
@@ -300,6 +330,47 @@ export const REFERENCE_NODES = [
       'servers inside them.',
     inputs: 'Facility water, door-mounted coils.',
     outputs: 'Exhaust air cooled before it reaches the room.'
+  },
+  {
+    id: 'ref-air-cooling', stage: 6, column: 'systems', pillar: 'power-cooling',
+    title: 'Air cooling',
+    examples: [],
+    simple: 'moving cold air through the hall, the way data centres always did',
+    technical: 'Hall-level air handling — computer-room air conditioning and air handling units, ' +
+      'containment, and the raised floor or overhead paths that feed it.',
+    whyItMatters: 'The other three cooling nodes are all liquid, which makes liquid look ' +
+      'universal. It is not. Deployed fleet capacity and anything below the density threshold is ' +
+      'still cooled by air, and a hall built for air is a different building from one built for ' +
+      'liquid.',
+    inputs: 'Hall air handling units, containment, facility chilled water.',
+    outputs: 'Cooled air delivered to the rack face.'
+  },
+  {
+    id: 'ref-cdu', stage: 6, column: 'systems', pillar: 'power-cooling',
+    title: 'Coolant distribution units',
+    examples: [],
+    simple: 'the box that keeps the rack\'s water separate from the building\'s water',
+    technical: 'A pumped heat exchanger between the facility loop and the rack loop, holding the ' +
+      'rack side at its own temperature, pressure and cleanliness.',
+    whyItMatters: 'A manufactured product with its own vendors and its own lead time, and it was ' +
+      'previously only a word inside the direct-to-chip node\'s inputs. Its capacity constrains ' +
+      'how many racks a loop can carry, separately from the cold plates it feeds.',
+    inputs: 'Facility coolant supply, pumps, heat exchangers.',
+    outputs: 'Conditioned coolant at the rack manifolds.'
+  },
+  {
+    id: 'ref-heat-rejection-plant', stage: 6, column: 'infrastructure', pillar: 'power-cooling',
+    title: 'Heat rejection plant',
+    examples: [],
+    simple: 'where the heat finally leaves the building',
+    technical: 'Chillers, cooling towers, dry coolers and evaporative plant — the facility-side ' +
+      'equipment that moves gathered heat to the outside air or to water.',
+    whyItMatters: 'Every cooling approach on this map ends at "the facility loop", and until now ' +
+      'nothing said what that loop terminates in. It terminates in long-lead equipment that can ' +
+      'set a schedule the way a transformer does, and in a water decision that carries its own ' +
+      'permitting.',
+    inputs: 'Facility coolant loops, refrigerant, water or outside air.',
+    outputs: 'Heat rejected to atmosphere, or recovered for reuse.'
   },
 
   /* -------------------------------------------------------- infrastructure -- */
@@ -433,14 +504,30 @@ export const REFERENCE_EDGES = [
 
   ['ref-hbm-stack', 'ref-advanced-packaging', 'the cube is co-packaged with the logic die'],
   ['ref-litho-tools', 'ref-advanced-packaging', 'tools create the capacity packaging consumes'],
-  ['ref-advanced-packaging', 'ref-accelerator', 'the packaged part is the accelerator'],
-  ['ref-advanced-packaging', 'ref-switch-silicon', 'high-radix switch ASICs are packaged the same way'],
+  /* Packaging no longer points straight at the finished parts. A packaged part
+     is not a shippable one until it has been tested and burned in, and routing
+     the edges through that step is the whole reason the node exists — leaving
+     the direct edges in place would have let a reader skip it. */
+  ['ref-advanced-packaging', 'ref-test-burn-in', 'packaged parts are tested and burned in before they ship'],
+  ['ref-test-burn-in', 'ref-accelerator', 'only a part that passes test ships as an accelerator'],
+  ['ref-test-burn-in', 'ref-switch-silicon', 'high-radix switch ASICs are packaged and tested the same way'],
+  ['ref-silicon-wafer', 'ref-epitaxy', 'epitaxial layers are grown on a polished substrate'],
+  ['ref-epitaxy', 'ref-power-semis', 'silicon carbide and gallium nitride devices are grown before they are fabricated'],
   ['ref-switch-silicon', 'ref-network-fabric', 'the ASIC is the switch'],
 
   ['ref-accelerator', 'ref-rack-integration', 'accelerators are built into compute trays'],
   ['ref-network-fabric', 'ref-rack-integration', 'fabric is cabled and tested with the rack'],
   ['ref-power-semis', 'ref-rack-integration', 'power shelves convert facility power at the rack'],
   ['ref-cooling-direct', 'ref-rack-integration', 'cold plates and manifolds are fitted in the rack'],
+  ['ref-air-cooling', 'ref-rack-integration', 'racks below the liquid threshold are still cooled by hall air'],
+  ['ref-cdu', 'ref-cooling-direct', 'the unit isolates the rack loop and pumps it to the manifolds'],
+
+  /* Every cooling approach ends at the facility loop, and the facility loop ends
+     here. Without this the three liquid nodes and the air node all dead-ended. */
+  ['ref-cooling-direct', 'ref-heat-rejection-plant', 'the facility loop carries the heat out to chillers or dry coolers'],
+  ['ref-cooling-immersion', 'ref-heat-rejection-plant', 'the tank loop rejects into the same facility plant'],
+  ['ref-cooling-rear-door', 'ref-heat-rejection-plant', 'the door coil feeds the same facility loop'],
+  ['ref-air-cooling', 'ref-heat-rejection-plant', 'hall air is cooled by the same plant that serves the liquid loops'],
   ['ref-cooling-immersion', 'ref-rack-integration', 'servers are built without fans and sealed for the tank'],
   ['ref-cooling-rear-door', 'ref-rack-integration', 'a heat exchanger is hung on the back of the rack'],
 
