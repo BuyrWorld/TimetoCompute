@@ -18,10 +18,15 @@
  * `tracked` is therefore DERIVED for photonics rather than declared, so it cannot
  * drift from the records a second time.
  *
- * The chain declares all seven stages, because the seven stages are the product's
- * argument, and marks the ones with no supplier record `tracked: false` with what
- * would be needed to track them. An untracked stage renders as an explicit gap,
- * never as an illustration standing in for evidence.
+ * COVERAGE IS A SCOPE, NOT A SHORTFALL. Every stage carries one of two states:
+ * `sourced` where T2C holds records naming who did what, and `structural` where
+ * the chain is mapped and described but no supplier record sits behind it.
+ *
+ * A structural stage used to render as an apology — a dashed frame and the words
+ * "NOT TRACKED BY T2C" in amber — which told a first-time reader the site covered
+ * a fraction of its own subject. It also stopped being true: the canonical model
+ * holds 43 node types across these stages, each with a description and real
+ * dependencies. Structural now reports what it maps and reads as present.
  *
  * Counts on tracked stages are computed from the records, never written here.
  */
@@ -31,7 +36,8 @@ import { getMeasure, isKnown } from './compute.js';
 import { path as projectPath } from './sites.js';
 import { EXPLAINER_BY_STAGE } from '../../data/explainers.js';
 import { PHOTONICS_SUPPLIERS, EVIDENCE_GRADES } from '../../data/suppliers.js';
-import { CHAIN_VIEW } from '../../data/chainstages.js';
+import { REFERENCE_NODES } from '../../data/chainreference.js';
+import { CHAIN_STAGES, CHAIN_VIEW } from '../../data/chainstages.js';
 
 /**
  * Frame colour carries meaning, per the pack: cyan for photonics, lime for
@@ -107,19 +113,47 @@ export function chainState() {
        somewhere real. The explainer owns the plain-English one-liner, so the
        node and the page it opens cannot describe the stage differently. */
     const ex = EXPLAINER_BY_STAGE[s.id];
+    /* WHAT T2C HOLDS HERE, AND WHAT IT MAPS HERE — two different facts.
+       `happened` answers "did this occur"; `coverage` answers "how well does
+       T2C know it". A stage with no supplier record is `structural`: mapped,
+       described and connected, with no sourced maker behind it. That is a
+       stated scope, not a shortfall, and it stopped being "nothing" the moment
+       the canonical model landed 43 node types across these stages. */
+    const nodes = REFERENCE_NODES.filter(n => (s.stages || []).includes(n.stage));
+    const covers = (s.stages || [])
+      .map(n => CHAIN_STAGES.find(c => c.n === n))
+      .filter(Boolean)
+      .map(c => c.label);
+
     return {
       ...s,
       happened,
+      coverage: s.tracked ? 'sourced' : 'structural',
+      nodeCount: nodes.length,
+      /* Named so a reader can see what a compressed hexagon contains. "AI
+         Factory" swallows power, cooling, construction and operators, and
+         used to swallow them silently. */
+      covers,
       explainerHref: ex ? `/explainers/${ex.slug}/` : null,
       simple: ex ? ex.simple : s.plain,
       impliedBy: happened === 'implied' ? anchor.label : null,
       count: s.tracked
         ? counts[s.id]
+        /* BOTH FACTS, STILL. The primary line says the stage happened — a hall
+           that is billing proves the chips it runs on were made — and the
+           secondary says what T2C holds for it. Dropping "Happened" for the node
+           count lost the first fact entirely, and a test caught it: the two are
+           separate claims and the interface has to make both.
+
+           What changed is only the second: "Not tracked by T2C" became a
+           statement of what IS mapped. Same fact, without the apology. */
         : {
           primary: happened === 'implied' ? 'Happened' : 'Unknown',
-          secondary: happened === 'implied'
-            ? 'Not tracked by T2C'
-            : 'No sourced records yet'
+          secondary: nodes.length
+            ? `${nodes.length} node type${nodes.length === 1 ? '' : 's'} mapped, no supplier record`
+            : happened === 'implied'
+              ? 'Not tracked by T2C'
+              : 'No sourced records yet'
         },
       href: s.tracked ? stageHref(s.id) : null
     };
@@ -140,6 +174,11 @@ export function chainCoverage() {
   const tracked = STAGES.filter(s => s.tracked).length;
   return {
     tracked,
+    /* Derived from the canonical model, not from the hexagons. The homepage
+       compresses ten stages into seven, so counting hexagons would understate
+       what is mapped — and the node count is the honest measure of it. */
+    nodeTypes: REFERENCE_NODES.length,
+    stages: CHAIN_STAGES.length,
     total: STAGES.length,
     untracked: STAGES.filter(s => !s.tracked).map(s => s.label)
   };

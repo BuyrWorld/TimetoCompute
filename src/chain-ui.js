@@ -95,8 +95,14 @@ export function chainNode(stage, index = 0) {
      (it certainly happened, because a later stage is evidenced, but T2C does
      not track who did it), or unknown. Implied stages are illuminated — they
      happened — while still saying plainly that nobody is tracked behind them. */
-  const cls = stage.happened === 'evidenced' ? 'is-evidenced'
-    : stage.happened === 'implied' ? 'is-implied' : 'is-gap';
+  /* Two classes, because these are two facts. `happened` says whether the stage
+     occurred; `coverage` says how well T2C knows it. They were conflated, so a
+     stage that certainly happened but has no supplier record was drawn dashed
+     and captioned in amber — the visual language of a warning, for what is
+     simply the site's stated scope. */
+  const cls = (stage.happened === 'evidenced' ? 'is-evidenced'
+    : stage.happened === 'implied' ? 'is-implied' : 'is-gap')
+    + ` cov-${esc(stage.coverage || 'structural')}`;
 
   const mark = stage.happened === 'implied'
     ? `<span class="cn-impliedmark" aria-hidden="true" title="Must have happened">&#10003;</span>`
@@ -115,12 +121,25 @@ export function chainNode(stage, index = 0) {
     <span class="cn-simple">${esc(stage.simple)}</span>
     <span class="cn-count">${esc(stage.count.primary)}</span>
     <span class="cn-sub">${esc(stage.count.secondary)}</span>
+    ${/* WHAT A COMPRESSED HEXAGON CONTAINS. Five hexagons stand for ten
+         canonical stages, and "AI Factory" alone covers power, cooling,
+         construction and operators. Unnamed, those four read as absent from the
+         site entirely — they were not, they were folded. Named here, the
+         compression is visible instead of silent. */''}
+    ${/* Always emitted, even when empty. The desktop layout is a subgrid and
+         every node must contribute the same number of rows — a node that skips
+         this element pushes its own affordance up a track and the row of seven
+         stops aligning. Empty is invisible; absent is a broken grid. */''}
+    <span class="cn-covers">${(stage.covers || []).length > 1
+      ? esc(stage.covers.join(' · ')) : ''}</span>
     <span class="cn-what">What is this? <span aria-hidden="true">&rarr;</span></span>`;
 
-  const aria = stage.happened === 'implied'
-    ? `${stage.label}. ${stage.simple}. This stage must have happened, because ${stage.impliedBy} ` +
-      `is evidenced, but T2C does not track who supplies it. Read the explainer.`
-    : `${stage.label}. ${stage.simple}. ${stage.count.primary}, ${stage.count.secondary}. ` +
+  const covers = (stage.covers || []).length > 1
+    ? ` Covers ${stage.covers.join(', ')}.` : '';
+  const aria = stage.coverage === 'structural'
+    ? `${stage.label}. ${stage.simple}.${covers} ${stage.count.primary} mapped here, with no ` +
+      `sourced supplier record behind them yet. Read the explainer.`
+    : `${stage.label}. ${stage.simple}.${covers} ${stage.count.primary}, ${stage.count.secondary}. ` +
       `Read the explainer.`;
 
   /* `--i` is the node's place in the sweep. The pulse that travels the chain is
@@ -242,16 +261,24 @@ export function chainStageGuide(stages) {
  * doubt, which is false.
  */
 export function chainCoverageNote(cov) {
-  /* The untracked count is derived, never listed here. This sentence used to
-     name "materials, wafers, chips and optics" as the untracked stages and went
-     on saying it after photonics gained seven supplier records — the copy was a
-     second, stale copy of a fact the data already held. */
+  /* THIS LINE WAS AN APOLOGY, AND IT HAD ALSO GONE FALSE.
+     It read "the other 3 are shown as completed but untracked: no supplier,
+     order or shipment record sits behind them", which told a first-time reader
+     the site covered a fraction of its own subject. It stopped being true when
+     the canonical model landed 43 node types across those stages, each with a
+     description and real dependencies — "nothing sits behind them" describes a
+     chain that no longer exists.
+
+     The accurate framing is a scope, stated plainly: the whole chain is mapped,
+     and the sourced detail is at the delivery end. Both counts are derived, so
+     neither can drift from the data the way the sentence they replace did. */
   return `<p class="cn-coverage">
     Every megawatt now billing depended on materials, wafers, chips and optics that were
-    <b>certainly made</b> — you cannot bill for compute that was never built. T2C tracks
-    <span class="cn-covfig">${cov.tracked} of ${cov.total}</span> stages, where it holds
-    sourced records naming who did what. The other ${cov.untracked.length} are shown as
-    completed but untracked: no supplier, order or shipment record sits behind them.
-    <a class="press" href="/methodology/#chain">What it would take to track them</a>
+    <b>certainly made</b> — you cannot bill for compute that was never built. T2C maps the
+    whole chain, <span class="cn-covfig">${cov.nodeTypes} node types</span> across
+    ${cov.stages} stages, and holds sourced supplier records at the delivery end: the
+    optics, the operators, the sites and the billing. Upstream is mapped and described
+    without a supplier record, and says so rather than claiming one.
+    <a class="press" href="/methodology/#chain">How the chain is tracked</a>
   </p>`;
 }

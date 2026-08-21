@@ -262,12 +262,19 @@ test('an implied stage holds both facts at once, in words', () => {
   const implied = chainState().filter(x => x.happened === 'implied').length;
   assert.ok((html.match(/>Happened</g) || []).length >= implied,
     'implied stages do not say they happened');
-  // ...and T2C does not track it. Neither claim may rest on styling.
-  assert.ok((html.match(/Not tracked by T2C/g) || []).length >= implied,
-    'implied stages do not say T2C fails to track them');
+  /* ...and T2C holds no supplier record for it. Neither claim may rest on
+     styling. The wording changed — "Not tracked by T2C" in amber read as a
+     shortfall, and became a statement of what IS mapped — but the second fact
+     must still be made in words, so this asserts the claim rather than the old
+     phrasing. */
+  assert.ok((html.match(/no supplier record/g) || []).length >= implied,
+    'implied stages do not say T2C holds no supplier record for them');
   assert.ok(/certainly made/.test(html), 'the coverage note drops the implication');
-  assert.ok(/completed but untracked/.test(html),
-    'the coverage note does not separate happening from tracking');
+  /* Whitespace-normalised: the sentence wraps across lines in the template, so
+     matching the raw HTML would fail on a line break rather than on meaning. */
+  const flat = html.replace(/\s+/g, ' ');
+  assert.ok(/mapped and described without a supplier record/.test(flat),
+    'the coverage note does not separate what is mapped from what is sourced');
 });
 
 test('no stage is drawn as unknown while a later stage is evidenced', () => {

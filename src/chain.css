@@ -82,11 +82,11 @@
   .cn-track {
     min-width: 0;
     display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
-    /* art, label, plain line, count, sub, affordance, records */
-    grid-template-rows: repeat(7, auto);
+    /* art, label, plain line, count, sub, covers, affordance, records */
+    grid-template-rows: repeat(8, auto);
   }
   .cn-node { width: 100%; }
-  /* The subgrid that aligns the seven nodes' text rows lives at the end of this
+  /* The subgrid that aligns the nodes' text rows lives at the end of this
      file, after .cn-hit sets its own display — otherwise source order wins and
      the override silently does nothing. */
 }
@@ -575,12 +575,12 @@ button.bnav {
    ============================================================ */
 @media (min-width: 1280px) {
   @supports (grid-template-rows: subgrid) {
-    .cn-node { display: grid; grid-row: span 7; grid-template-rows: subgrid; }
+    .cn-node { display: grid; grid-row: span 8; grid-template-rows: subgrid; }
     .cn-hit {
-      display: grid; grid-row: span 6; grid-template-rows: subgrid;
+      display: grid; grid-row: span 7; grid-template-rows: subgrid;
       align-content: start; justify-items: center;
     }
-    .cn-records { grid-row: 7; align-self: start; justify-self: center; }
+    .cn-records { grid-row: 8; align-self: start; justify-self: center; }
     /* The art keeps its own square; only the text rows share tracks. */
     .cn-art { width: 100%; }
   }
@@ -699,3 +699,25 @@ html[data-mode="focus"] .cn-node::before { animation: none; }
 .fl-playglyph { font-size: 10px; }
 .fl-playnote { font-size: 11.5px; line-height: 1.5; color: var(--dim); max-width: 42ch; }
 @media (prefers-reduced-motion: reduce) { .fl-playlink { transition: none; } }
+
+/* ---- coverage state on the homepage chain ---- */
+
+/* STRUCTURAL IS NOT A WARNING. A stage with no supplier record used to be drawn
+   dashed with its caption in amber — the visual language of a problem, applied
+   to the site's stated scope. It is mapped, described and connected; it simply
+   has no sourced maker behind it yet, and it now reads as present.
+
+   Sourced still outranks it: the lime count and the solid lit frame belong to
+   stages T2C can evidence, and nothing here moves that. */
+.cn-node.cov-structural .cn-frame path:first-of-type { stroke-dasharray: none; }
+.cn-node.cov-structural .cn-sub { color: var(--dim); }
+.cn-node.cov-structural .cn-count { color: var(--soft); }
+.cn-node.cov-structural .cn-art { opacity: .82; }
+
+/* What a compressed hexagon contains, where it stands for more than one stage.
+   Small and dim because it is a qualifier rather than a headline — but present,
+   because unnamed it reads as though those stages are absent from the site. */
+.cn-covers {
+  display: block; font-family: var(--m-mono); font-size: 9.5px; line-height: 1.5;
+  letter-spacing: .04em; color: var(--dim); margin-top: 4px; text-wrap: balance;
+}

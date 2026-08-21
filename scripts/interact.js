@@ -225,9 +225,12 @@ const run = async () => {
     chain.filter(c => c.implied).map(c => c.dim).join(', '));
   check('every stage states its state in words, not colour alone',
     chain.every(c => (c.count || '').trim().length > 2), chain.map(c => c.count).join(' | '));
-  check('an implied stage says both that it happened and that T2C does not track it',
+  /* Both facts, in words. The second one's wording changed — "not tracked by
+     T2C" in amber read as a shortfall and became a statement of what IS mapped
+     — so this checks the claim rather than the old phrasing. */
+  check('an implied stage says both that it happened and that T2C holds no supplier record',
     chain.filter(c => c.implied).every(c =>
-      /happened/i.test(c.count || '') && /not tracked/i.test(c.sub || '')),
+      /happened/i.test(c.count || '') && /no supplier record|not tracked/i.test(c.sub || '')),
     chain.filter(c => c.implied).map(c => `${c.count}/${c.sub}`).join(' | '));
   /* Every stage now leads somewhere real: its explainer. An untracked stage
      still offers no RECORDS link, because it has none — but "nowhere honest to

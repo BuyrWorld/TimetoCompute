@@ -162,8 +162,8 @@ if (chainNodes !== 7) fail(`homepage chain has ${chainNodes} stages; the model h
 // photonics gained supplier records and the implied count fell to 3.
 const impliedCount = chainState().filter(s => s.happened === 'implied').length;
 if ((home.match(/>Happened</g) || []).length < impliedCount) fail('implied stages do not say they happened');
-if ((home.match(/Not tracked by T2C/g) || []).length < impliedCount) {
-  fail('implied stages do not say T2C fails to track them');
+if ((home.match(/no supplier record/g) || []).length < impliedCount) {
+  fail('implied stages do not say T2C holds no supplier record for them');
 }
 const guideItems = (home.match(/class="cn-guideitem /g) || []).length;
 if (guideItems !== STAGES.length) fail(`homepage explains ${guideItems} chain stages; the model has ${STAGES.length}`);
