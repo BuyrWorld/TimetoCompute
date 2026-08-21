@@ -407,7 +407,23 @@ const PROJECT_RECORDS = [
     gates: [
       gate({ id: 'customerContracted', status: 'complete', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V }),
       gate({ id: 'constructionStarted', status: 'complete', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V }),
-      gate({ id: 'criticalItEnergised', status: 'inProgress', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V, notes: 'Approximately 100 MW operational across the portfolio.' }),
+      /* THE FIGURE HERE IS THE PORTFOLIO'S, NOT THIS SITE'S, and it used to read
+         "Approximately 100 MW operational across the portfolio" sitting on this
+         one site's energisation gate. A reader meeting it there takes it as
+         Polaris Forge 1's own energised capacity. It is Applied Digital's total
+         across five campuses that add to well over a gigawatt.
+
+         The number is not wrong and is not removed — it is the only operational
+         figure the filing gives. What changed is that it now states whose it is,
+         and says plainly that this site's own share is not disclosed. Inferring
+         that share would be arithmetic dressed as a disclosure. */
+      gate({
+        id: 'criticalItEnergised', status: 'inProgress', confidence: 'confirmed',
+        sourceIds: ['apld-10k-20260531'], verifiedAt: V,
+        notes: 'Applied Digital reports approximately 100 MW operational across its whole ' +
+          'portfolio of five campuses. The filing does not break that down by site, so how much ' +
+          'of it is here is not disclosed.'
+      }),
       gate({ id: 'revenueCommenced', status: 'complete', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V })
     ]
   },

@@ -564,3 +564,39 @@ test('the next stage is always ahead of the current one', () => {
     if (v.next) assert.ok(v.next.order > v.stage.order, `${c.ticker} next stage is not ahead`);
   }
 });
+
+/**
+ * A FIGURE ON A SITE'S GATE MUST BE THAT SITE'S, OR SAY WHOSE IT IS.
+ *
+ * Polaris Forge 1 carried "Approximately 100 MW operational across the
+ * portfolio" on its own energisation gate. The figure was Applied Digital's
+ * total across five campuses; read where it sat, it looked like this one site's
+ * energised capacity, on a 400 MW record with billing already marked complete.
+ *
+ * Citing a wider figure is allowed — sometimes it is the only one disclosed. It
+ * must say that it is wider, and that this site's own share is not disclosed.
+ * Otherwise the reader has no way to tell the two apart.
+ */
+test('a gate note citing a portfolio-wide figure says the site share is not disclosed', () => {
+  const WIDER = /\b(portfolio|fleet[- ]wide|across (all|its|the)\b)/i;
+  const DISCLAIMED = /not disclosed|does not break|not broken down|rather than per site/i;
+  const offenders = [];
+  for (const p of PROJECTS) {
+    for (const g of p.gates || []) {
+      if (!g.notes || !WIDER.test(g.notes)) continue;
+      if (!DISCLAIMED.test(g.notes)) offenders.push(`${p.id}/${g.id}: ${g.notes}`);
+    }
+  }
+  assert.deepEqual(offenders, [],
+    'a gate cites a figure wider than its own site without saying so');
+});
+
+/** Same rule for the site-level note, where the same mistake is just as easy. */
+test('a site note citing a wider figure says so', () => {
+  const WIDER = /\bfleet[- ]wide\b/i;
+  const DISCLAIMED = /not disclosed|does not break|not broken down|rather than per site/i;
+  const offenders = PROJECTS
+    .filter(p => p.note && WIDER.test(p.note) && !DISCLAIMED.test(p.note))
+    .map(p => p.id);
+  assert.deepEqual(offenders, []);
+});
