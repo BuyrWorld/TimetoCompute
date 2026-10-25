@@ -24,7 +24,9 @@
     "verify": "npm run build && npm run test && node scripts/audit.js && node scripts/anchors.js",
     "verify:visual": "npm run verify && npm run shots && npm run overflow && npm run imagecheck && npm run centring && npm run interact",
     "//health": "checks the live site: key pages and API routes, each for the content that proves it works",
-    "health": "node scripts/health.mjs"
+    "health": "node scripts/health.mjs",
+    "//review": "reads every filing the record has not caught up with and lists the sentences that can change it; needs SEC_UA. e.g. npm run review -- iren",
+    "review": "node scripts/review.mjs"
   },
   "engines": {
     "node": ">=20"

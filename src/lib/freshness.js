@@ -36,15 +36,16 @@ function describe(rec, i) {
   return FORM_MEANING[String(rec.form[i]).replace('/A', '')] || rec.form[i];
 }
 
-export async function checkFreshness({ log = () => {}, ua = process.env.SEC_UA } = {}) {
+export async function checkFreshness({ log = () => {}, ua = process.env.SEC_UA, since = null, only = null } = {}) {
   // QA renders the not-yet-reviewed state from a fixture, since a fresh review leaves nothing to show.
-  if (process.env.T2C_FRESHNESS_FIXTURE) return JSON.parse(fs.readFileSync(process.env.T2C_FRESHNESS_FIXTURE, 'utf8'));
+  if (process.env.T2C_FRESHNESS_FIXTURE && !since && !only) return JSON.parse(fs.readFileSync(process.env.T2C_FRESHNESS_FIXTURE, 'utf8'));
   if (!ua) { log('  freshness: skipped (no SEC_UA at build time)'); return null; }
   const out = [];
   for (const c of COMPANIES) {
     const cik = SEC_CIK[c.id];
-    const through = REVIEWED_THROUGH[c.id];
-    if (!cik || !through) continue;
+    // `since` and `only` let the review helper look back further, or at one company.
+    const through = since || REVIEWED_THROUGH[c.id];
+    if (!cik || !through || (only && c.id !== only)) continue;
     try {
       const r = await fetch(`https://data.sec.gov/submissions/CIK${String(cik).padStart(10, '0')}.json`,
         { headers: { 'User-Agent': ua, 'Accept-Encoding': 'gzip, deflate' } });
