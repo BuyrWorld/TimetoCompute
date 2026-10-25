@@ -397,7 +397,7 @@ const run = async () => {
   await new Promise(r => setTimeout(r, 300));
   const ec = await page.evaluate(() => ({
     first: document.querySelector('main h1').textContent.trim(),
-    cards: [...document.querySelectorAll('#ecNext .eccard')].map(c => ({
+    cards: [...document.querySelectorAll('#ecOps .eccard, #ecNext .eccard')].map(c => ({
       name: c.querySelector('.ecname').textContent.replace(/\s+/g, ' ').trim(),
       when: c.querySelector('.eccountdown').textContent.trim(),
       soon: c.classList.contains('is-soon'),
@@ -405,11 +405,13 @@ const run = async () => {
     }))
   }));
   check('the catalysts page leads with the earnings calendar', /Earnings calendar/.test(ec.first), ec.first);
-  check('the next reports render as date cards, soonest first',
-    ec.cards.length === 2 && /NVIDIA/.test(ec.cards[0].name), JSON.stringify(ec.cards.map(c => c.name)));
-  check('a report this week is highlighted with a countdown', ec.cards[0].soon && /Tomorrow/.test(ec.cards[0].when), ec.cards[0].when);
+  // Operators lead even when a supplier reports sooner: IREN (day 11) before NVIDIA (day 1).
+  check('the neoclouds lead the calendar, then the rest of the chain',
+    ec.cards.length === 2 && /IREN/.test(ec.cards[0].name) && /NVIDIA/.test(ec.cards[1].name), JSON.stringify(ec.cards.map(c => c.name)));
+  const nv = ec.cards[1] || {};
+  check('a report this week is highlighted with a countdown', nv.soon && /Tomorrow/.test(nv.when || ''), nv.when);
   check('an NVIDIA report shows the neoclouds it touches',
-    ['IREN', 'CoreWeave', 'Nebius'].every(n => ec.cards[0].touches.includes(n)), ec.cards[0].touches.join(','));
+    ['IREN', 'CoreWeave', 'Nebius'].every(n => (nv.touches || []).includes(n)), (nv.touches || []).join(','));
 
   /* ---- the watchlist journey works end to end ---- */
   await page.evaluate(() => localStorage.removeItem('t2c-watch'));

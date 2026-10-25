@@ -66,7 +66,10 @@ export function earningsSection() {
     </div>
     <span class="nhmeta" id="ecMeta">Loading dates…</span>
   </div>
-  <ol class="ecnext" id="ecNext" aria-label="The next reports"></ol>
+  <h2 class="ecgroup">Neoclouds and AI infrastructure</h2>
+  <ol class="ecnext" id="ecOps" aria-label="Next reports from the neoclouds and AI-infrastructure operators"></ol>
+  <h2 class="ecgroup">Across the supply chain</h2>
+  <ol class="ecnext" id="ecNext" aria-label="Next reports from the rest of the supply chain"></ol>
   <details class="eclater" id="ecLaterWrap" hidden>
     <summary class="press">Later reports <span id="ecLaterCount"></span></summary>
     <ol class="eclist" id="ecLater"></ol>

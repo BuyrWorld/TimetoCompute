@@ -24,12 +24,19 @@ export default async function handler(req, res) {
   const events = [];
   let available = false;
   let reason = null;
+  let failed = 0;
 
   await Promise.all(symbols.map(async sym => {
+    /* A failed lookup (rate limit, outage) must not be cached: it used to be
+       kept for the full six hours, so one burst of traffic could drop a
+       company off the calendar for the rest of the day. Throwing skips the
+       cache write, and `cached` serves any older good copy instead. */
     const r = await cached(`earn:${sym}:${from}`, TTL, async () => {
       const c = await finnhub('/calendar/earnings', { from, to, symbol: sym });
-      return { ok: c.ok, rows: c.ok && c.data?.earningsCalendar ? c.data.earningsCalendar : [], reason: c.reason || null };
-    });
+      if (!c.ok) throw Object.assign(new Error(c.reason || 'provider-error'), { reason: c.reason });
+      return { ok: true, rows: c.data?.earningsCalendar || [], reason: null };
+    }).catch(err => ({ ok: false, rows: [], reason: err.reason || err.message || 'provider-error' }));
+    if (!r.ok) failed += 1;
     if (!r.ok || !r.rows.length) { reason = reason || r.reason || 'no-data'; return; }
     available = true;
     for (const e of r.rows) {
@@ -70,8 +77,9 @@ export default async function handler(req, res) {
     events,
     available,
     reason: available ? null : (reason || 'no-data'),
+    failed,
     note:
       'Earnings dates are independently scheduled events, not company guidance about delivery. ' +
       'Delivery windows guided by management are held separately in T2C\'s own catalyst records.'
-  }, 3600);
+  }, failed ? 120 : 3600);   // a partial answer is retried in minutes, not held for an hour
 }

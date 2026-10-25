@@ -140,6 +140,7 @@ test('the catalysts page leads with the earnings calendar', () => {
   const h1 = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)];
   assert.equal(h1.length, 1);
   assert.match(h1[0][1], /Earnings calendar/);
+  assert.ok(html.indexOf('id="ecOps"') < html.indexOf('id="ecNext"'), 'the operators do not lead the calendar');
   assert.ok(html.indexOf('id="ecNext"') < html.indexOf('an-head'), 'earnings do not come first');
   assert.ok(html.includes('src="/earnings.js"'), 'the earnings script is not loaded');
   const data = JSON.parse(html.match(/Object\.assign\(window, (\{[\s\S]*?\})\);<\/script>/)[1]).T2C_EARNINGS;

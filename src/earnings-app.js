@@ -57,13 +57,19 @@
       // One date per company in the headline cards: its next report.
       var seen = {}, firsts = [], later = [];
       ev.forEach(function (e) { if (!seen[e.ticker]) { seen[e.ticker] = 1; firsts.push(e); } else later.push(e); });
-      var top = firsts.slice(0, 8);
-      later = firsts.slice(8).concat(later).sort(function (a, b) { return a.expectedAt < b.expectedAt ? -1 : 1; });
-      if (!top.length) {
-        next.innerHTML = '<li class="nhempty">No earnings dates are scheduled in the next six months.</li>';
-      } else {
-        next.innerHTML = top.map(card).join('');
-      }
+      /* Operators first: the neoclouds and AI-infrastructure builders are what
+         the site is about, and in a busy season eight supplier dates would
+         otherwise push every one of them below the fold. */
+      var isOp = function (e) { return (byT[e.ticker] || {}).stage === 'Operators'; };
+      var ops = firsts.filter(isOp);
+      var rest = firsts.filter(function (e) { return !isOp(e); });
+      var top = rest.slice(0, 8);
+      later = rest.slice(8).concat(later).sort(function (a, b) { return a.expectedAt < b.expectedAt ? -1 : 1; });
+      var opsList = document.getElementById('ecOps');
+      if (opsList) opsList.innerHTML = ops.length ? ops.map(card).join('')
+        : '<li class="nhempty">No operator has a report scheduled in the next six months.</li>';
+      next.innerHTML = top.length ? top.map(card).join('')
+        : '<li class="nhempty">No other report is scheduled in the next six months.</li>';
       if (meta) meta.textContent = firsts.length + ' companies with a scheduled report';
       if (later.length) {
         document.getElementById('ecLaterWrap').hidden = false;
