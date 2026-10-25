@@ -183,10 +183,10 @@ test('a phase track is labelled with its name and its capacity', () => {
   }
 });
 
-test('a phase path carries all seven stages', () => {
+test('a phase path carries all five stages', () => {
   for (const p of phased) {
     for (const ph of phasePaths(p)) {
-      assert.equal(ph.stages.length, 7,
+      assert.equal(ph.stages.length, 5,
         `${p.id}/${ph.id} renders ${ph.stages.length} stages`);
     }
   }
@@ -203,7 +203,6 @@ test('an unphased site returns no phase paths and keeps its single track', () =>
  */
 test('pathConflicts finds a contradiction without reordering it', () => {
   const stages = [
-    { id: 'announced', status: 'complete' },
     { id: 'power', status: 'complete' },
     { id: 'construction', status: 'inProgress' },
     { id: 'energised', status: 'complete' }
@@ -211,7 +210,7 @@ test('pathConflicts finds a contradiction without reordering it', () => {
   const found = pathConflicts(stages);
   assert.equal(found.length, 1);
   assert.deepEqual(found[0], { from: 'construction', fromStatus: 'inProgress', to: 'energised' });
-  assert.equal(stages[2].id, 'construction', 'the stages were reordered');
+  assert.equal(stages[1].id, 'construction', 'the stages were reordered');
 });
 
 test('an unfinished stage before a not-disclosed one is not a conflict', () => {
@@ -231,11 +230,11 @@ test('a customer signature does not imply any physical stage', () => {
   for (const p of PROJECTS) {
     const st = path(p);
     const by = Object.fromEntries(st.map(s => [s.id, s]));
-    const physicalComplete = ['announced', 'power', 'construction', 'energised']
+    const physicalComplete = ['power', 'construction', 'energised']
       .some(id => by[id] && by[id].status === 'complete');
     if (physicalComplete) continue;
     /* Nothing physical is evidenced, so nothing physical may be implied. */
-    const implied = ['announced', 'power', 'construction', 'energised']
+    const implied = ['power', 'construction', 'energised']
       .filter(id => by[id] && by[id].status === 'implied');
     assert.deepEqual(implied, [],
       `${p.id} implies ${implied.join(', ')} with no completed physical stage behind it`);

@@ -51,12 +51,11 @@ export function commercialMomentum(company) {
   const reached = id => path.find(s => s.id === id)?.status === 'complete';
 
   if (reached('billing')) return { label: 'Billing', tone: 'ok', plain: 'Has disclosed capacity that is billing.' };
-  if (reached('acceptance')) return { label: 'Customer accepted', tone: 'ok', plain: 'Has capacity a customer has formally accepted.' };
-  if (reached('contracted')) return { label: 'Contracted', tone: 'warn', plain: 'Has signed customers, with delivery still ahead.' };
+  if (reached('acceptance')) return { label: 'Accepted', tone: 'ok', plain: 'Has capacity a customer has formally accepted.' };
   if (reached('energised')) return { label: 'Energised', tone: 'warn', plain: 'Has capacity switched on, with no customer disclosed against it.' };
-  if (reached('construction')) return { label: 'Building', tone: 'warn', plain: 'Has construction under way.' };
+  if (reached('construction')) return { label: 'Under construction', tone: 'warn', plain: 'Has construction under way.' };
   if (reached('power')) return { label: 'Power secured', tone: 'warn', plain: 'Has secured power, with construction not evidenced.' };
-  return { label: 'Announced', tone: 'dim', plain: 'Has announced projects with no later gate evidenced.' };
+  return { label: 'Announced', tone: 'dim', plain: 'Has announced projects with no delivery stage evidenced yet.' };
 }
 
 /**

@@ -5,7 +5,7 @@
  * and footer live in build.js. Internal pages deliberately do NOT repeat the
  * marketing hero, the aggregate strip or the ticker: the tool starts at the top.
  */
-import { METRICS, MODELS, POWER_BASIS } from '../data/schema.js';
+import { METRICS, MODELS, POWER_BASIS, GATES } from '../data/schema.js';
 import { sectorPanel } from './sector-panel.js';
 import { COUNTRY_NAMES } from '../data/projects.js';
 import { COMPANIES, WATCH_TICKERS, TICKER_NAMES } from '../data/companies.js';
@@ -21,7 +21,7 @@ import { VOL_METHODOLOGY } from './lib/odds.js';
 import {
   briefingCards, snapshotCards, kpiCards, ledgerPanel, capacityTable, contractsTable,
   countryPanel, evidenceKey, valueTypeKey, basisKey, reconciliationPanel, dataHealthPanel,
-  deliveryRecordPanel, sourceChips, evidenceChip, pill, catalystPanel
+  deliveryRecordPanel, sourceChips, evidenceChip, pill, catalystPanel, gateTrack
 } from './ui.js';
 import { allSites, furthestStage, stageFilterOptions } from './lib/sites.js';
 import { signals, availableCategories, todaySet, toSignal, CATEGORIES } from './lib/signals.js';
@@ -387,11 +387,11 @@ export function researchBody(buildStamp) {
     `<div class="rsgrid">
       ${summaryRow('Secured power', `${k[0].isMinimum ? '≥' : ''}${esc(mw(k[0].total))}`,
         `${k[0].contributorCount} of ${k[0].companyCount} companies, gross-utility basis`)}
-      ${summaryRow('Customers have signed for', `${k[1].isMinimum ? '≥' : ''}${esc(mw(k[1].total))}`,
+      ${summaryRow('Contracted', `${k[1].isMinimum ? '≥' : ''}${esc(mw(k[1].total))}`,
         `${k[1].contributorCount} disclose on a critical-IT basis; ${k[1].missingCount} do not`)}
-      ${summaryRow('Switched on', `${k[2].isMinimum ? '≥' : ''}${esc(mw(k[2].total))}`,
+      ${summaryRow('Energised', `${k[2].isMinimum ? '≥' : ''}${esc(mw(k[2].total))}`,
         `${k[2].contributorCount} disclose energised critical IT`)}
-      ${summaryRow('Delivered and accepted', `${esc(mw(k[3].total))}`,
+      ${summaryRow('Accepted', `${esc(mw(k[3].total))}`,
         `${k[3].contributorCount} company discloses formal acceptance`)}
       ${summaryRow('Guided milestones', String(dr.scheduledCount),
         `${dr.completedCount} reached and scoreable, ${dr.pendingCount} outstanding`)}
@@ -734,7 +734,11 @@ export function siteBody(site) {
             </div>`
           : `<p class="mnote">Nothing on this site carries a dated, sourced record yet.</p>`)}
 
-      ${section('deps', 'Dependencies', 'From tracked gates only', dependencyGrid(site.dependencies))}
+      ${/* The dependency grid went: it re-sorted the same gates into seven
+            buckets, two of which (cooling, networking) no company discloses, so
+            it showed permanent blanks as if they were findings. The gate record
+            shows each reported gate once, with its note. */''}
+      ${section('gates', 'Gate record', `${site.gateSummary.trackedCount} of ${GATES.length} reported`, gateTrack(site.project))}
 
       ${section('replay', 'Site replay', 'Documented progression', replayTrack(site.replay))}
     </div>

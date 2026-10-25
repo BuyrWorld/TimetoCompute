@@ -93,9 +93,9 @@ test('every event type produces a headline and a consequence', () => {
 
 /* ---- the rail ---- */
 
-test('the rail carries all seven stages with both label layers', () => {
+test('the rail carries all five path stages with both label layers', () => {
   const s = leadStory();
-  assert.equal(s.rail.length, 7);
+  assert.equal(s.rail.length, 5);
   for (const step of s.rail) {
     assert.ok(step.simple && step.detailed, 'a stage is missing a label layer');
     assert.ok(['complete', 'implied', 'current', 'pending', 'unknown'].includes(step.state), step.state);
@@ -105,17 +105,18 @@ test('the rail carries all seven stages with both label layers', () => {
 });
 
 test('the journey vocabulary matches the canonical delivery model', () => {
+  // One vocabulary: the rail uses the path's own words, never a second set.
   assert.deepEqual(JOURNEY.map(j => j.detailed), [
-    'Announced', 'Power secured', 'Construction', 'Energised',
-    'Customer contracted', 'Customer accepted', 'Billing'
+    'Power secured', 'Under construction', 'Energised', 'Accepted', 'Billing'
   ]);
+  for (const j of JOURNEY) assert.equal(j.simple, j.detailed);
 });
 
 test('an unreported stage before a confirmed one reads as implied', () => {
-  // Horizon 1 has no site-control gate on record, but Microsoft accepted it —
-  // it cannot have been accepted without having been announced.
+  // Horizon 1 has no power gate on record, but Microsoft accepted it —
+  // it cannot have been accepted without having had power secured.
   const s = leadStory();
-  const announced = s.rail.find(r => r.id === 'announced');
+  const announced = s.rail.find(r => r.id === 'power');
   assert.equal(announced.state, 'implied');
   assert.equal(announced.statusLabel, 'Implied');
   assert.ok(announced.impliedBy, 'the rail does not say what implies the stage');

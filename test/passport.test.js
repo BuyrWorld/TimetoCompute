@@ -108,7 +108,7 @@ test('every tracked company sits at the AI-factory stage, and says so', () => {
 test('momentum names the furthest gate actually reached', () => {
   // TeraWulf has disclosed billing; IREN has acceptance but not billing.
   assert.equal(commercialMomentum(byTicker('WULF')).label, 'Billing');
-  assert.equal(commercialMomentum(byTicker('IREN')).label, 'Customer accepted');
+  assert.equal(commercialMomentum(byTicker('IREN')).label, 'Accepted');
 });
 
 test('momentum never claims a gate the record does not support', () => {

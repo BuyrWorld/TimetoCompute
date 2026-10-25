@@ -189,7 +189,7 @@ export function megaprojects(limit = 3) {
 export function imageForSite(site) {
   const stage = furthestStage(site);
   if (!stage) return 'project-power-community';
-  if (['billing', 'acceptance', 'contracted', 'energised'].includes(stage.id)) {
+  if (['billing', 'acceptance', 'energised'].includes(stage.id)) {
     return 'project-operational-campus';
   }
   if (['construction', 'power'].includes(stage.id)) return 'project-construction-campus';

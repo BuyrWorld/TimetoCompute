@@ -49,12 +49,12 @@ export function companyTile(company, { size = 56 } = {}) {
 export function deliveryFunnel(view, { width = 620 } = {}) {
   const c = view.company;
   const rows = [
-    { key: 'securedPowerMw', label: 'Power controlled', tech: 'Secured power' },
-    { key: 'constructionMw', label: 'Being built', tech: 'Under construction' },
-    { key: 'energisedCriticalItMw', label: 'Switched on', tech: 'Energised critical IT' },
-    { key: 'customerContractedMw', label: 'Customers signed for', tech: 'Customer-contracted' },
-    { key: 'customerAcceptedMw', label: 'Delivered and accepted', tech: 'Customer-accepted' },
-    { key: 'revenueLiveMw', label: 'Generating revenue', tech: 'Revenue live' }
+    { key: 'securedPowerMw', label: 'Power secured', tech: 'Secured power' },
+    { key: 'constructionMw', label: 'Under construction', tech: 'Under construction' },
+    { key: 'energisedCriticalItMw', label: 'Energised', tech: 'Energised critical IT' },
+    { key: 'customerContractedMw', label: 'Contracted', tech: 'Customer-contracted' },
+    { key: 'customerAcceptedMw', label: 'Accepted', tech: 'Customer-accepted' },
+    { key: 'revenueLiveMw', label: 'Billing', tech: 'Revenue live' }
   ].map(r => {
     const m = view.measures[r.key];
     const known = m && m.valueMw !== null && m.valueMw !== undefined;
@@ -162,68 +162,6 @@ export function businessModelDiagram(model) {
     </svg>
     <figcaption>${esc(spoken)}</figcaption>
   </figure>`;
-}
-
-/**
- * The stage journey. Interactive: each step is a button that reveals its evidence,
- * so a curious reader can go from picture to primary document in one click.
- */
-export function journeyStrip(view) {
-  const STEPS = [
-    { gate: 'utilityAgreement', label: 'Power secured', icon: 'power', alsoGates: ['siteControl'], alsoMetric: 'securedPowerMw' },
-    { gate: 'constructionStarted', label: 'Built', icon: 'build' },
-    { gate: 'criticalItEnergised', label: 'Switched on', icon: 'energise' },
-    { gate: 'customerContracted', label: 'Customer signed', icon: 'contract' },
-    { gate: 'customerAccepted', label: 'Accepted', icon: 'accept' },
-    { gate: 'revenueCommenced', label: 'Invoicing', icon: 'revenue' }
-  ];
-
-  // A step counts as reached when any project has that gate complete.
-  const reached = {};
-  for (const p of view.projects || []) {
-    for (const g of p.gates || []) {
-      if (g.status === 'complete') reached[g.id] = reached[g.id] || { project: p.name, at: g.effectiveAt, sourceIds: g.sourceIds };
-    }
-  }
-
-  const ICON = {
-    power: '<path d="M13 3 L7 13 h5 l-1 8 6-10 h-5 z"/>',
-    build: '<path d="M3 20 h18 M6 20 V9 l6-4 6 4 v11" fill="none" stroke-width="1.8"/>',
-    energise: '<circle cx="12" cy="12" r="7" fill="none" stroke-width="1.8"/><circle cx="12" cy="12" r="2.5"/>',
-    contract: '<path d="M6 3 h9 l4 4 v14 H6 z M9 11 h7 M9 15 h7" fill="none" stroke-width="1.6"/>',
-    accept: '<path d="M4 12 l5 5 L20 6" fill="none" stroke-width="2.4"/>',
-    revenue: '<path d="M4 18 L9 12 l4 3 7-9" fill="none" stroke-width="2"/>'
-  };
-
-  return `<ol class="journey" aria-label="Delivery journey for ${esc(view.company.name)}">` +
-    STEPS.map((s, i) => {
-      var extra = (s.alsoGates || []).map(function (g) { return reached[g]; }).filter(Boolean)[0];
-      var byMetric = null;
-      if (s.alsoMetric) {
-        var mm = view.measures[s.alsoMetric];
-        if (mm && mm.valueMw !== null && mm.valueMw !== undefined) {
-          byMetric = { project: 'Company-wide disclosure', at: mm.asOf, sourceIds: mm.sourceIds };
-        }
-      }
-      const hit = reached[s.gate] || extra || byMetric;
-      const state = hit ? 'done' : 'pending';
-      const detail = hit
-        ? `${hit.project}${hit.at ? ' · ' + hit.at : ''}`
-        : 'No evidence recorded yet';
-      return `<li class="jstep jstep-${state}">
-        <button class="jbtn" type="button" aria-expanded="false" aria-controls="j-${esc(view.company.id)}-${i}">
-          <span class="jicon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">${ICON[s.icon]}</svg>
-          </span>
-          <span class="jlabel">${esc(s.label)}</span>
-          <span class="jstate">${hit ? 'Reached' : 'Not yet'}</span>
-        </button>
-        <div class="jdetail" id="j-${esc(view.company.id)}-${i}" hidden>
-          <p>${esc(detail)}</p>
-          ${hit && hit.sourceIds?.length ? `<div class="jsrc" data-sources="${esc(hit.sourceIds.join(','))}"></div>` : ''}
-        </div>
-      </li>`;
-    }).join('') + `</ol>`;
 }
 
 /**

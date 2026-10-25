@@ -73,12 +73,12 @@ export function deliveryRail(rail, { idPrefix = 'rail' } = {}) {
            expands the evidence gets to see. */
         const note = step.notes ? ` ${step.notes}` : '';
         const label = step.state === 'implied'
-          ? `${step.simple} — ${step.detailed}. Implied: this stage must have been passed because ` +
+          ? `${step.simple}. Implied: this stage must have been passed because ` +
             `${step.impliedBy} is confirmed. It is not separately evidenced.${note}`
-          : `${step.simple} — ${step.detailed}. ${step.statusLabel}${step.effectiveAt ? `, ${date(step.effectiveAt)}` : ''}.${note}`;
+          : `${step.simple}. ${step.statusLabel}${step.effectiveAt ? `, ${date(step.effectiveAt)}` : ''}.${note}`;
         const inner = `<span class="ed-railnode" aria-hidden="true">${STATE_GLYPH[step.state]}</span>
           <span class="ed-railsimple">${esc(step.simple)}</span>
-          <span class="ed-raildetail">${esc(step.detailed)}</span>
+          ${step.detailed && step.detailed !== step.simple ? `<span class="ed-raildetail">${esc(step.detailed)}</span>` : ''}
           <span class="ed-railstate">${esc(step.statusLabel)}</span>`;
         const noteHtml = step.notes
           ? `<p class="ed-railnote">${esc(step.notes)}</p>`

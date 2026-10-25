@@ -31,7 +31,7 @@ import {
   todayBody, companiesBody, compareBody, catalystsBody, researchBody, labBody,
   sitesBody, siteBody, intelligenceBody, newsBody, explainersBody, notFoundBody, chainBody
 } from './src/pages.js';
-import { allSites, companyPath } from './src/lib/sites.js';
+import { allSites, companyPath, path as projectPath } from './src/lib/sites.js';
 import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
 import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
 import { ART } from './data/artpack.js';
@@ -44,8 +44,7 @@ import { checkTimeMachine, CAMPAIGNS, chapterCount } from './src/lib/timemachine
 import { aiFactoryGraph } from './src/lib/corridor.js';
 import { passport } from './src/lib/passport.js';
 import {
-  passportHeader, whereItSits, dependencyRisk, thesisRiskPanel,
-  bottleneckRadar as bottleneckRadarPanel
+  passportHeader, whereItSits, thesisRiskPanel
 } from './src/passport-ui.js';
 import { signals, todaySet } from './src/lib/signals.js';
 import { signalIndex } from './src/lib/today.js';
@@ -1213,7 +1212,13 @@ function companyPage(c) {
   const order = ['securedPowerMw', 'pipelinePowerMw', 'customerContractedMw', 'constructionMw',
     'energisedCriticalItMw', 'customerAcceptedMw', 'revenueLiveMw'];
 
-  const measureRows = order.map(k => {
+  /* Only measures with something to show get a row. The undisclosed ones are
+     named once, in a line under the table, rather than as a row of "Not
+     disclosed" each — the gap is still stated, it just stops being the page. */
+  const shown = order.filter(k => isKnown(v.measures[k]) ||
+    (k === 'customerContractedMw' && c.contractedLabel));
+  const undisclosedMeasures = order.filter(k => !shown.includes(k)).map(k => METRICS[k].label);
+  const measureRows = shown.map(k => {
     const m = v.measures[k];
     const special = k === 'customerContractedMw' && !isKnown(m) && c.contractedLabel;
     return `<tr>
@@ -1246,7 +1251,8 @@ function companyPage(c) {
         ${basisChip(p.powerBasis)}${statusChip(p.valueStatus)}${evidenceChip(p.confidence)}
       </div>
       <p class="projnote">${esc(p.note || '')}</p>
-      ${gateTrack(p)}
+      ${pathTrack(projectPath(p), { idPrefix: `proj-${p.id}` })}
+      <details class="gatedetails"><summary class="press">Gate record</summary>${gateTrack(p)}</details>
       ${timelinePanel(p)}
       <div class="projfoot">
         <div class="projsrc">${sourceChips(p.sourceIds)}</div>
@@ -1334,20 +1340,13 @@ function companyPage(c) {
       </div>
       ${passportHeader(pp)}
 
-      <div class="pp-grid">
-        <div class="pp-cell">
-          <h3 class="pp-h">Where it sits</h3>
-          ${whereItSits(pp)}
-        </div>
-        <div class="pp-cell">
-          <h3 class="pp-h">Bottleneck radar</h3>
-          ${bottleneckRadarPanel(pp.radar, c.name)}
-        </div>
-      </div>
-
+      ${/* The bottleneck radar and dependency-risk bars went. Both re-scored
+            the same gates the path to billing already shows, on axes most
+            companies could not fill, so a reader met three trackers in a row
+            that could only ever agree with one another. */''}
       <div class="pp-cell">
-        <h3 class="pp-h">Dependency risk</h3>
-        ${dependencyRisk(pp)}
+        <h3 class="pp-h">Where it sits</h3>
+        ${whereItSits(pp)}
       </div>
 
       <div class="pp-cell">
@@ -1449,6 +1448,8 @@ function companyPage(c) {
     <div class="tw"><table class="rectable">
       <thead><tr><th scope="col">Measure</th><th scope="col">Value and evidence</th></tr></thead>
       <tbody>${measureRows}</tbody></table></div>
+    ${undisclosedMeasures.length ? `<p class="gmissing"><b>Not disclosed by ${esc(c.name)}:</b>
+      ${esc(undisclosedMeasures.join(', '))}.</p>` : ''}
   </section>
 
   ${targetRows ? `<section class="panel" id="targets">
@@ -1462,10 +1463,7 @@ function companyPage(c) {
   </section>` : ''}
 
   <section class="panel" id="projects">
-    <div class="ph"><h2>Data centres and their gates</h2><span class="meta">${v.projects.length} recorded</span></div>
-    <div class="keynote">Every site this company has disclosed, with what each one has actually
-      cleared. Gates advance independently: zoning can be granted while environmental approval,
-      financing and interconnection all remain outstanding — a single stage label would hide that.</div>
+    <div class="ph"><h2>Data centres</h2><span class="meta">${v.projects.length} recorded</span></div>
     <div class="projgrid">${projects}</div>
   </section>
 

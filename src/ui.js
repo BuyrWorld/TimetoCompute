@@ -2,13 +2,14 @@
  * Build-time render helpers. The same records produce the homepage, the capacity
  * table and every company page — no figure is ever re-typed into a template.
  */
-import { CONFIDENCE, VALUE_STATUS, POWER_BASIS, METRICS, MODELS, GATES, GATE_STATUS } from '../data/schema.js';
+import { CONFIDENCE, VALUE_STATUS, POWER_BASIS, METRICS, MODELS, GATES, GATE_BY_ID, GATE_STATUS } from '../data/schema.js';
 import { SOURCE_BY_ID } from '../data/sources.js';
 import { COMPANIES } from '../data/companies.js';
 import { PROJECTS_BY_COMPANY, CONTRACTS, COUNTRY_NAMES } from '../data/projects.js';
 import { CATALYST_STATUS, CATALYST_CATEGORIES, CATALYSTS } from '../data/catalysts.js';
 import { PROFILE_BY_ID, PLATFORM_LABEL, chiefExecutives } from '../data/profiles.js';
 import { companyTile, deliveryFunnel, businessModelDiagram, footprintDots } from './lib/illustrations.js';
+import { PATH } from './lib/path.js';
 import {
   companyView, headlineKpis, byCountry, ledger, aggregate, isKnown, gateSummary, dataHealth,
   timeline, deliveryRecord, briefing, companySnapshots, nextStage
@@ -121,20 +122,41 @@ export function basisKey() {
 
 /* ================= gates ================= */
 
+/**
+ * The gate record: what has been reported, and one line for what has not.
+ *
+ * This used to print all fifteen gates for every site, so a typical site showed
+ * ten or eleven rows of "Not disclosed" for each one it had evidence for — 150
+ * such rows on the IREN page alone. A gap is a finding worth one sentence, not
+ * a row each; nothing is hidden, because every undisclosed gate is still named.
+ *
+ * Reported gates keep their status, date, source count and notes. A phased
+ * site's gates name the phase they belong to.
+ */
 export function gateTrack(project) {
-  const g = gateSummary(project);
-  return `<ol class="gates" aria-label="Project gates">` + g.rows.map(r => {
-    const def = GATES.find(x => x.id === r.id);
+  const phaseName = Object.fromEntries((project.phases || []).map(ph => [ph.id, ph.name]));
+  const reported = (project.gates || []).filter(g => g.status !== 'notDisclosed')
+    .slice().sort((a, b) => GATE_BY_ID[a.id].order - GATE_BY_ID[b.id].order);
+  const seen = new Set(reported.map(g => g.id));
+  const missing = GATES.filter(g => !seen.has(g.id));
+
+  const rows = reported.map(r => {
+    const def = GATE_BY_ID[r.id];
     const st = GATE_STATUS[r.status];
     const evidence = r.sourceIds?.length ? ` · ${r.sourceIds.length} source${r.sourceIds.length === 1 ? '' : 's'}` : '';
-    const title = `${def.label} — ${st.label}. ${def.definition}${r.notes ? ' ' + r.notes : ''}`;
-    return `<li class="gate gate-${st.tone}" title="${esc(title)}">
+    const phase = r.phaseId && phaseName[r.phaseId] ? `${phaseName[r.phaseId]}: ` : '';
+    return `<li class="gate gate-${st.tone}" title="${esc(`${def.label} — ${st.label}. ${def.definition}`)}">
       <span class="gglyph" aria-hidden="true">${st.glyph}</span>
-      <span class="glabel">${esc(def.label)}</span>
+      <span class="glabel">${esc(phase + def.label)}</span>
       <span class="gstatus">${esc(st.label)}${esc(evidence)}</span>
       ${r.effectiveAt ? `<span class="gdate">${esc(date(r.effectiveAt))}</span>` : ''}
+      ${r.notes ? `<span class="gnote">${esc(r.notes)}</span>` : ''}
     </li>`;
-  }).join('') + `</ol>`;
+  }).join('');
+
+  return `${rows ? `<ol class="gates" aria-label="Reported project gates">${rows}</ol>` : ''}
+    ${missing.length ? `<p class="gmissing"><b>${missing.length === GATES.length ? 'No gate reported yet.' : 'Not disclosed:'}</b>
+      ${missing.length === GATES.length ? '' : esc(missing.map(g => g.label).join(', ')) + '.'}</p>` : ''}`;
 }
 
 /* ================= KPI cards ================= */
@@ -806,6 +828,12 @@ export function storybook(view) {
  * carrying the content of a call, and the copy says so plainly rather than burying
  * it in a policy page.
  */
+/** The gate a call on each path stage is scored against: the one that settles it. */
+const CALL_GATE = {
+  power: 'utilityAgreement', construction: 'constructionStarted', energised: 'criticalItEnergised',
+  acceptance: 'customerAccepted', billing: 'revenueCommenced'
+};
+
 export function callPanel(c, view) {
   const gate = nextStage(c);
   return `<section class="block callblock" id="yourcall">
@@ -822,8 +850,8 @@ export function callPanel(c, view) {
         <div class="fld">
           <label for="callGate-${esc(c.ticker)}">What happens next</label>
           <select id="callGate-${esc(c.ticker)}" name="gate">
-            ${GATES.filter(g => !view.stage || g.order > view.stage.order)
-              .map(g => `<option value="${esc(g.id)}"${gate && g.id === gate.id ? ' selected' : ''}>${esc(g.label)}</option>`).join('')}
+            ${PATH.slice(view.stage ? view.stage.order + 1 : 0)
+              .map(st => `<option value="${esc(CALL_GATE[st.id])}"${gate && st.id === gate.id ? ' selected' : ''}>${esc(st.label)}</option>`).join('')}
           </select>
         </div>
         <div class="fld">

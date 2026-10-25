@@ -209,7 +209,7 @@ test('a stage before a confirmed one is implied, not left blank', () => {
   // Horizon 1 is accepted by Microsoft. It cannot have been accepted without
   // having been built, so the earlier undisclosed stages read as implied.
   const site = bySlug('iren-horizon-1');
-  const announced = site.path.find(s => s.id === 'announced');
+  const announced = site.path.find(s => s.id === 'power');
   assert.equal(announced.status, 'implied');
   assert.equal(announced.statusLabel, 'Implied');
   assert.ok(announced.impliedBy, 'an implied stage does not say what implies it');

@@ -10,7 +10,7 @@
  * gate exists in the schema and no tracked company discloses one per site, so a
  * permanently-unknown stage would be a decorative affordance. The path below uses
  * `customerContracted` in that position — a real gate, evidenced per site — and
- * the seven stages otherwise follow the reference exactly.
+ * the stages otherwise follow the reference.
  */
 import { GATES, GATE_BY_ID, GATE_STATUS } from '../../data/schema.js';
 import { PROJECTS, CONTRACTS, COUNTRY_NAMES } from '../../data/projects.js';
@@ -20,19 +20,12 @@ import { gateSummary, timeline } from './compute.js';
 
 const COMPANY_BY_ID = Object.fromEntries(COMPANIES.map(c => [c.id, c]));
 
-/**
- * The delivery path, in the reference's horizontal form. Each stage names the
- * real gates that evidence it; a stage with no evidenced gate is not disclosed.
- */
-export const PATH = [
-  { id: 'announced', label: 'Announced', short: 'Announced', gates: ['siteControl'] },
-  { id: 'power', label: 'Power secured', short: 'Power', gates: ['utilityAgreement', 'interconnection'] },
-  { id: 'construction', label: 'Construction', short: 'Build', gates: ['constructionStarted'] },
-  { id: 'energised', label: 'Energised', short: 'Energised', gates: ['utilityEnergised', 'criticalItEnergised'] },
-  { id: 'contracted', label: 'Customer contracted', short: 'Contracted', gates: ['customerContracted'] },
-  { id: 'acceptance', label: 'Acceptance', short: 'Accepted', gates: ['customerAccepted'] },
-  { id: 'billing', label: 'Billing', short: 'Billing', gates: ['revenueCommenced'] }
-];
+export { PATH, PATH_BY_ID } from './path.js';
+import { PATH } from './path.js';
+
+/** Whether a customer has signed for this site — a tag beside the path, not a stage of it. */
+export const customerSigned = project =>
+  (project.gates || []).some(g => g.id === 'customerContracted' && g.status === 'complete');
 
 /** Dependencies we can actually evidence, plus the two the reference shows that nobody discloses. */
 const DEPENDENCIES = [
@@ -217,7 +210,7 @@ export function path(project) {
   return pathFromGates(project.gates || []);
 }
 
-/** The seven stages, rolled up from whichever set of gates is handed in. */
+/** The five stages, rolled up from whichever set of gates is handed in. */
 function pathFromGates(gates) {
   const byId = Object.fromEntries(gates.map(g => [g.id, g]));
   const stages = PATH.map(stage => {
@@ -233,17 +226,8 @@ function pathFromGates(gates) {
   return markImplied(stages);
 }
 
-/**
- * WHY THE ORDER IS NOT THE ORDER IT IS DRAWN IN.
- *
- * Six of the seven stages are physically sequential — a hall cannot be
- * energised before it is built, or billed before it is energised. `contracted`
- * is not: a customer signs whenever the commercial deal closes, routinely long
- * before the concrete is poured. It is drawn in position because that is where
- * a reader looks for it, and it is excluded from the sequence check because
- * treating it as sequential flags six healthy sites as broken.
- */
-const SEQUENTIAL = ['announced', 'power', 'construction', 'energised', 'acceptance', 'billing'];
+/** Every stage is physically sequential: nothing is billed before it is energised. */
+const SEQUENTIAL = PATH.map(s => s.id);
 const UNREACHED = new Set(['notStarted', 'inProgress', 'conditional']);
 
 /**

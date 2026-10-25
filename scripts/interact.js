@@ -290,15 +290,17 @@ const run = async () => {
   /* delivery rail — on the site page, where the delivery record is */
   await page.goto(base + '/sites/iren-horizon-1/', { waitUntil: 'networkidle0' });
   const railSteps = await page.$$eval('.ed-railstep', els => els.length);
-  check('the delivery rail shows all seven stages', railSteps === 7, `${railSteps}`);
+  check('the delivery rail shows all five path stages', railSteps === 5, `${railSteps}`);
 
   const railLabels = await page.$$eval('.ed-railstep', els => els.map(e => ({
     simple: (e.querySelector('.ed-railsimple') || {}).textContent,
     detailed: (e.querySelector('.ed-raildetail') || {}).textContent,
     state: (e.querySelector('.ed-railstate') || {}).textContent
   })));
-  check('every stage carries both label layers and a worded status',
-    railLabels.length === 7 && railLabels.every(l => l.simple && l.detailed && l.state.trim().length > 2),
+  /* One vocabulary: the second "detailed" label layer is gone on purpose,
+     because it repeated the stage name in different words. */
+  check('every stage carries its label and a worded status',
+    railLabels.length === 5 && railLabels.every(l => l.simple && l.state.trim().length > 2),
     railLabels.map(l => `${l.simple}/${l.detailed}`).join(', '));
 
   const railBtn = await page.$('.ed-railbtn[aria-controls]');
@@ -468,7 +470,7 @@ const run = async () => {
     factorSamples.length === 4, factorSamples.join(' | '));
 
   const coPathSteps = await page.$$eval('#path .pstep', els => els.length);
-  check('the company path shows all seven stages', coPathSteps === 7, `${coPathSteps}`);
+  check('the company path shows all five stages', coPathSteps === 5, `${coPathSteps}`);
 
   await page.click('#path .pstep-btn');
   await new Promise(r => setTimeout(r, 150));

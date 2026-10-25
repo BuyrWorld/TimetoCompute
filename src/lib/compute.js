@@ -12,6 +12,7 @@ import { COMPANIES } from '../../data/companies.js';
 import { PROJECTS, PROJECTS_BY_COMPANY } from '../../data/projects.js';
 import { EVENTS } from '../../data/events.js';
 import { CATALYSTS } from '../../data/catalysts.js';
+import { PATH } from './path.js';
 
 export const isKnown = m => m && m.valueMw !== null && m.valueMw !== undefined;
 
@@ -261,29 +262,27 @@ const METRIC_FOR_GATE = {
   revenueCommenced: 'revenueLiveMw'
 };
 
-/** Short, plain-English labels for the stages a reader actually cares about. */
-const STAGE_SHORT = {
-  utilityAgreement: 'Power secured',
-  zoning: 'Permitted',
-  constructionStarted: 'Building',
-  utilityEnergised: 'Grid live',
-  criticalItEnergised: 'Switched on',
-  customerContracted: 'Customer signed',
-  customerAccepted: 'Accepted',
-  revenueCommenced: 'Invoicing'
-};
+/**
+ * The path stage a gate evidences. A gate outside the path (zoning, financing,
+ * a signed customer) is real progress but not a delivery step, so it never
+ * becomes a company's headline stage.
+ */
+const STAGE_FOR_GATE = Object.fromEntries(PATH.flatMap((s, i) => s.gates.map(g => [g, { ...s, order: i }])));
 
 export function currentStage(company, projects = PROJECTS_BY_COMPANY[company.id] || []) {
   const done = new Set(
-    projects.flatMap(p => (p.gates || []).filter(g => g.status === 'complete').map(g => g.id))
+    projects.flatMap(p => [...(p.gates || []), ...(p.phases || []).flatMap(ph => ph.gates || [])]
+      .filter(g => g.status === 'complete').map(g => g.id))
   );
   let best = null;
   for (const g of GATES) {
+    const stage = STAGE_FOR_GATE[g.id];
+    if (!stage) continue;
     const metric = METRIC_FOR_GATE[g.id];
     const m = metric ? getMeasure(company, metric) : null;
     const byMetric = m && isKnown(m) && m.valueMw > 0;
-    if (byMetric || done.has(g.id)) {
-      best = { id: g.id, order: g.order, label: g.label, short: STAGE_SHORT[g.id] || g.label };
+    if ((byMetric || done.has(g.id)) && (!best || stage.order >= best.order)) {
+      best = { id: stage.id, order: stage.order, label: stage.label, short: stage.short };
     }
   }
   return best;
@@ -291,9 +290,8 @@ export function currentStage(company, projects = PROJECTS_BY_COMPANY[company.id]
 
 export function nextStage(company) {
   const cur = currentStage(company);
-  const idx = cur ? cur.order : -1;
-  const g = GATES.find(x => x.order > idx && STAGE_SHORT[x.id]);
-  return g ? { id: g.id, order: g.order, label: g.label, short: STAGE_SHORT[g.id] } : null;
+  const s = PATH[cur ? cur.order + 1 : 0];
+  return s ? { id: s.id, order: cur ? cur.order + 1 : 0, label: s.label, short: s.short } : null;
 }
 
 /** Company rollup used by the capacity table and company pages. */

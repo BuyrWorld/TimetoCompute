@@ -19,7 +19,7 @@ import { GATE_BY_ID } from '../../data/schema.js';
 import { COMPANIES } from '../../data/companies.js';
 import { CONTRACTS, PROJECTS } from '../../data/projects.js';
 import { signals } from './signals.js';
-import { companyPath, path as projectPath, nextMilestone } from './sites.js';
+import { companyPath, path as projectPath, nextMilestone, PATH } from './sites.js';
 import { getMeasure, isKnown } from './compute.js';
 import { mw, date, windowLabel } from './format.js';
 
@@ -28,16 +28,12 @@ const PROJECT_BY_ID = Object.fromEntries(PROJECTS.map(p => [p.id, p]));
 
 const SIGNIFICANCE_RANK = { high: 3, medium: 2, low: 1 };
 
-/** Simple and detailed labels for the delivery journey, per the copy deck. */
-export const JOURNEY = [
-  { id: 'announced', simple: 'Promised', detailed: 'Announced' },
-  { id: 'power', simple: 'Power secured', detailed: 'Power secured' },
-  { id: 'construction', simple: 'Being built', detailed: 'Construction' },
-  { id: 'energised', simple: 'Switched on', detailed: 'Energised' },
-  { id: 'contracted', simple: 'Customer signed', detailed: 'Customer contracted' },
-  { id: 'acceptance', simple: 'Customer accepted', detailed: 'Customer accepted' },
-  { id: 'billing', simple: 'Earning money', detailed: 'Billing' }
-];
+/**
+ * The delivery journey uses the path's own words. It once had a second
+ * vocabulary ("Promised", "Switched on", "Earning money"), which meant the
+ * same stage had two names on one page.
+ */
+export const JOURNEY = PATH.map(s => ({ id: s.id, simple: s.label, detailed: s.label }));
 
 const JOURNEY_BY_ID = Object.fromEntries(JOURNEY.map(j => [j.id, j]));
 

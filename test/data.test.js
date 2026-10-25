@@ -550,12 +550,12 @@ test('every company resolves a delivery stage', () => {
 test('stage reflects the furthest evidenced gate', () => {
   const stage = t => companyView(COMPANIES.find(c => c.ticker === t)).stage.id;
   // TeraWulf and Applied Digital both disclose revenue-generating capacity.
-  assert.equal(stage('WULF'), 'revenueCommenced');
-  assert.equal(stage('APLD'), 'revenueCommenced');
+  assert.equal(stage('WULF'), 'billing');
+  assert.equal(stage('APLD'), 'billing');
   // IREN has acceptance but has not disclosed billing.
-  assert.equal(stage('IREN'), 'customerAccepted');
-  // Keel has energised grid power but nothing switched on as critical IT.
-  assert.equal(stage('KEEL'), 'utilityEnergised');
+  assert.equal(stage('IREN'), 'acceptance');
+  // Keel has energised grid power; the path names the stage, not the gate.
+  assert.equal(stage('KEEL'), 'energised');
 });
 
 test('the next stage is always ahead of the current one', () => {

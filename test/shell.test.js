@@ -101,7 +101,7 @@ test('every previously published route still resolves', () => {
 
 test('site detail lives on the company page now that the tab is gone', () => {
   const html = read('companies/iren/index.html');
-  assert.match(html, /Data centres and their gates/,
+  assert.match(html, /<h2>Data centres<\/h2>/,
     'the company page does not present its data centres');
   // Every card reaches the site's own page, so the detail is a way in, not a
   // dead end.
@@ -440,14 +440,13 @@ test('the delivery rail exposes both label layers and never colour alone', () =>
   // homepage leads with the supply chain instead.
   const html = read('sites/iren-horizon-1/index.html');
   const steps = [...html.matchAll(/class="ed-railstep[^"]*"/g)];
-  assert.equal(steps.length, 7, `expected 7 delivery stages, found ${steps.length}`);
-  for (const label of ['Promised', 'Power secured', 'Being built', 'Switched on',
-    'Customer signed', 'Customer accepted', 'Earning money']) {
+  assert.equal(steps.length, 5, `expected 5 delivery stages, found ${steps.length}`);
+  for (const label of ['Power secured', 'Under construction', 'Energised', 'Accepted', 'Billing']) {
     assert.ok(html.includes(label), `the rail is missing the simple label "${label}"`);
   }
   // Every stage prints its status as words as well as a state class.
   const states = [...html.matchAll(/class="ed-railstate">([^<]+)</g)].map(m => m[1].trim());
-  assert.equal(states.length, 7);
+  assert.equal(states.length, 5);
   for (const s of states) assert.ok(s.length > 2, 'a stage has no textual status');
 });
 
@@ -921,11 +920,13 @@ test('gate notes reach the site page that owns them', () => {
  * Keyed on the mechanism rather than on one note's wording, so rephrasing a
  * note in the data cannot break the test that protects notes.
  */
-test('the delivery rail renders gate notes, not just stores them', () => {
+test('gate notes are rendered, not just stored', () => {
+  // A note on a path gate shows on the rail; a note on any other gate (zoning,
+  // financing, a signed customer) shows in the gate record. Either counts.
   const withNotes = pj.PROJECTS.filter(p =>
     (p.gates || []).some(g => g.notes) && exists(`sites/${p.id}/index.html`));
   assert.ok(withNotes.length > 3, 'expected several site pages carrying gate notes');
-  const rendering = withNotes.filter(p => read(`sites/${p.id}/index.html`).includes('ed-railnote'));
+  const rendering = withNotes.filter(p => /ed-railnote|class="gnote"/.test(read(`sites/${p.id}/index.html`)));
   assert.equal(rendering.length, withNotes.length,
     `${withNotes.length - rendering.length} site pages carry gate notes in data but render none`);
 });
