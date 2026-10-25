@@ -38,13 +38,6 @@ test('all thirteen explainer routes are built', () => {
   }
 });
 
-test('every homepage chain node opens a page that exists', () => {
-  const html = read('index.html');
-  const hrefs = [...html.matchAll(/class="cn-hit press" href="([^"]+)"/g)].map(m => m[1]);
-  assert.equal(hrefs.length, 7);
-  for (const h of hrefs) assert.ok(exists(`${h.slice(1)}index.html`), `${h} is a dead link`);
-});
-
 test('every component card is a link, never a modal-only dead end', () => {
   const html = read('explainers/photonics/index.html');
   const hrefs = [...html.matchAll(/class="ex-partlink press" href="([^"]+)"/g)].map(m => m[1]);

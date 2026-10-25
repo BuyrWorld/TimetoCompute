@@ -16,3 +16,4 @@ SCMAP/
 Game/
 # Quotes are literal here, not grouping — a quoted path matches nothing.
 1 - Not yet implementated/
+.qa/

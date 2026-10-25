@@ -750,7 +750,6 @@ export function snapshotCards() {
 
       <div class="snapacts">
         <a class="cta small primary" href="/companies/${esc(c.slug)}/">View company</a>
-        <button class="cta small ghost snapcompare" type="button" data-add="${esc(c.ticker)}">Compare</button>
       </div>
     </article>`;
   }).join('') + `</div>`;

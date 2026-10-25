@@ -31,7 +31,8 @@ import {
   todayBody, companiesBody, compareBody, catalystsBody, researchBody, labBody,
   sitesBody, siteBody, intelligenceBody, newsBody, explainersBody, notFoundBody, chainBody
 } from './src/pages.js';
-import { allSites, companyPath, path as projectPath } from './src/lib/sites.js';
+import { allSites, companyPath, path as projectPath, siteStatus } from './src/lib/sites.js';
+import { chainExplorerData } from './src/chainx.js';
 import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
 import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
 import { ART } from './data/artpack.js';
@@ -109,26 +110,16 @@ console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
  * ever shared. /sites/ moves to the utility menu, where it is one tap away on
  * every page.
  */
+/**
+ * Five destinations. The site is the supply chain, the places it is built,
+ * the companies, the news and the game. Everything else — the detailed chain
+ * map, catalysts, explainers, Track, research — is one tap away in the ⋯ menu.
+ */
 const NAV = [
-  { id: 'today', label: 'Today', href: '/' },
-  { id: 'track', label: 'Track', href: '/track/', primary: true, search: 'sentiment checklist IREN Childress horizon wire' },
-  /* The pack renames the visible label. The route moves to /chain-mapping/ and
-     /chain/ survives as a published alias — it is linked from the homepage, the
-     explainers, the sitemap and the palette. */
-  { id: 'chain', label: 'Chain mapping', href: '/chain-mapping/' },
+  { id: 'today', label: 'Chain', href: '/', search: 'supply chain map home today' },
+  { id: 'sites', label: 'Sites', href: '/sites/', search: 'data centres megaprojects campuses' },
   { id: 'companies', label: 'Companies', href: '/companies/' },
-  /* The pack asks for AI News and Financials in the primary nav. News is
-     promoted here because the route exists and carries real sourced stories.
-     FINANCIALS IS DELIBERATELY ABSENT: its route is phase 6, and a primary nav
-     item leading to a 404 — or to a page of em-dashes — is worse than one the
-     reader has not been promised yet. It joins when it has something to show. */
-  { id: 'ainews', label: 'AI news', href: '/ai-news/' },
-  { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
-  { id: 'explainers', label: 'Explainers', href: '/explainers/' },
-  /* The game gets its own tab. It sits last because it is the one destination
-     that is not the research record, and the label says what it is rather than
-     what it contains — nobody scanning a nav is looking for "AI Time Machine"
-     unless they already know what that is. */
+  { id: 'ainews', label: 'News', href: '/ai-news/', also: ['news'] },
   { id: 'timemachine', label: 'Play', href: '/time-machine/', search: 'AI Time Machine game play history simulation' }
 ];
 
@@ -138,13 +129,9 @@ const NAV = [
  * still one tap away in the utility menu.
  */
 const MOBILE_NAV = [
-  { id: 'today', label: 'Today', href: '/' },
-  { id: 'track', label: 'Track', href: '/track/' },
-  /* AI news, not the watchlist. A bar slot is the most expensive space on the
-     site and should hold a destination that is worth something on a first
-     visit; a watchlist is empty until the reader has built one, so it spent
-     that slot on a page most people would arrive at with nothing in it. */
-  { id: 'ainews', label: 'AI news', href: '/ai-news/' },
+  { id: 'today', label: 'Chain', href: '/' },
+  { id: 'sites', label: 'Sites', href: '/sites/' },
+  { id: 'ainews', label: 'News', href: '/ai-news/' },
   { id: 'search', label: 'Search', action: 'palOpenMobile' }
 ];
 
@@ -154,11 +141,11 @@ const MOBILE_NAV = [
  * route must not become a page with no current marker anywhere.
  */
 const UTILITY_ROUTES = [
-  { id: 'sites', label: 'All data centres', href: '/sites/' },
+  { id: 'chain', label: 'Detailed chain map', href: '/chain-mapping/' },
+  { id: 'explainers', label: 'Explainers', href: '/explainers/' },
+  { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
+  { id: 'track', label: 'Track', href: '/track/' },
   { id: 'intelligence', label: 'Intelligence ledger', href: '/intelligence/' },
-  { id: 'news', label: 'News wire', href: '/news/' },
-  { id: 'lab', label: 'Edge Lab', href: '/lab/' },
-  { id: 'compare', label: 'Compare companies', href: '/compare/' },
   { id: 'research', label: 'Research', href: '/research/' },
   { id: 'methodology', label: 'Methodology', href: '/methodology/' }
 ];
@@ -170,9 +157,9 @@ const UTILITY_ROUTES = [
 const HASH_ROUTES = {
   overview: '/', today: '/',
   companies: '/companies/',
-  compare: '/compare/',
+  compare: '/companies/',
   catalysts: '/catalysts/',
-  odds: '/lab/#odds', forecasts: '/lab/', scenarios: '/lab/', lab: '/lab/',
+  odds: '/companies/', forecasts: '/companies/', scenarios: '/companies/', lab: '/companies/',
   sites: '/sites/', projects: '/sites/',
   research: '/research/', ledger: '/intelligence/', capacity: '/research/#capacity',
   intelligence: '/intelligence/', filings: '/research/#filings',
@@ -217,9 +204,10 @@ ${(Array.isArray(structured) ? structured : [structured]).filter(Boolean)
  * navigation for attention.
  */
 function appHeader(active = 'today') {
+  const on = n => n.id === active || (n.also || []).includes(active);
   const items = NAV.map(n =>
-    `<a class="navlink press${n.id === active ? ' is-active' : ''}${n.primary ? ' is-primary' : ''}"
-        href="${n.href}"${n.id === active ? ' aria-current="page"' : ''}>${esc(n.label)}</a>`).join('');
+    `<a class="navlink press${on(n) ? ' is-active' : ''}"
+        href="${n.href}"${on(n) ? ' aria-current="page"' : ''}>${esc(n.label)}</a>`).join('');
 
   return `<a class="skiplink" href="#main">Skip to content</a>
 <header class="appbar">
@@ -235,28 +223,9 @@ function appHeader(active = 'today') {
         <span class="paltxt">Search or run a command</span>
         <kbd class="palkbd" aria-hidden="true">Ctrl K</kbd>
       </button>
-      <a class="watchbtn-nav press" href="/companies/?filter=watching">
-        <span class="ed-icon" data-icon="watchlist" aria-hidden="true"></span>
-        <span class="watchtxt">My watchlist</span>
-      </a>
-      <!-- "Live" would read as telemetry this site does not have. Standard/Focus
-           describes the interface, which is what the control actually changes. -->
-      <div class="modetoggle" role="group" aria-label="Interface mode">
-        <button class="modebtn press" type="button" data-mode="live" aria-pressed="true">Standard</button>
-        <button class="modebtn press" type="button" data-mode="focus" aria-pressed="false">Focus</button>
-      </div>
-      ${/* NO LOADING STRING IN SERVER HTML. This shipped "Updating…", which is
-            what crawlers index, what link previews show, and what a reader with
-            no JavaScript sees for ever. On a site whose whole claim is "trust
-            what we say we know", a permanent "Updating…" reads as a broken feed.
-
-            Baking the session in at build time would be worse, not better: a
-            page built at 10:00 would tell a midnight reader the market is open.
-            The pill is purely a live-data affordance, so with no live data it
-            does not exist. The client unhides it once it has a real answer. */''}
-      <span class="mstate secondary" id="marketState" aria-live="polite" hidden>
-        <i aria-hidden="true"></i><span class="mstate-text"></span>
-      </span>
+      ${/* The watchlist button, the Standard/Focus switch and the market pill
+            left the bar: three controls a newcomer had to decode before the
+            page made sense. Feed status still shows in the ⋯ menu. */''}
       <details class="umenu">
         <summary class="press" aria-label="Settings and data status"><span aria-hidden="true">⋯</span></summary>
         <div class="umenupanel">
@@ -352,8 +321,8 @@ function footer() {
   <div class="wrap footin">
     <div class="footmark">
       <img src="/Logo/logo-header.png" alt="" width="514" height="120" />
-      <p>What management promised, what the evidence supports, what was physically delivered, what the
-         customer accepted, and when revenue began.</p>
+      <p>The AI supply chain from the ground to the app: who makes it, who builds it, who buys it,
+         and what is happening at each site — every link quoted from a filing.</p>
     </div>
     <div class="footgrid">
       <div class="footcol"><h4>Understand the data</h4><ul>
@@ -804,15 +773,15 @@ const DATASET_LD = () => ({
 
 function todayPage() {
   return page({
-    title: 'T2C — Time to Compute | Which AI infrastructure companies are actually delivering',
+    title: 'T2C — Time to Compute | The AI supply chain, from the ground to the app',
     description:
-      'Track the journey from secured power to accepted, revenue-producing AI compute. Sourced capacity, ' +
-      'contract economics, catalysts and a valuation lab that shows what would need to go right.',
+      'Who mines, makes, powers, builds and buys AI compute — every supplier and customer link quoted ' +
+      'from a company filing, with the latest news for each.',
     canonical: SITE + '/',
     body: todayBody(),
-    inlineData: { T2C_COMPARE: comparePayload() },
+    inlineData: { T2C_CHAIN: chainExplorerData() },
     active: 'today',
-    extraScripts: ['/sector-wire.js'],
+    extraScripts: ['/chainx.js'],
     structured: DATASET_LD()
   });
 }
@@ -882,16 +851,16 @@ function sitesPage() {
 }
 
 function sitePage(site) {
-  const stage = [...site.path].reverse().find(p => p.status === 'complete');
+  const st = siteStatus(site);
   return page({
-    title: `${site.name} — ${site.companyName} site intelligence | T2C`,
+    title: `${site.name} — ${site.companyName} | T2C`,
     description:
-      `${site.name}, operated by ${site.companyName} in ${site.countryName}. ` +
-      `${stage ? `Furthest evidenced stage: ${stage.label}.` : 'No delivery stage evidenced yet.'} ` +
-      'Gates, dependencies, contracts and sources for the site.',
+      `${site.name}, ${site.companyName}, ${site.countryName}. Status: ${st.label}. ` +
+      'The latest news naming the site, its customer and what is expected next.',
     canonical: `${SITE}/sites/${site.slug}/`,
     body: siteBody(site),
-    active: 'sites'
+    active: 'sites',
+    extraScripts: ['/site-news.js']
   });
 }
 
@@ -1183,10 +1152,6 @@ function investmentSnapshot(c, v) {
       aria-pressed="false" aria-label="Watch ${esc(c.name)}">
       <span class="watchglyph" aria-hidden="true">☆</span> <span class="watchtext">Watch</span>
     </button>
-    ${canModel
-      ? `<a class="cta primary" href="/lab/?company=${esc(c.id)}">Open in Edge Lab</a>`
-      : `<span class="cta disabled" aria-disabled="true"
-           title="${esc(LAB_COVERAGE[c.id]?.reason || 'No contract discloses value, megawatts and term together.')}">Not modellable yet</span>`}
   </div>
   ${/* TWO ACTIONS, NOT FOUR. This row sat directly under the company name and
         ahead of any figure, so the reading path landed on choices rather than
@@ -1198,10 +1163,9 @@ function investmentSnapshot(c, v) {
         controls with different labels going to one place makes a reader wonder
         whether they do different things. */''}
   <p class="csnaplinks">
-    <a class="press" href="/compare/?c=${esc(c.ticker)}">Compare with peers</a>
+    <a class="press" href="/">See it in the supply chain</a>
     <a class="press" href="#sources">Every figure and its source</a>
   </p>
-  ${canModel ? '' : `<p class="csnapwhy">${esc(LAB_COVERAGE[c.id]?.reason || '')}</p>`}
 </section>`;
 }
 
@@ -1283,7 +1247,6 @@ function companyPage(c) {
     ['passport', 'Passport'],
     ['score', 'Reality Score'],
     ['path', 'Path to billing'],
-    ['revenue', 'Revenue'],
     ['story', 'The story'],
     ['record', 'Capacity record'],
     ...(targetRows ? [['targets', 'Targets']] : []),
@@ -1291,7 +1254,6 @@ function companyPage(c) {
     ...(contracts.length ? [['contracts', 'Contracts']] : []),
     ['changes', 'Changes'],
     ...(cats.length ? [['catalysts', 'Catalysts']] : []),
-    ['yourcall', 'Your call'],
     ['sources', 'Sources']
   ];
 
@@ -1393,52 +1355,9 @@ function companyPage(c) {
       .map(t => estimateBlock(t.estimate, { label: t.label })).join('')}</div>` : ''}
   </section>
 
-  <section class="mpanel" id="revenue">
-    <div class="mhead">
-      <span class="mkicker">Revenue calculator</span>
-      <span class="mnote secondary">What billing capacity implies, and what it would be worth</span>
-    </div>
-    <p class="mnote">The megawatts and the revenue rate come from what ${esc(c.name)} has published.
-      The multiple does not — it is an opinion, and it is the input that moves the answer most.
-      Nothing here is a price target.</p>
-    ${(() => {
-      const billing = (() => {
-        const live = v.measures.revenueLiveMw;
-        if (isKnown(live)) return { valueMw: live.valueMw, isEstimate: false };
-        const e = estimates.revenueLiveMw;
-        return e ? { valueMw: e.valueMw, isEstimate: true } : null;
-      })();
-
-      /* Only critical-IT measures are offered. The revenue rate is derived from
-         contracts priced per MW of critical IT, so applying it to gross utility
-         power would price megawatts that cannot be sold as compute. */
-      const CRITICAL_IT = ['revenueLiveMw', 'customerAcceptedMw', 'customerContractedMw', 'energisedCriticalItMw'];
-      const seen = new Set();
-      const bases = [];
-      if (billing) {
-        bases.push({
-          label: billing.isEstimate ? 'Billing (est)' : 'Billing today',
-          valueMw: billing.valueMw,
-          definition: 'Capacity the company has disclosed as billing, or T2C\'s estimate from accepted capacity.'
-        });
-        seen.add(billing.valueMw);
-      }
-      for (const key of CRITICAL_IT) {
-        const m = v.measures[key];
-        if (!isKnown(m) || seen.has(m.valueMw)) continue;
-        seen.add(m.valueMw);
-        bases.push({
-          label: METRICS[key].label,
-          valueMw: m.valueMw,
-          definition: METRICS[key].definition
-        });
-      }
-      bases.sort((a, b) => a.valueMw - b.valueMw);
-
-      return revenueCalculator(c, { billing, rate: estimateRevenueRate(c.id), bases });
-    })()}
-  </section>
-
+  ${/* The revenue calculator went with the October simplification: it valued
+        companies on an opinion (the multiple) layered over the record, and the
+        site no longer sets out to price anything. */''}
   ${/* storybook() already returns a <section id="story">; wrapping it in another
         element with the same id made the anchor ambiguous. */''}
   ${storybook(v)}
@@ -1510,7 +1429,7 @@ function companyPage(c) {
     </article>`).join('')}</div>
   </section>` : ''}
 
-  ${callPanel(c, v)}
+  ${/* "Make your call" removed: predictions were cut in the October simplification. */''}
 
   ${PROFILE_BY_ID[c.id] ? aboutPanel(PROFILE_BY_ID[c.id]) : ''}
 
@@ -1946,9 +1865,7 @@ let bytes = 0;
 bytes += write('index.html', todayPage());
 bytes += write('track/index.html', trackPage());
 bytes += write('companies/index.html', companiesPage());
-bytes += write('compare/index.html', comparePage());
 bytes += write('catalysts/index.html', catalystsPage());
-bytes += write('lab/index.html', labPage());
 bytes += write('research/index.html', researchPage());
 bytes += write('sites/index.html', sitesPage());
 bytes += write('intelligence/index.html', intelligencePage());
@@ -2024,9 +1941,7 @@ const urls = [
   { loc: SITE + '/news/', priority: '0.8', freq: 'hourly' },
   { loc: SITE + '/explainers/', priority: '0.7', freq: 'monthly' },
   ...SITES.map(s => ({ loc: `${SITE}/sites/${s.slug}/`, priority: '0.7', freq: 'weekly' })),
-  { loc: SITE + '/lab/', priority: '0.9', freq: 'weekly' },
   { loc: SITE + '/catalysts/', priority: '0.8', freq: 'daily' },
-  { loc: SITE + '/compare/', priority: '0.7', freq: 'weekly' },
   { loc: SITE + '/research/', priority: '0.8', freq: 'daily' },
   { loc: SITE + '/methodology/', priority: '0.9', freq: 'weekly' },
   ...COMPANIES.map(c => ({ loc: `${SITE}/companies/${c.slug}/`, priority: '0.8', freq: 'weekly' })),
@@ -2064,7 +1979,7 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css', 'ainews.css', 'timemachine.css', 'chainmap.css']
+  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css', 'ainews.css', 'timemachine.css', 'chainmap.css', 'chainx.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
 fs.cpSync(path.join(ROOT, 'src', 'sector-wire.js'), path.join(OUT, 'sector-wire.js'));
@@ -2072,6 +1987,8 @@ fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
 fs.cpSync(path.join(ROOT, 'src', 'lab-ui.js'), path.join(OUT, 'lab-ui.js'));
 fs.cpSync(path.join(ROOT, 'src', 'timemachine-app.js'), path.join(OUT, 'time-machine.js'));
 fs.cpSync(path.join(ROOT, 'src', 'chainmap-app.js'), path.join(OUT, 'chain-mapping.js'));
+fs.cpSync(path.join(ROOT, 'src', 'chainx-app.js'), path.join(OUT, 'chainx.js'));
+fs.cpSync(path.join(ROOT, 'src', 'sitenews-app.js'), path.join(OUT, 'site-news.js'));
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'chain-mapping'),
   path.join(OUT, 'assets', 't2c', 'chain-mapping'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'assets', 'time-machine'),

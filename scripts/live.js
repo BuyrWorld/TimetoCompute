@@ -32,7 +32,7 @@ console.log(`live checks against ${BASE}\n`);
 
 /* ---- every route resolves ---- */
 const ROUTES = ['/', '/companies/', '/sites/', '/catalysts/', '/explainers/', '/intelligence/',
-  '/news/', '/lab/', '/compare/', '/research/', '/methodology/', '/privacy/', '/terms/', '/contact/'];
+  '/news/', '/research/', '/methodology/', '/privacy/', '/terms/', '/contact/'];
 for (const p of ROUTES) {
   const r = await get(p);
   check(`${p} resolves`, r.status === 200, String(r.status));

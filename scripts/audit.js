@@ -7,6 +7,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chainState, STAGES } from '../src/lib/chain.js';
+import { CHAIN_COMPANIES } from '../data/chain.js';
+import { CHAIN_STAGES as STAGES_ALL } from '../data/chainstages.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const OUT = path.join(ROOT, 'dist');
@@ -109,71 +111,38 @@ for (const f of htmlFiles) {
 
 /* ---- accessibility spot checks on the homepage ---- */
 const home = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8');
-const lab = fs.readFileSync(path.join(OUT, 'lab', 'index.html'), 'utf8');
 const research = fs.readFileSync(path.join(OUT, 'research', 'index.html'), 'utf8');
 const companiesPg = fs.readFileSync(path.join(OUT, 'companies', 'index.html'), 'utf8');
-const comparePg = fs.readFileSync(path.join(OUT, 'compare', 'index.html'), 'utf8');
+const sitesPg = fs.readFileSync(path.join(OUT, 'sites', 'index.html'), 'utf8');
 
-// every form control has a programmatic label
-const controlIds = [...lab.matchAll(/<(?:input|select)[^>]*id="([^"]+)"/g)].map(m => m[1]);
-const labelFor = new Set([...lab.matchAll(/<label[^>]*for="([^"]+)"/g)].map(m => m[1]));
-for (const id of controlIds) {
-  if (!labelFor.has(id)) fail(`form control #${id} has no <label for>`);
-}
-if (controlIds.length < 6) fail(`expected the Edge Lab inputs, found ${controlIds.length}`);
-
-/* ---- navigation is now real routes, not tabs ---- */
-for (const [pageName, html] of [['home', home], ['lab', lab], ['research', research], ['companies', companiesPg]]) {
+/* ---- navigation: five real routes ---- */
+for (const [pageName, html] of [['home', home], ['research', research], ['companies', companiesPg], ['sites', sitesPg]]) {
   if (!/<nav class="mainnav" aria-label="Primary">/.test(html)) fail(`${pageName}: no primary navigation`);
   const links = [...html.matchAll(/class="navlink[^"]*"\s+href="([^"]+)"/g)].map(m => m[1]);
-  if (links.length !== 8) fail(`${pageName}: expected 8 primary nav links, found ${links.length}`);
+  if (links.length !== 5) fail(`${pageName}: expected 5 primary nav links, found ${links.length}`);
   for (const href of links) {
     const clean = href.split('#')[0];
     if (!routes.has(clean)) fail(`${pageName}: nav points at unbuilt route ${href}`);
   }
   // Demoting a route to the utility menu is fine; orphaning it is not.
-  for (const href of ['/sites/', '/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/']) {
+  for (const href of ['/chain-mapping/', '/explainers/', '/catalysts/', '/track/', '/intelligence/', '/research/', '/methodology/']) {
     if (!html.includes(`href="${href}"`)) fail(`${pageName}: secondary route ${href} is unreachable`);
   }
-  // exactly one page marks itself current
-  const current = (html.match(/aria-current="page"/g) || []).length;
-  if (current < 1) fail(`${pageName}: no nav item marked aria-current`);
-}
-
-// No page carries a marketing hero — Today leads with the day's signal.
-for (const [pageName, html] of [['home', home], ['lab', lab], ['research', research],
-  ['companies', companiesPg], ['compare', comparePg]]) {
-  if (/class="hero"/.test(html)) fail(`${pageName}: ships a marketing hero — every route starts with the tool`);
+  if (!(html.match(/aria-current="page"/g) || []).length) fail(`${pageName}: no nav item marked aria-current`);
+  if (/class="hero"/.test(html)) fail(`${pageName}: ships the old marketing hero`);
   if (/class="tapein"/.test(html)) fail(`${pageName}: repeats the ticker tape`);
 }
-// The homepage leads with the proposition, then the chain, then the day's story.
-if (!/class="fl-hero"/.test(home)) fail('the homepage lost its flagship hero');
-if (!/Follow AI from atoms to revenue/.test(home)) fail('the homepage lost its proposition headline');
-if (!/class="cn-track"/.test(home)) fail('the homepage lost the supply chain');
-if (!/id="whyDrawer"/.test(home)) fail('the homepage lost its why-this-matters drawer');
-if (!/class="ed-disclosure"/.test(home)) fail('an illustration is on the homepage with no disclosure');
-// Every chain stage must state whether it is tracked, in words.
-const chainNodes = (home.match(/class="cn-node/g) || []).length;
-if (chainNodes !== 7) fail(`homepage chain has ${chainNodes} stages; the model has 7`);
-// A stage upstream of an evidenced one certainly happened. Drawing it as unknown
-// would say the opposite, so the two facts are asserted separately.
-// Counts derived from the model, never written here: these read < 4 while the
-// model said 4 implied, then silently pinned the page to a stale fact when
-// photonics gained supplier records and the implied count fell to 3.
-const impliedCount = chainState().filter(s => s.happened === 'implied').length;
-if ((home.match(/>Happened</g) || []).length < impliedCount) fail('implied stages do not say they happened');
-if ((home.match(/no supplier record/g) || []).length < impliedCount) {
-  fail('implied stages do not say T2C holds no supplier record for them');
+
+/* ---- the homepage is the supply chain ---- */
+if (!/Follow AI from the ground to the app/.test(home)) fail('the homepage lost its proposition headline');
+const cols = (home.match(/class="cxcol"/g) || []).length;
+if (cols !== STAGES_ALL.length) fail(`homepage chain has ${cols} stages; the model has ${STAGES_ALL.length}`);
+for (const c of CHAIN_COMPANIES) {
+  if (!home.includes(`data-co="${c.id}"`)) fail(`homepage has no button for ${c.name}`);
 }
-const guideItems = (home.match(/class="cn-guideitem /g) || []).length;
-if (guideItems !== STAGES.length) fail(`homepage explains ${guideItems} chain stages; the model has ${STAGES.length}`);
-// Nothing above the fold may load eagerly except a genuine LCP image.
+if (!/id="cxDrawer"/.test(home)) fail('the homepage lost its company drawer');
 const eagerImgs = (home.match(/loading="eager"/g) || []).length;
 if (eagerImgs > 1) fail(`homepage has ${eagerImgs} eagerly-loaded images; at most 1 is allowed`);
-
-// mode switchers keep proper tab semantics
-if (!/role="tablist"/.test(lab)) fail('Edge Lab mode switcher is not a tablist');
-if (!/role="tablist"/.test(comparePg)) fail('Compare mode switcher is not a tablist');
 
 /* ---- expandable country rows live on Research now ---- */
 const geoRows = [...research.matchAll(/class="georow"[^>]*aria-expanded="false"[^>]*aria-controls="(geo-\d+)"/g)];
@@ -181,11 +150,6 @@ if (!geoRows.length) fail('country rows missing aria-expanded/aria-controls');
 for (const [, target] of geoRows) {
   if (!research.includes(`id="${target}"`)) fail(`country row points at missing panel ${target}`);
 }
-
-/* ---- charts carry a text alternative ---- */
-if (!/id="distChart"[^>]*aria-labelledby="distSummary"/.test(lab)) fail('distribution chart has no text summary');
-if (!lab.includes('id="distSummary"')) fail('chart summary target #distSummary does not exist');
-if (!/role="img"\s+aria-label(ledby)?=/.test(home)) fail('no aria-labelled chart graphics found');
 
 // decorative duplicates must not be read twice by a screen reader
 if (!/aria-hidden="true"/.test(home)) fail('no aria-hidden found on decorative elements');
@@ -218,10 +182,6 @@ for (const f of htmlFiles) {
   }
 }
 
-// comparison must state its own ceiling
-if (!/up to 3|Select up to 3|at most 3/i.test(comparePg)) {
-  fail('the comparison ceiling is not stated on the Compare route');
-}
 
 // status must never be colour-only: every status pill carries a text label
 const pills = [...home.matchAll(/<span class="st st-\w+"[^>]*>(.*?)<\/span>/g)];

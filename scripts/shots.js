@@ -32,9 +32,7 @@ const ROUTES = [
   ['sites', '/sites/'],
   ['site-horizon1', '/sites/iren-horizon-1/'],
   ['intelligence', '/intelligence/'],
-  ['compare', '/compare/?c=IREN,WULF,APLD'],
   ['catalysts', '/catalysts/'],
-  ['lab', '/lab/'],
   ['research', '/research/'],
   ['company-iren', '/companies/iren/'],
   ['methodology', '/methodology/']

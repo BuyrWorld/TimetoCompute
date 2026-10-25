@@ -94,8 +94,8 @@ const run = async () => {
 
   /* ---- legacy hashes still resolve ---- */
   await page.goto(base + '/#odds', { waitUntil: 'networkidle0' });
-  check('legacy #odds lands on the Lab in odds mode',
-    page.url().includes('/lab/') && page.url().includes('#odds'), page.url());
+  check('legacy #odds lands on Companies now the Lab is retired',
+    page.url().includes('/companies/'), page.url());
 
   await page.goto(base + '/#capacity', { waitUntil: 'networkidle0' });
   check('legacy #capacity lands on Research', page.url().includes('/research/'), page.url());
@@ -125,238 +125,55 @@ const run = async () => {
   const searched = await page.$$eval('#companyGrid .snap', els => els.filter(e => !e.hidden).length);
   check('search narrows to a single match', searched === 1, `${searched} shown`);
 
-  /* ---- the Lab recomputes ---- */
-  await page.goto(base + '/lab/?company=terawulf', { waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 400));
-  const selected = await page.$eval('#labCompany', el => el.value);
-  check('a Lab deep link selects the requested company', selected === 'terawulf', selected);
-
-  const firstAnswer = await page.$eval('#labResults', el => el.textContent.slice(0, 400));
-  await page.$eval('#labShift', el => { el.value = '6'; el.dispatchEvent(new Event('input', { bubbles: true })); });
-  await new Promise(r => setTimeout(r, 500));
-  const shifted = await page.$eval('#labResults', el => el.textContent.slice(0, 400));
-  check('moving the delivery slider recomputes the model', firstAnswer !== shifted);
-
-  const shiftLabel = await page.$eval('#labShiftOut', el => el.textContent);
-  check('the slider states its own value in words', /later|earlier|schedule/.test(shiftLabel), shiftLabel);
-
-  const whatRows = await page.$$eval('#labWhat tbody tr', els => els.length);
-  check('the model shows every tranche it is standing on', whatRows > 0, `${whatRows} rows`);
-
-  const noZeroClaim = await page.$eval('#labWhat', el => el.textContent);
-  check('undated capacity is named rather than silently dropped',
-    !/\bMW with no date\b/.test(noZeroClaim) || /no delivery date on record/.test(noZeroClaim));
-
-  /* ---- mode switching ---- */
-  await page.click('.mode[data-lab="odds"]');
-  await new Promise(r => setTimeout(r, 200));
-  const oddsVisible = await page.$eval('#odds', el => !el.hidden);
-  const resultsHidden = await page.$eval('#labResults', el => el.hidden);
-  check('switching to Market odds swaps the panel', oddsVisible && resultsHidden);
-
-  /* ---- a call survives a reload ---- */
-  await page.goto(base + '/companies/iren/', { waitUntil: 'networkidle0' });
-  await page.type('#callWhy-IREN', 'Horizon 2 needs the transformer delivery to hold.');
-  await page.click('.callform button[type="submit"]');
-  await new Promise(r => setTimeout(r, 200));
-  const saved = await page.$eval('#callList-IREN', el => el.textContent);
-  check('a call appears immediately after saving', /transformer delivery/.test(saved));
-
-  await page.reload({ waitUntil: 'networkidle0' });
-  const persisted = await page.$eval('#callList-IREN', el => el.textContent);
-  check('the call survives a reload', /transformer delivery/.test(persisted));
-
-  const posted = [];
-  page.on('request', r => { if (r.method() !== 'GET') posted.push(r.url()); });
-  await page.click('.callform button[type="submit"]');
-  await new Promise(r => setTimeout(r, 300));
-  check('saving a call sends no request anywhere', posted.length === 0, posted.join(', '));
-
-  await page.click('.calldel');
-  await new Promise(r => setTimeout(r, 150));
-
-  /* ---- editorial homepage ---- */
+  /* ---- the supply-chain homepage ---- */
   await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 300));
-
   const h1s = await page.$$eval('h1', els => els.map(e => e.textContent.trim()));
-  check('the homepage has exactly one h1 and it is the story', h1s.length === 1 && h1s[0].length > 15,
-    h1s.join(' | '));
+  check('the homepage has exactly one h1 and it is the proposition',
+    h1s.length === 1 && /ground to the app/.test(h1s[0]), JSON.stringify(h1s));
+  const cols = await page.$$eval('.cxcol', els => els.length);
+  check('the chain shows all ten stages', cols === 10, `${cols}`);
 
-  // The headline is selectable HTML, never part of the bitmap.
-  const selectable = await page.evaluate(() => {
-    const h = document.querySelector('.fl-h1');
-    return h && getComputedStyle(h).userSelect !== 'none' && h.textContent.trim().length > 0;
-  });
-  check('the headline is selectable text, not baked into the image', selectable);
-
-  /* ---- the supply chain ---- */
-  const chain = await page.$$eval('.cn-node', els => els.map(e => ({
-    implied: e.classList.contains('is-implied'),
-    evidenced: e.classList.contains('is-evidenced'),
-    gap: e.classList.contains('is-gap'),
-    label: (e.querySelector('.cn-label') || {}).textContent,
-    count: (e.querySelector('.cn-count') || {}).textContent,
-    sub: (e.querySelector('.cn-sub') || {}).textContent,
-    link: !!e.querySelector('a.cn-hit'),
-    href: (e.querySelector('a.cn-hit') || {}).getAttribute
-      ? e.querySelector('a.cn-hit').getAttribute('href') : null,
-    records: !!e.querySelector('a.cn-records'),
-    what: !!e.querySelector('.cn-what'),
-    // An implied stage must READ as lit, not merely be classed as such.
-    dim: parseFloat(getComputedStyle(e.querySelector('.cn-asset')).opacity)
-  })));
-  const untracked = chain.filter(c => !c.evidenced);
-  /* Derived from the model. These were 7/3/4 literals, which pinned the page to a
-     stale fact the moment photonics gained supplier records and the evidenced
-     count went from three to four. */
-  const model = chainState();
-  const wantEvidenced = model.filter(s => s.happened === 'evidenced').length;
-  const wantImplied = model.filter(s => s.happened === 'implied').length;
-  check('the chain shows every stage', chain.length === model.length,
-    `${chain.length} of ${model.length}`);
-  check(`${wantEvidenced} stages are evidenced`,
-    chain.filter(c => c.evidenced).length === wantEvidenced, `${chain.filter(c => c.evidenced).length}`);
-  check('the upstream stages are lit as implied, not drawn as unknown',
-    chain.filter(c => c.implied).length === wantImplied && chain.filter(c => c.gap).length === 0,
-    `implied ${chain.filter(c => c.implied).length}, gap ${chain.filter(c => c.gap).length}`);
-  check('an implied stage is visibly illuminated rather than greyed out',
-    chain.filter(c => c.implied).every(c => c.dim > 0.5),
-    chain.filter(c => c.implied).map(c => c.dim).join(', '));
-  check('every stage states its state in words, not colour alone',
-    chain.every(c => (c.count || '').trim().length > 2), chain.map(c => c.count).join(' | '));
-  /* Both facts, in words. The second one's wording changed — "not tracked by
-     T2C" in amber read as a shortfall and became a statement of what IS mapped
-     — so this checks the claim rather than the old phrasing. */
-  check('an implied stage says both that it happened and that T2C holds no supplier record',
-    chain.filter(c => c.implied).every(c =>
-      /happened/i.test(c.count || '') && /no supplier record|not tracked/i.test(c.sub || '')),
-    chain.filter(c => c.implied).map(c => `${c.count}/${c.sub}`).join(' | '));
-  /* Every stage now leads somewhere real: its explainer. An untracked stage
-     still offers no RECORDS link, because it has none — but "nowhere honest to
-     go" was only ever true of records, never of an explanation. */
-  check('every stage is a real link to its explainer',
-    chain.length === 7 && chain.every(c => c.link && /^\/explainers\//.test(c.href || '')),
-    chain.map(c => c.href).join(' '));
-  check('every stage offers a "What is this?" affordance', chain.every(c => c.what));
-  check('an untracked stage offers no records link it cannot honour',
-    untracked.every(c => !c.records));
-  check('a tracked stage offers its records as a separate action',
-    chain.filter(c => c.evidenced).every(c => c.records));
-
-  // The explainer a node opens actually loads, and names the stage.
-  const target = chain[0].href;
-  await page.goto(new URL(target, page.url()).href, { waitUntil: 'networkidle0' });
-  const landed = await page.$eval('.ex-h1', el => el.textContent.trim()).catch(() => null);
-  const simple = await page.$$eval('.ex-simple', els => els.length);
-  check('a chain node opens a real explainer with one plain-English translation',
-    !!landed && simple === 1, `${landed} · ${simple} translation(s)`);
-  await page.goBack({ waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 300));
-
-  const guide = await page.$$eval('.cn-guideitem', els => els.map(e => ({
-    name: (e.querySelector('.cn-guidename') || {}).textContent,
-    plain: ((e.querySelector('.cn-guideplain') || {}).textContent || '').trim(),
-    role: ((e.querySelector('.cn-guiderole') || {}).textContent || '').trim()
-  })));
-  check('the front page explains what happens at all seven stages',
-    guide.length === 7 && guide.every(g => g.plain.length > 40 && g.role.length > 20),
-    `${guide.length} explained`);
-
-  const cutoutFit = await page.$eval('.cn-asset', el => getComputedStyle(el).objectFit);
-  check('stage cutouts are contained, never stretched', cutoutFit === 'contain', cutoutFit);
-
-  /* why-this-matters drawer: focus trapped, Escape closes, focus restored */
-  await page.click('#whyBtn');
+  await page.click('[data-co="nvidia"]');
   await new Promise(r => setTimeout(r, 250));
-  const drawerOpen = await page.$eval('#whyDrawer', el => el.open);
-  check('the why-this-matters drawer opens', drawerOpen);
+  const trace = await page.evaluate(() => ({
+    picked: document.querySelectorAll('.cxco.is-picked').length,
+    up: [...document.querySelectorAll('.cxco.is-up')].map(b => b.dataset.co),
+    down: [...document.querySelectorAll('.cxco.is-down')].map(b => b.dataset.co),
+    open: document.getElementById('cxDrawer').open,
+    pressed: document.querySelector('[data-co="nvidia"]').getAttribute('aria-pressed')
+  }));
+  check('picking a company lights its upstream suppliers', trace.up.includes('tsmc') && trace.up.includes('micron'), trace.up.join(','));
+  check('picking a company lights its downstream customers', trace.down.includes('coreweave') && trace.down.includes('meta'), trace.down.join(','));
+  check('the picked company is marked for assistive technology', trace.picked === 1 && trace.pressed === 'true');
+  check('picking a company opens its details', trace.open);
+  const drawerText = await page.$eval('#cxdBody', el => el.textContent);
+  check('the details quote the filing behind each link', /We utilize foundries/.test(drawerText));
+  check('the details say who it buys from and who it sells to', /Buys from/.test(drawerText) && /Sells to/.test(drawerText));
 
-  const drawerHeads = await page.$$eval('#whyDrawer h3', els => els.map(e => e.textContent.trim()));
-  check('the drawer uses the fixed section order',
-    drawerHeads.join('|') === 'What happened|Why it matters|What changed|What happens next|What could block it|View the evidence',
-    drawerHeads.join(' | '));
-
-  const focusInside = await page.evaluate(() => document.querySelector('#whyDrawer').contains(document.activeElement));
-  check('focus moves into the drawer', focusInside);
+  await page.click('#cxdBody [data-go="tsmc"]');
+  await new Promise(r => setTimeout(r, 200));
+  const hopped = await page.$eval('#cxdName', el => el.textContent);
+  check('a linked company opens from inside the details', /TSMC/.test(hopped), hopped);
 
   await page.keyboard.press('Escape');
-  await new Promise(r => setTimeout(r, 250));
-  const drawerClosed = await page.$eval('#whyDrawer', el => !el.open);
-  const focusBack = await page.evaluate(() => document.activeElement.id);
-  check('Escape closes the drawer and returns focus to its trigger',
-    drawerClosed && focusBack === 'whyBtn', `closed=${drawerClosed} focus=${focusBack}`);
+  await new Promise(r => setTimeout(r, 150));
+  const closed = await page.$eval('#cxDrawer', el => !el.open);
+  check('Escape closes the details', closed);
+  await page.click('[data-co="tsmc"]');
+  await new Promise(r => setTimeout(r, 150));
+  const cleared = await page.$$eval('.cxco.is-picked', els => els.length);
+  check('tapping the picked company again clears the trace', cleared === 0, `${cleared}`);
 
-  /* delivery rail — on the site page, where the delivery record is */
-  await page.goto(base + '/sites/iren-horizon-1/', { waitUntil: 'networkidle0' });
-  const railSteps = await page.$$eval('.ed-railstep', els => els.length);
-  check('the delivery rail shows all five path stages', railSteps === 5, `${railSteps}`);
-
-  const railLabels = await page.$$eval('.ed-railstep', els => els.map(e => ({
-    simple: (e.querySelector('.ed-railsimple') || {}).textContent,
-    detailed: (e.querySelector('.ed-raildetail') || {}).textContent,
-    state: (e.querySelector('.ed-railstate') || {}).textContent
-  })));
-  /* One vocabulary: the second "detailed" label layer is gone on purpose,
-     because it repeated the stage name in different words. */
-  check('every stage carries its label and a worded status',
-    railLabels.length === 5 && railLabels.every(l => l.simple && l.state.trim().length > 2),
-    railLabels.map(l => `${l.simple}/${l.detailed}`).join(', '));
-
-  const railBtn = await page.$('.ed-railbtn[aria-controls]');
-  if (railBtn) {
-    const before = await page.$eval('.ed-railev', el => el.hidden);
-    await railBtn.click();
-    await new Promise(r => setTimeout(r, 150));
-    const after = await page.$eval('.ed-railev', el => el.hidden);
-    check('an evidenced stage opens its sources', before === true && after === false);
-  }
-
-  await page.goto(base + '/', { waitUntil: 'networkidle0' });
-
-  /* audience lens: explanation only */
-  const factsBefore = await page.$$eval('.ed-prval', els => els.map(e => e.textContent.trim()));
-  await page.click('.ed-lenstab[data-lens="power"]');
-  await new Promise(r => setTimeout(r, 200));
-  const panelShown = await page.$eval('#lens-panel-power', el => !el.hidden);
-  const investmentsHidden = await page.$eval('#lens-panel-investments', el => el.hidden);
-  const factsAfter = await page.$$eval('.ed-prval', els => els.map(e => e.textContent.trim()));
-  check('selecting a lens swaps the explanation', panelShown && investmentsHidden);
-  check('selecting a lens changes no research figure',
-    factsBefore.join('|') === factsAfter.join('|'), `${factsBefore.join(',')} → ${factsAfter.join(',')}`);
-
-  const lensRoving = await page.evaluate(() => {
-    const tabs = [...document.querySelectorAll('.ed-lenstab')];
-    return tabs.filter(t => t.getAttribute('tabindex') === '0').length;
-  });
-  check('the lens tablist has exactly one tab stop', lensRoving === 1, `${lensRoving}`);
-
-  /* explainer: no autoplay, steps advance on demand */
-  const nextHidden = await page.$eval('#explNext', el => el.hidden);
-  const startVisible = await page.$eval('#explStart', el => !el.hidden);
-  check('the explainer does not autoplay', nextHidden && startVisible);
-
-  await page.click('#explStart');
-  await new Promise(r => setTimeout(r, 200));
-  const status1 = await page.$eval('#explStatus', el => el.textContent);
-  check('starting the explainer announces the first step', /step 1 of 5/i.test(status1), status1.slice(0, 50));
-
-  await page.click('#explNext');
-  await new Promise(r => setTimeout(r, 200));
-  const status2 = await page.$eval('#explStatus', el => el.textContent);
-  check('the explainer advances one step at a time', /step 2 of 5/i.test(status2), status2.slice(0, 50));
-
-  /* promise vs reality is never subtracted */
-  const promiseBlock = await page.$eval('.ed-card:nth-child(3)', el => el.textContent);
-  check('promise and reality carry the not-subtracted caveat',
-    /not subtracted/i.test(promiseBlock));
-  check('promise and reality state their bases and dates',
-    /as of/i.test(promiseBlock) && /(gross utility|critical it)/i.test(promiseBlock));
-
-  /* every illustration is disclosed */
-  const illos = await page.$$eval('img.ed-img', els => els.length);
-  const discs = await page.$$eval('.ed-disclosure', els => els.length);
-  check('every illustration carries a disclosure', discs >= illos, `${illos} images, ${discs} disclosures`);
+  /* ---- a site page: status, news, what comes next ---- */
+  await page.goto(base + '/sites/apld-polaris-1/', { waitUntil: 'networkidle0' });
+  const site = await page.evaluate(() => ({
+    status: (document.querySelector('.hmstatus') || {}).textContent || '',
+    news: (document.getElementById('siteNews') || {}).textContent || '',
+    rail: document.querySelectorAll('.ed-railstep').length
+  }));
+  check('a site page leads with one status label', /Billing|Live|Building|Planned/.test(site.status), site.status);
+  check('a site page settles its news list rather than spinning', !/Loading/.test(site.news), site.news.slice(0, 60));
+  check('the stage rail is gone from site pages', site.rail === 0, `${site.rail}`);
 
   /* 404 recovery */
   await page.goto(base + '/404.html', { waitUntil: 'networkidle0' });
@@ -443,22 +260,6 @@ const run = async () => {
      has them, rather than here where the harness lands on whichever card is
      first and that site may legitimately have none. */
 
-  /* ---- rail steps reveal evidence rather than doing nothing ---- */
-  await page.goto(base + '/sites/iren-horizon-1/', { waitUntil: 'networkidle0' });
-  const pressable = await page.$$('.ed-railbtn[aria-controls]');
-  const firstPanelHidden = await page.$eval('.ed-railev', el => el.hidden);
-  await pressable[0].click();
-  await new Promise(r => setTimeout(r, 120));
-  const afterPanel = await page.$eval('.ed-railev', el => el.hidden);
-  check('an evidenced path stage opens its sources',
-    firstPanelHidden === true && afterPanel === false);
-
-  const inertAffordance = await page.evaluate(() =>
-    // A stage with no sources must not look pressable.
-    [...document.querySelectorAll('.ed-railstep')].every(li =>
-      li.querySelector('.ed-railbtn[aria-controls]') || !li.querySelector('button')));
-  check('a stage with no evidence offers no pressable control', inertAffordance);
-
   /* ---- company page: score, path, x-ray ---- */
   await page.goto(base + '/companies/iren/', { waitUntil: 'networkidle0' });
   const scoreShown = await page.$eval('.scoreval', el => el.textContent.trim());
@@ -476,75 +277,6 @@ const run = async () => {
   await new Promise(r => setTimeout(r, 150));
   const coEvidence = await page.$eval('#path .pstepev', el => !el.hidden);
   check('a company path stage opens its evidence', coEvidence);
-
-  /* The calculator once rendered as an empty strip because the quote renderer
-     claims every [data-price] element on the page and replaced its contents.
-     Assert it actually has its controls, not just its markup. */
-  const calc = await page.evaluate(() => {
-    const r = document.querySelector('.revcalc');
-    if (!r) return null;
-    return {
-      height: Math.round(r.getBoundingClientRect().height),
-      inputs: r.querySelectorAll('input').length,
-      revenue: (r.querySelector('[data-out="revenue"]') || {}).textContent
-    };
-  });
-  check('the revenue calculator renders its controls, not an empty strip',
-    calc && calc.height > 300 && calc.inputs === 4, JSON.stringify(calc));
-  check('the calculator computes a run-rate from the page defaults',
-    calc && /\$[\d.]+(m|bn)/.test(calc.revenue || ''), calc && calc.revenue);
-
-  // Changing the multiple must move enterprise value and nothing above it.
-  const beforeMult = await page.evaluate(() => ({
-    rev: document.querySelector('[data-out="revenue"]').textContent,
-    ev: document.querySelector('[data-out="ev"]').textContent
-  }));
-  await page.evaluate(() => {
-    const m = document.querySelector('.revcalc input[id$="-mult"]');
-    m.value = '12';
-    m.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  await new Promise(r => setTimeout(r, 150));
-  const afterMult = await page.evaluate(() => ({
-    rev: document.querySelector('[data-out="revenue"]').textContent,
-    ev: document.querySelector('[data-out="ev"]').textContent
-  }));
-  check('the multiple moves enterprise value but not revenue',
-    afterMult.rev === beforeMult.rev && afterMult.ev !== beforeMult.ev,
-    `${beforeMult.ev} → ${afterMult.ev}`);
-
-  // Capacity presets change what is being modelled, and only offer critical-IT
-  // measures — pricing gross utility power at a per-MW contract rate would value
-  // megawatts that cannot be sold as compute.
-  const presets = await page.$$eval('.rvpreset', els =>
-    els.map(e => ({ label: e.textContent, mw: Number(e.getAttribute('data-mw')) })));
-  check('the calculator offers more than one capacity basis', presets.length > 1,
-    presets.map(p => p.mw + 'MW').join(', '));
-  check('presets are ordered smallest first', presets.every((p, i) => i === 0 || p.mw >= presets[i - 1].mw));
-  const secured = await page.$eval('.rvpresetnote', el => el.textContent);
-  check('the page says why secured power is excluded', /gross power/i.test(secured));
-
-  const evBefore = await page.$eval('[data-out="ev"]', el => el.textContent);
-  await page.click('.rvpreset:last-child');
-  await new Promise(r => setTimeout(r, 150));
-  const evAfter = await page.$eval('[data-out="ev"]', el => el.textContent);
-  const mwNow = await page.$eval('.revcalc input[id$="-mw"]', el => Number(el.value));
-  check('selecting a larger capacity basis remodels the answer',
-    evAfter !== evBefore && mwNow === presets[presets.length - 1].mw, `${evBefore} → ${evAfter}`);
-
-  // A share count turns the per-share line on.
-  await page.evaluate(() => {
-    const s = document.querySelector('.revcalc input[id$="-shares"]');
-    s.value = '250';
-    s.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  await new Promise(r => setTimeout(r, 150));
-  const perShare = await page.$eval('[data-out="pershare"]', el => el.textContent);
-  check('supplying a share count produces a per-share figure', /^\$[\d.]+$/.test(perShare), perShare);
-
-  const caveat = await page.$eval('[data-out="caveat"]', el => el.textContent);
-  check('the per-share figure is qualified as enterprise, not equity, value',
-    /net debt/i.test(caveat), caveat.slice(0, 60));
 
   /* ---- estimates are marked, and can be switched off ----
      On Keel's page: IREN's billing estimate went away once its 10-K disclosed
@@ -635,41 +367,6 @@ const run = async () => {
     focusTrail.length === 15 && !focusTrail.includes('BODY'),
     `${walk.start} → ${focusTrail.join(',')}`);
 
-  /* ---- returning-user summary and the map's new home ---- */
-  await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 300));
-
-  // First visit: says so rather than manufacturing a return state.
-  const firstVisit = await page.$eval('#returnHead', el => el.textContent.trim());
-  check('a first visit says so instead of faking a return state',
-    /welcome/i.test(firstVisit), firstVisit);
-
-  // Now pretend the last visit predates the whole ledger.
-  await page.evaluate(() => {
-    localStorage.setItem('t2c-last-visit', '2020-01-01T00:00:00.000Z');
-    sessionStorage.removeItem('t2c-session-since');
-  });
-  await page.reload({ waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 300));
-  const ret = await page.evaluate(() => ({
-    head: document.getElementById('returnHead').textContent.trim(),
-    sub: document.getElementById('returnSub').textContent.trim()
-  }));
-  check('a returning reader is told how many records changed',
-    /\d+ verified changes? while you were away/i.test(ret.head), ret.head);
-  check('the summary splits forward, back and evidence-only',
-    /moved forward .* moved back .* changed evidence only/i.test(ret.sub), ret.sub);
-
-  // Caught up: a last visit after the newest record.
-  await page.evaluate(() => {
-    localStorage.setItem('t2c-last-visit', '2099-01-01T00:00:00.000Z');
-    sessionStorage.removeItem('t2c-session-since');
-  });
-  await page.reload({ waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 300));
-  const caught = await page.$eval('#returnHead', el => el.textContent.trim());
-  check('a reader with nothing new sees the caught-up state', /caught up/i.test(caught), caught);
-
   /* ---- the map now lives on the Sites explorer ---- */
   await page.goto(base + '/sites/', { waitUntil: 'networkidle0' });
   await new Promise(r => setTimeout(r, 300));
@@ -700,33 +397,6 @@ const run = async () => {
   check('"view all watchlist" actually filters to watched companies',
     watchingShown === 1 && bannerOn, `${watchingShown} shown, banner=${bannerOn}`);
 
-  // The header's watchlist action is the route into it from anywhere.
-  await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  const watchHref = await page.$eval('.watchbtn-nav', el => el.getAttribute('href'));
-  check('the header offers a watchlist destination',
-    watchHref === '/companies/?filter=watching', watchHref);
-
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle0' }),
-    page.click('.watchbtn-nav')
-  ]);
-  const viaHeader = await page.$$eval('#companyGrid .snap', els => els.filter(e => !e.hidden).length);
-  check('the header watchlist action lands on the watched companies', viaHeader === 1, `${viaHeader}`);
-
-  /* ---- signal progress reaches a real anchor ---- */
-  await page.goto(base + '/intelligence/?view=today', { waitUntil: 'networkidle0' });
-  const todayOnly = await page.$$eval('#signalAll .sig', els => els.filter(e => !e.hidden).length);
-  const totalSignals = await page.$$eval('#signalAll .sig', els => els.length);
-  check('?view=today narrows the ledger to the finite daily set',
-    todayOnly > 0 && todayOnly < totalSignals, `${todayOnly} of ${totalSignals}`);
-
-  // Ledger rows still carry an id, so any /intelligence/#<signal> link lands on
-  // the row it names rather than the top of the page.
-  const anchorTarget = await page.$eval('#signalAll .sig[id]', el => el.id);
-  await page.goto(base + '/intelligence/#' + anchorTarget, { waitUntil: 'networkidle0' });
-  const anchorExists = await page.evaluate(id => !!document.getElementById(id), anchorTarget);
-  check('a signal anchor lands on the row it names', anchorExists, anchorTarget);
-
   /* ---- click-glow behaves for pointer, Enter and Space alike ---- */
   await page.goto(base + '/', { waitUntil: 'networkidle0' });
 
@@ -741,7 +411,7 @@ const run = async () => {
     JSON.stringify(glowOnPointer));
 
   const glowOnKey = await page.evaluate(async () => {
-    const el = document.querySelector('.modebtn.press');
+    const el = document.querySelector('.cxco.press');
     el.focus();
     const before = el.classList.contains('is-pressed');
     el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
@@ -768,40 +438,6 @@ const run = async () => {
   });
   check('the glow causes no layout shift', noShift.sameWidth && noShift.neighbourStill,
     JSON.stringify(noShift));
-
-  /* ---- Live / Focus persists and pauses motion ---- */
-  await page.click('.modebtn[data-mode="focus"]');
-  await new Promise(r => setTimeout(r, 150));
-  const focusOn = await page.evaluate(() => document.documentElement.getAttribute('data-mode'));
-  check('Focus mode applies immediately', focusOn === 'focus', String(focusOn));
-
-  const secondaryHidden = await page.evaluate(() => {
-    const el = document.querySelector('.secondary');
-    return !el || getComputedStyle(el).display === 'none';
-  });
-  check('Focus mode hides secondary metrics', secondaryHidden);
-
-  await page.goto(base + '/companies/', { waitUntil: 'networkidle0' });
-  const focusPersisted = await page.evaluate(() => document.documentElement.getAttribute('data-mode'));
-  check('the mode preference persists across pages', focusPersisted === 'focus', String(focusPersisted));
-
-  await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 400));
-  const pausedA = await page.evaluate(() => {
-    const cv = document.getElementById('flow');
-    return cv ? cv.toDataURL().length : 0;
-  });
-  await new Promise(r => setTimeout(r, 500));
-  const pausedB = await page.evaluate(() => {
-    const cv = document.getElementById('flow');
-    return cv ? cv.toDataURL().length : 0;
-  });
-  check('Focus mode pauses decorative motion', pausedA === pausedB, `${pausedA} vs ${pausedB}`);
-
-  await page.click('.modebtn[data-mode="live"]');
-  await new Promise(r => setTimeout(r, 150));
-  const backLive = await page.evaluate(() => document.documentElement.getAttribute('data-mode'));
-  check('switching back to Live restores the mode', backLive === 'live', String(backLive));
 
   /* ---- command palette ---- */
   await page.goto(base + '/', { waitUntil: 'networkidle0' });
@@ -830,8 +466,8 @@ const run = async () => {
     palClosed && focusRestored === 'palOpen', `closed=${palClosed} focus=${focusRestored}`);
 
   /* ---- nav marks exactly one destination current ---- */
-  for (const [route, expect] of [['/catalysts/', '/catalysts/'],
-    ['/explainers/', '/explainers/']]) {
+  for (const [route, expect] of [['/sites/', '/sites/'], ['/companies/', '/companies/'],
+    ['/news/', '/ai-news/']]) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const current = await page.$$eval('[aria-current="page"]', els =>
       els.filter(e => e.classList.contains('navlink')).map(e => e.getAttribute('href')));
@@ -840,7 +476,7 @@ const run = async () => {
   }
 
   // A route demoted to the utility menu still says where you are.
-  for (const route of ['/sites/', '/intelligence/', '/news/']) {
+  for (const route of ['/catalysts/', '/explainers/', '/intelligence/']) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const marked = await page.$$eval('.umenubtn[aria-current="page"]', els =>
       els.map(e => e.getAttribute('href')));
@@ -1154,67 +790,10 @@ const run = async () => {
   /* ---- reduced motion is honoured ---- */
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 400));
-  const framesA = await page.evaluate(() => {
-    const cv = document.getElementById('flow');
-    return cv ? cv.toDataURL().length : 0;
-  });
-  await new Promise(r => setTimeout(r, 600));
-  const framesB = await page.evaluate(() => {
-    const cv = document.getElementById('flow');
-    return cv ? cv.toDataURL().length : 0;
-  });
-  check('the hero animation stops under reduced motion', framesA === framesB, `${framesA} vs ${framesB}`);
-
-  const rmChain = await page.$$eval('.cn-node .cn-art',
-    els => els.map(e => getComputedStyle(e).animationName));
-  check('the chain pulse stops under reduced motion',
-    rmChain.every(n => n === 'none'), rmChain.join(','));
-  // The chain must still be fully readable with no motion at all.
-  const rmLit = await page.$$eval('.cn-node .cn-asset',
-    els => els.map(e => +getComputedStyle(e).opacity));
-  check('every stage stays legible with motion disabled',
-    rmLit.length === 7 && rmLit.every(o => o > 0.7), rmLit.join(','));
-
+  const rmTransitions = await page.$$eval('.cxco', els => els.map(e => getComputedStyle(e).transitionDuration));
+  check('the chain explorer drops its transitions under reduced motion',
+    rmTransitions.every(t => t === '0s'), [...new Set(rmTransitions)].join(','));
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
-  await page.goto(base + '/', { waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 300));
-
-  /* ---- the chain pulse sweeps one node at a time ---- */
-  const sweep = await page.evaluate(async () => {
-    const arts = [...document.querySelectorAll('.cn-node .cn-art')];
-    const bright = () => arts.map(a => {
-      const m = getComputedStyle(a).filter.match(/brightness\(([\d.]+)\)/);
-      return m ? parseFloat(m[1]) : 1;
-    });
-    const first = {}, order = [];
-    let maxLit = 0, last = null;
-    const t0 = performance.now();
-    while (performance.now() - t0 < 7400) {
-      const b = bright();
-      const lit = b.filter(x => x > 1.06).length;
-      if (lit > maxLit) maxLit = lit;
-      b.forEach((v, i) => { if (v > 1.06 && first[i] === undefined) first[i] = Math.round(performance.now() - t0); });
-      if (lit) {
-        const peak = b.indexOf(Math.max(...b));
-        if (peak !== last) { order.push(peak); last = peak; }
-      }
-      await new Promise(r => requestAnimationFrame(r));
-    }
-    return { first, order, maxLit, count: arts.length };
-  });
-
-  check('only one chain node is highlighted at a time',
-    sweep.maxLit === 1, `${sweep.maxLit} lit simultaneously`);
-  check('every chain node is reached by the pulse',
-    Object.keys(sweep.first).length === sweep.count,
-    `${Object.keys(sweep.first).length} of ${sweep.count}`);
-
-  // The order the pulse visits nodes must be left to right, wrapping once.
-  const wrapped = sweep.order.join(',');
-  const forward = sweep.order.every((n, i) =>
-    i === 0 || n === (sweep.order[i - 1] + 1) % sweep.count);
-  check('the pulse travels left to right, in delivery order', forward, wrapped);
 
   check('no uncaught errors during the whole run', errors.length === 0, errors.join(' | '));
 

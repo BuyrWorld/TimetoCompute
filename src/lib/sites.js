@@ -416,3 +416,39 @@ export function companyPath(companyId) {
 
   return markImplied(merged);
 }
+
+/**
+ * The one-word status a site carries everywhere now that the stage-by-stage
+ * path is no longer drawn: Planned, Building, Live or Billing.
+ *
+ * Read from the same path, so it can never disagree with the record that
+ * still feeds the Reality Score. "Live" means energised; "Billing" needs its
+ * own disclosure — acceptance alone never makes a site Billing.
+ */
+export const SITE_STATUS = {
+  planned: { label: 'Planned', tone: 'dim', plain: 'Announced, with no construction on record yet.' },
+  building: { label: 'Building', tone: 'warn', plain: 'Under construction or being commissioned.' },
+  live: { label: 'Live', tone: 'ok', plain: 'Switched on. Billing is not separately disclosed.' },
+  billing: { label: 'Billing', tone: 'ok', plain: 'The company has said it is being paid for capacity here.' },
+  unreported: { label: 'Status not reported', tone: 'dim', plain: 'The company has published no stage for this site.' }
+};
+
+export function siteStatus(siteOrProject) {
+  const stages = siteOrProject.path || path(siteOrProject);
+  const st = id => stages.find(s => s.id === id)?.status;
+  const done = id => st(id) === 'complete';
+  const moving = id => ['inProgress', 'conditional'].includes(st(id));
+  const id = done('billing') ? 'billing'
+    : done('energised') || done('acceptance') ? 'live'
+      : done('construction') || moving('construction') || moving('energised') ? 'building'
+        : isPlanned(siteOrProject, stages) ? 'planned' : 'unreported';
+  return { id, ...SITE_STATUS[id] };
+}
+
+/* "Planned" is a claim too: only a site the record shows as future — a
+   target, pipeline or potential figure, or a stage reported as not started.
+   Existing capacity the company simply has not staged stays "not reported". */
+function isPlanned(site, stages) {
+  const vs = site.valueStatus || site.project?.valueStatus;
+  return ['target', 'pipeline', 'potential'].includes(vs) || stages.some(s => s.status === 'notStarted');
+}

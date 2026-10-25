@@ -148,7 +148,7 @@ const ok = m => console.log(`  ✓ ${m}`);
 for (const [w, h, label] of [[1440, 900, '1440px'], [1024, 768, '1024px'], [390, 844, '390px']]) {
   const page = await browser.newPage();
   await page.setViewport({ width: w, height: h, deviceScaleFactor: 1 });
-  await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle0' });
+  await page.goto(`http://localhost:${PORT}/chain/`, { waitUntil: 'networkidle0' });
   await page.evaluate(async () => {
     for (let y = 0; y < 2400; y += 400) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 50)); }
     window.scrollTo(0, 0);
@@ -191,7 +191,7 @@ console.log('\nmanifest ceilings');
 {
   const page = await browser.newPage();
   await page.setViewport({ width: 3840, height: 1400, deviceScaleFactor: 1 });
-  await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle0' });
+  await page.goto(`http://localhost:${PORT}/chain/`, { waitUntil: 'networkidle0' });
   await new Promise(r => setTimeout(r, 400));
   const widest = await page.$$eval('.cn-node', ns => ns.map(n => ({
     stage: n.dataset.stage,

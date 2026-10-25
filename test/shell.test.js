@@ -21,25 +21,24 @@ const read = rel => fs.readFileSync(path.join(DIST, rel), 'utf8');
 const exists = rel => fs.existsSync(path.join(DIST, rel));
 
 const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites/index.html',
-  'intelligence/index.html', 'news/index.html', 'explainers/index.html', 'compare/index.html',
-  'catalysts/index.html', 'lab/index.html', 'research/index.html', 'methodology/index.html'];
+  'intelligence/index.html', 'news/index.html', 'explainers/index.html',
+  'catalysts/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/track/', '/chain-mapping/', '/companies/', '/ai-news/', '/catalysts/', '/explainers/', '/time-machine/'];
+const NAV_HREFS = ['/', '/sites/', '/companies/', '/ai-news/', '/time-machine/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
-const SECONDARY = ['/sites/', '/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/'];
+const SECONDARY = ['/chain-mapping/', '/explainers/', '/catalysts/', '/track/', '/intelligence/', '/research/', '/methodology/'];
 
 /** Primary destinations must not also sit in the utility menu. */
-const NOT_SECONDARY = ['/time-machine/'];
+const NOT_SECONDARY = ['/time-machine/', '/sites/', '/companies/', '/ai-news/'];
 
 /* ================= routes ================= */
 
 test('every navigation route is a real page, not a hash', () => {
   for (const r of ROUTES) assert.ok(exists(r), `${r} was not built`);
   const home = read('index.html');
-  for (const href of ['/companies/', '/sites/', '/intelligence/', '/compare/',
-    '/catalysts/', '/lab/', '/research/']) {
+  for (const href of ['/companies/', '/sites/', '/intelligence/', '/catalysts/', '/research/']) {
     assert.ok(home.includes(`href="${href}"`), `home does not link to ${href}`);
   }
 });
@@ -55,7 +54,7 @@ test('the shell offers exactly the primary destinations, in order', () => {
 });
 
 test('a route demoted from the nav is still reachable from every page', () => {
-  // Compare, Catalysts and Research lost their nav slot. Losing a slot must not
+  // Catalysts, Explainers and Research lost their nav slot. Losing a slot must not
   // mean losing the route.
   for (const r of ROUTES) {
     const html = read(r);
@@ -77,8 +76,10 @@ test('a primary destination is not duplicated in the utility menu', () => {
 
 test('every previously published route still resolves', () => {
   // Renaming a label must never break a link someone has already shared.
-  for (const route of ['/', '/companies/', '/sites/', '/intelligence/', '/news/', '/lab/',
-    '/compare/', '/catalysts/', '/research/', '/methodology/', '/privacy/', '/terms/', '/contact/']) {
+  // /lab/ and /compare/ were retired in October 2026 and redirect to /companies/
+  // in vercel.json; see the redirect test below.
+  for (const route of ['/', '/companies/', '/sites/', '/intelligence/', '/news/',
+    '/catalysts/', '/research/', '/methodology/', '/privacy/', '/terms/', '/contact/']) {
     const file = route === '/' ? 'index.html' : route.replace(/^\//, '') + 'index.html';
     assert.ok(exists(file), `${route} no longer resolves`);
   }
@@ -131,24 +132,12 @@ test('a demoted route still tells the reader where they are', () => {
   // Research and Compare have no nav slot. They must still mark themselves
   // current somewhere, or the reader lands on a page the shell does not admit to.
   for (const [file, href] of [['research/index.html', '/research/'],
-    ['compare/index.html', '/compare/'], ['lab/index.html', '/lab/'],
-    ['intelligence/index.html', '/intelligence/'], ['news/index.html', '/news/'],
-    ['methodology/index.html', '/methodology/']]) {
+    ['catalysts/index.html', '/catalysts/'], ['explainers/index.html', '/explainers/'],
+    ['intelligence/index.html', '/intelligence/'], ['methodology/index.html', '/methodology/']]) {
     const html = read(file);
     const link = html.match(new RegExp(`<a class="umenubtn[^"]*"[^>]*href="${href}"[^>]*>`));
     assert.ok(link, `${file} has no utility-menu link to itself`);
     assert.ok(/aria-current="page"/.test(link[0]), `${file} does not mark itself current`);
-  }
-});
-
-test('every page carries the Live/Focus toggle and it is a real pair of buttons', () => {
-  for (const r of ROUTES) {
-    const html = read(r);
-    assert.ok(/<div class="modetoggle" role="group"/.test(html), `${r} has no mode toggle`);
-    assert.ok(html.includes('data-mode="live"') && html.includes('data-mode="focus"'),
-      `${r} is missing a mode button`);
-    // Pressed state is expressed to assistive technology, not by colour alone.
-    assert.ok(/data-mode="live" aria-pressed="true"/.test(html), `${r} does not default to Live`);
   }
 });
 
@@ -209,73 +198,7 @@ test('no page ships a marketing hero', () => {
   }
 });
 
-test('the homepage leads with the proposition, in HTML', () => {
-  const html = read('index.html');
-  const h1s = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)];
-  assert.equal(h1s.length, 1, 'the homepage does not have exactly one h1');
-  assert.ok(/class="fl-h1"/.test(h1s[0][0]), 'the h1 is not the proposition headline');
-  assert.match(h1s[0][1].replace(/<[^>]+>/g, ''), /Follow AI from atoms to revenue/);
-  assert.ok(/class="fl-lede"/.test(html), 'no supporting copy follows the headline');
-  // Both primary actions, and both lead somewhere built.
-  assert.ok(html.includes('href="/chain/"'), 'no "explore the chain" destination');
-  assert.ok(html.includes('href="/intelligence/?view=since-last-visit"'), 'no "see what changed" destination');
-});
-
-test('the homepage answers its questions in order', () => {
-  const html = read('index.html');
-  const at = s => html.indexOf(s);
-  assert.ok(at('fl-h1') < at('cn-track'), 'the proposition does not lead the chain');
-  assert.ok(at('cn-track') < at('The AI buildout today'), 'the chain does not lead the detail');
-  assert.ok(at('The AI buildout today') < at('Megaprojects to watch'), 'sections are out of order');
-  assert.ok(at('Megaprojects to watch') < at('ed-explainer'), 'the explainer is not last');
-});
-
 /* ================= the supply chain ================= */
-
-test('the chain shows every stage and marks which are evidenced', () => {
-  /* Counts are derived from chainState, never written here. This test used to
-     assert 3 evidenced and 4 implied, which was correct until photonics gained
-     supplier records and then quietly pinned the page to a stale fact — the test
-     was holding the bug in place rather than catching it. */
-  const st = chainState();
-  const evidenced = st.filter(s => s.happened === 'evidenced').length;
-  const implied = st.filter(s => s.happened === 'implied').length;
-
-  for (const r of ['index.html', 'chain/index.html']) {
-    const html = read(r);
-    const nodes = [...html.matchAll(/class="cn-node([^"]*)"/g)].map(m => m[1]);
-    assert.equal(nodes.length, st.length, `${r} has ${nodes.length} chain stages, expected ${st.length}`);
-    assert.equal(nodes.filter(n => n.includes('is-evidenced')).length, evidenced,
-      `${r} does not mark exactly ${evidenced} evidenced stages`);
-    // The upstream stages are lit, not blanked: billing capacity proves the
-    // chips it runs on were made.
-    assert.equal(nodes.filter(n => n.includes('is-implied')).length, implied,
-      `${r} does not mark the ${implied} upstream stages as implied`);
-    assert.equal(nodes.filter(n => n.includes('is-gap')).length, 0,
-      `${r} draws a stage as unknown when a later stage proves it happened`);
-  }
-});
-
-test('an implied stage holds both facts at once, in words', () => {
-  const html = read('index.html');
-  // It happened...
-  const implied = chainState().filter(x => x.happened === 'implied').length;
-  assert.ok((html.match(/>Happened</g) || []).length >= implied,
-    'implied stages do not say they happened');
-  /* ...and T2C holds no supplier record for it. Neither claim may rest on
-     styling. The wording changed — "Not tracked by T2C" in amber read as a
-     shortfall, and became a statement of what IS mapped — but the second fact
-     must still be made in words, so this asserts the claim rather than the old
-     phrasing. */
-  assert.ok((html.match(/no supplier record/g) || []).length >= implied,
-    'implied stages do not say T2C holds no supplier record for them');
-  assert.ok(/certainly made/.test(html), 'the coverage note drops the implication');
-  /* Whitespace-normalised: the sentence wraps across lines in the template, so
-     matching the raw HTML would fail on a line break rather than on meaning. */
-  const flat = html.replace(/\s+/g, ' ');
-  assert.ok(/mapped and described without a supplier record/.test(flat),
-    'the coverage note does not separate what is mapped from what is sourced');
-});
 
 test('no stage is drawn as unknown while a later stage is evidenced', () => {
   const state = chainState();
@@ -294,53 +217,6 @@ test('an implied stage never borrows the evidence of the stage that implies it',
     assert.equal(s.href, null, `${s.label} is implied but links to records that do not exist`);
     assert.ok(s.needs, `${s.label} does not say what tracking it would require`);
     assert.ok(s.impliedBy, `${s.label} does not name what implies it`);
-  }
-});
-
-test('every stage is a real link to a real explainer', () => {
-  const html = read('index.html');
-  const hrefs = [...html.matchAll(/class="cn-hit press" href="([^"]+)"/g)].map(m => m[1]);
-  assert.equal(hrefs.length, 7, `expected all 7 stages to link, found ${hrefs.length}`);
-  for (const h of hrefs) {
-    assert.match(h, /^\/explainers\//, `a stage links to ${h} rather than its explainer`);
-    assert.ok(exists(h.replace(/^\//, '') + 'index.html'), `a stage links to ${h}, which was not built`);
-  }
-  // An untracked stage leads to an explanation, never to records it does not have.
-  assert.ok(!/class="cn-node is-(?:implied|gap)"[\s\S]{0,400}?class="cn-records"/.test(html),
-    'an untracked stage offers a records link it cannot honour');
-});
-
-test('every stage states what it is in plain English, on the node itself', () => {
-  const html = read('index.html');
-  for (const s of chainState()) {
-    assert.ok(html.includes(s.simple.replace(/&/g, '&amp;')),
-      `the ${s.label} node does not carry its plain-English line`);
-  }
-  assert.equal((html.match(/class="cn-what"/g) || []).length, 7,
-    'not every node offers the "What is this?" affordance');
-});
-
-test('the front page explains what happens at every stage, not only the gaps', () => {
-  const html = read('index.html');
-  assert.ok(/What happens at each stage/.test(html), 'the stage guide is missing');
-  const items = (html.match(/class="cn-guideitem /g) || []).length;
-  assert.equal(items, 7, `the guide explains ${items} stages, expected 7`);
-  // Each entry says who sells to whom — the sentence that makes it a chain.
-  for (const s of chainState()) {
-    assert.ok(html.includes(s.role.replace(/&/g, '&amp;')),
-      `the guide omits who sells to whom at ${s.label}`);
-  }
-});
-
-test('a tracked stage offers its records as a second, separate action', () => {
-  const html = read('index.html');
-  const hrefs = [...html.matchAll(/class="cn-records press" href="([^"]+)"/g)].map(m => m[1]);
-  const linked = chainState().filter(x => x.href).length;
-  assert.equal(hrefs.length, linked,
-    `expected ${linked} tracked stages to offer records, found ${hrefs.length}`);
-  for (const h of hrefs) {
-    const file = h.split('?')[0].replace(/^\//, '') + 'index.html';
-    assert.ok(exists(file), `a chain stage links to ${h}, which was not built`);
   }
 });
 
@@ -387,39 +263,12 @@ test('a customer with no disclosed site is flagged rather than guessed onto one'
     'the page does not explain why unsited edges stop at the operator');
 });
 
-test('every editorial module is present and points somewhere real', () => {
-  const html = read('index.html');
-  for (const marker of ['fl-hero', 'cn-track', 'whyDrawer', 'returnSummary', 'ed-grid4', 'ed-project', 'ed-explainer']) {
-    assert.ok(html.includes(marker), `the homepage is missing ${marker}`);
-  }
-  // Every homepage href must resolve to a built route.
-  const hrefs = [...html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]);
-  for (const h of new Set(hrefs)) {
-    const file = h === '/' ? 'index.html' : h.replace(/^\//, '') + (h.endsWith('/') ? 'index.html' : '');
-    if (/\.(png|svg|css|js|xml|txt|webp)$/.test(h)) continue;
-    assert.ok(exists(file), `the homepage links to ${h}, which was not built`);
-  }
-});
-
 test('nothing above the fold loads eagerly without earning it', () => {
   const html = read('index.html');
   // The chain leads now, and its cutouts are small; no full-bleed hero image
   // means nothing needs eager loading at all.
   const eager = [...html.matchAll(/<img[^>]*loading="eager"[^>]*>/g)];
   assert.ok(eager.length <= 1, `expected at most 1 eager image, found ${eager.length}`);
-});
-
-test('every illustration is disclosed, dimensioned and lazy', () => {
-  const html = read('index.html');
-  const imgs = [...html.matchAll(/<img[^>]*class="ed-img[^>]*>/g)].map(m => m[0]);
-  assert.ok(imgs.length >= 3, `expected several illustrations, found ${imgs.length}`);
-  for (const img of imgs) {
-    assert.ok(/alt="[^"]{20,}"/.test(img), `an illustration has no meaningful alt: ${img.slice(0, 90)}`);
-    assert.ok(/width="\d+"/.test(img) && /height="\d+"/.test(img), 'an illustration declares no dimensions');
-    assert.ok(/loading="lazy"/.test(img), 'an illustration below the fold is not lazy');
-  }
-  const disclosures = [...html.matchAll(/class="ed-disclosure"/g)].length;
-  assert.ok(disclosures >= imgs.length, `${imgs.length} illustrations but ${disclosures} disclosures`);
 });
 
 test('promise and reality are shown side by side and never subtracted', () => {
@@ -433,30 +282,6 @@ test('promise and reality are shown side by side and never subtracted', () => {
   // A percentage or difference between the two would be the bug this guards.
   const promiseBlock = html.slice(html.indexOf('ed-promise'), html.indexOf('ed-caveat'));
   assert.ok(!/%/.test(promiseBlock), 'a percentage appears inside the promise/reality pair');
-});
-
-test('the delivery rail exposes both label layers and never colour alone', () => {
-  // The rail lives on the site pages, where the delivery record is; the
-  // homepage leads with the supply chain instead.
-  const html = read('sites/iren-horizon-1/index.html');
-  const steps = [...html.matchAll(/class="ed-railstep[^"]*"/g)];
-  assert.equal(steps.length, 5, `expected 5 delivery stages, found ${steps.length}`);
-  for (const label of ['Power secured', 'Under construction', 'Energised', 'Accepted', 'Billing']) {
-    assert.ok(html.includes(label), `the rail is missing the simple label "${label}"`);
-  }
-  // Every stage prints its status as words as well as a state class.
-  const states = [...html.matchAll(/class="ed-railstate">([^<]+)</g)].map(m => m[1].trim());
-  assert.equal(states.length, 5);
-  for (const s of states) assert.ok(s.length > 2, 'a stage has no textual status');
-});
-
-test('the why-this-matters drawer uses the fixed section order', () => {
-  const html = read('index.html');
-  const body = html.match(/<div class="ed-drawerbody">([\s\S]*?)<\/dialog>/);
-  assert.ok(body, 'no drawer body found');
-  const order = [...body[1].matchAll(/<h3>([^<]+)<\/h3>/g)].map(m => m[1]);
-  assert.deepEqual(order, ['What happened', 'Why it matters', 'What changed',
-    'What happens next', 'What could block it', 'View the evidence']);
 });
 
 test('the Reality Score publishes its formula and links to it', () => {
@@ -537,7 +362,7 @@ test('no shipped image exceeds its budget', () => {
 test('every raster image offers a WebP with a PNG fallback', () => {
   // <picture> in markup, image-set in CSS — a browser without WebP still gets
   // an image, and a build without sharp still gets a page.
-  for (const r of ['sites/index.html', 'sites/iren-horizon-1/index.html']) {
+  for (const r of ['sites/index.html']) {
     const html = read(r);
     assert.ok(/<source srcset="\/assets\/campus\.webp" type="image\/webp"/.test(html),
       `${r} offers no WebP for the campus image`);
@@ -559,7 +384,7 @@ test('the vehicle sheet exposes all eight facings', () => {
 });
 
 test('images declare their dimensions so the layout cannot shift', () => {
-  for (const r of ['index.html', 'sites/iren-horizon-1/index.html']) {
+  for (const r of ['sites/index.html', 'explainers/index.html']) {
     const html = read(r);
     const imgs = [...html.matchAll(/<img[^>]+src="\/assets\/[^"]+"[^>]*>/g)].map(m => m[0]);
     assert.ok(imgs.length > 0, `${r} renders no asset image`);
@@ -620,8 +445,8 @@ test('every page offers a skip link as its first focusable element', () => {
 });
 
 test('the current route is marked for assistive technology, not colour alone', () => {
-  const cases = [['companies/index.html', '/companies/'],
-    ['catalysts/index.html', '/catalysts/'], ['explainers/index.html', '/explainers/'],
+  const cases = [['companies/index.html', '/companies/'], ['sites/index.html', '/sites/'],
+    ['ai-news/index.html', '/ai-news/'], ['news/index.html', '/ai-news/'],
     ['companies/iren/index.html', '/companies/']];
   for (const [file, href] of cases) {
     const html = read(file);
@@ -642,12 +467,8 @@ test('no page ships a hard-coded price, change or market state', () => {
   const SESSIONS = /Market open|Market closed|Pre-market|After hours|Updating…|Checking the feed/;
   for (const r of [...ROUTES, 'companies/iren/index.html']) {
     const html = read(r);
-    const pill = html.match(/<span class="mstate[^"]*"[^>]*>([\s\S]*?)<\/span>\s*<\/span>/);
-    assert.ok(pill, `${r} has no market-state pill`);
-    assert.ok(/\bhidden\b/.test(pill[0]),
-      `${r} ships the market pill visible before the client has an answer`);
-    assert.ok(!SESSIONS.test(pill[0]),
-      `${r} states a market session or a loading string in static HTML`);
+    // The market pill left the header in October 2026; it must not come back.
+    assert.ok(!/<span class="mstate/.test(html), `${r} ships a market-state pill in the header`);
     assert.ok(!SESSIONS.test(html),
       `${r} ships a session or loading string somewhere in the served markup`);
   }
@@ -694,19 +515,6 @@ test('guided windows are never printed as exact dates', () => {
   }
 });
 
-test('a company that cannot be modelled says why, and offers no Lab link', () => {
-  const html = read('companies/coreweave/index.html');
-  assert.ok(!html.includes('/lab/?company=coreweave'),
-    'CoreWeave links into the Lab despite having no derivable revenue rate');
-  assert.ok(/Not modellable yet/.test(html), 'CoreWeave does not say it cannot be modelled');
-  assert.ok(/class="csnapwhy"/.test(html), 'CoreWeave gives no reason for being unmodellable');
-});
-
-test('a company that can be modelled links straight into the Lab', () => {
-  const html = read('companies/iren/index.html');
-  assert.ok(html.includes('href="/lab/?company=iren"'), 'IREN has no Edge Lab route');
-});
-
 test('undisclosed figures render as not disclosed, never as zero', () => {
   for (const r of ['companies/index.html', 'companies/keel/index.html', 'index.html']) {
     const html = read(r);
@@ -724,7 +532,7 @@ test('the mobile bar carries four reachable destinations', () => {
     const html = read(r);
     assert.ok(html.includes('class="bottomnav"'), `${r} has no mobile navigation`);
     const hrefs = [...html.matchAll(/class="bnav[^"]*" href="([^"]+)"/g)].map(m => m[1]);
-    assert.deepEqual(hrefs, ['/', '/track/', '/ai-news/'],
+    assert.deepEqual(hrefs, ['/', '/sites/', '/ai-news/'],
       `${r} mobile navigation is wrong`);
     assert.ok(/id="palOpenMobile"/.test(html), `${r} mobile bar has no search`);
   }
@@ -737,18 +545,6 @@ test('every wide table can scroll inside its own container', () => {
     const wrappers = (html.match(/class="tw"/g) || []).length;
     assert.ok(wrappers >= tables,
       `${r} has ${tables} tables but only ${wrappers} scroll containers`);
-  }
-});
-
-test('the Lab and Compare mode switchers are real tab lists', () => {
-  for (const r of ['lab/index.html', 'compare/index.html']) {
-    const html = read(r);
-    assert.ok(/role="tablist"/.test(html), `${r} modebar is not a tablist`);
-    const tabs = [...html.matchAll(/class="mode(?: [^"]*)?" role="tab"[^>]*>/g)].map(m => m[0]);
-    assert.ok(tabs.length >= 2, `${r} has fewer than two modes`);
-    for (const t of tabs) {
-      assert.ok(/aria-selected="(true|false)"/.test(t), `a mode button on ${r} has no aria-selected`);
-    }
   }
 });
 
@@ -781,25 +577,7 @@ test('a saved call never leaves the browser', () => {
   }
 });
 
-test('the call panel says where the data lives, on the page itself', () => {
-  const html = read('companies/iren/index.html');
-  assert.ok(/Private to this browser/.test(html));
-  assert.ok(/never receives it/.test(html),
-    'the call panel does not state that T2C never receives a call');
-});
-
 /* ================= assets ================= */
-
-test('the Lab ships its engine and its controller', () => {
-  assert.ok(exists('lab-engine.js'));
-  assert.ok(exists('lab-ui.js'));
-  const html = read('lab/index.html');
-  assert.ok(html.includes('/lab-engine.js'), 'the Lab page does not load the engine');
-  assert.ok(html.includes('/lab-ui.js'), 'the Lab page does not load the controller');
-  // and nowhere else pays for it
-  assert.ok(!read('index.html').includes('/lab-engine.js'),
-    'the homepage downloads the simulation engine it never runs');
-});
 
 test('the stylesheet is one request and includes the shell layer', () => {
   const html = read('index.html');
@@ -926,7 +704,7 @@ test('gate notes are rendered, not just stored', () => {
   const withNotes = pj.PROJECTS.filter(p =>
     (p.gates || []).some(g => g.notes) && exists(`sites/${p.id}/index.html`));
   assert.ok(withNotes.length > 3, 'expected several site pages carrying gate notes');
-  const rendering = withNotes.filter(p => /ed-railnote|class="gnote"/.test(read(`sites/${p.id}/index.html`)));
+  const rendering = withNotes.filter(p => /ed-railnote|class="gnote"|class="sxfact"/.test(read(`sites/${p.id}/index.html`)));
   assert.equal(rendering.length, withNotes.length,
     `${withNotes.length - rendering.length} site pages carry gate notes in data but render none`);
 });

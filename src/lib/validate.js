@@ -13,6 +13,8 @@ import { CUSTOMERS, CUSTOMER_KINDS, CUSTOMER_BY_NAME, isUndisclosedCustomer } fr
 import { ART, ART_BY_ID } from '../../data/artpack.js';
 import { EXPLAINERS, EXPLAINER_BY_SLUG, EXPLAINER_BY_STAGE } from '../../data/explainers.js';
 import { PHOTONICS_SUPPLIERS, SUPPLIER_ROLES, EVIDENCE_GRADES } from '../../data/suppliers.js';
+import { CHAIN_COMPANIES, CHAIN_COMPANY_BY_ID, CHAIN_LINKS, LINK_KINDS } from '../../data/chain.js';
+import { CHAIN_STAGE_BY_ID } from '../../data/chainstages.js';
 import { allRecords, getMeasure, isKnown, aggregate, headlineKpis } from './compute.js';
 import { MAX_TICKERS, normaliseSelection } from './compare.js';
 
@@ -29,6 +31,27 @@ export function runChecks() {
   const errors = [], warnings = [];
   const fail = m => errors.push(m);
   const warn = m => warnings.push(m);
+
+  /* ---------- supply-chain map ---------- */
+  const chainIds = new Set();
+  for (const c of CHAIN_COMPANIES) {
+    if (chainIds.has(c.id)) fail(`Duplicate chain company ${c.id}`);
+    chainIds.add(c.id);
+    if (!CHAIN_STAGE_BY_ID[c.stage]) fail(`Chain company ${c.id}: unknown stage ${c.stage}`);
+    if (!c.makes) fail(`Chain company ${c.id} says nothing about what it makes`);
+    if (!SOURCE_BY_ID[c.sourceId]) fail(`Chain company ${c.id} cites missing source ${c.sourceId}`);
+    if (c.owner && !CHAIN_COMPANY_BY_ID[c.owner]) fail(`Chain product ${c.id} has unknown owner ${c.owner}`);
+  }
+  const linkIds = new Set();
+  for (const l of CHAIN_LINKS) {
+    if (linkIds.has(l.id)) fail(`Duplicate chain link ${l.id}`);
+    linkIds.add(l.id);
+    if (!CHAIN_COMPANY_BY_ID[l.from] || !CHAIN_COMPANY_BY_ID[l.to]) fail(`Chain link ${l.id} names an unknown company`);
+    if (!LINK_KINDS[l.kind]) fail(`Chain link ${l.id}: unknown kind ${l.kind}`);
+    // A link is a disclosure or it is nothing: no document, no line on the map.
+    if (!SOURCE_BY_ID[l.sourceId]) fail(`Chain link ${l.id} cites missing source ${l.sourceId}`);
+    if (!l.excerpt) fail(`Chain link ${l.id} quotes nothing`);
+  }
 
   /* ---------- sources ---------- */
   const sourceIds = new Set();
@@ -454,7 +477,9 @@ export function runChecks() {
         ...(p.socials || []).map(x => x.sourceId)
       ]),
       ...CUSTOMERS.flatMap(c => (c.models || []).map(m => m.sourceId)),
-      ...PHOTONICS_SUPPLIERS.flatMap(s => s.sourceIds || [])
+      ...PHOTONICS_SUPPLIERS.flatMap(s => s.sourceIds || []),
+      ...CHAIN_COMPANIES.map(c => c.sourceId),
+      ...CHAIN_LINKS.map(l => l.sourceId)
     ];
     return !used.includes(s.id);
   });

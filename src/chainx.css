@@ -1,0 +1,139 @@
+/* ================= supply-chain explorer ================= */
+.cx { margin: 8px 0 48px; }
+.cxhead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; margin-bottom: 14px; }
+.cxh { font-size: clamp(22px, 2.4vw, 30px); margin: 0; letter-spacing: -0.01em; }
+.cxhint { margin: 0; color: var(--dim); font-size: 14px; min-height: 1.4em; }
+.cx.is-tracing .cxhint { color: var(--brand); }
+
+/* Ten columns. On a wide screen they all fit; below that the track scrolls
+   sideways inside itself, never the page. */
+.cxtrack {
+  display: grid; grid-template-columns: repeat(10, minmax(128px, 1fr)); gap: 8px;
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity;
+  padding-bottom: 10px;
+}
+.cxcol {
+  scroll-snap-align: start; background: var(--surface); border: 1px solid var(--line-2);
+  border-radius: 10px; padding: 12px 10px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+.cxstage { min-height: 92px; }
+.cxn { font-family: var(--m-mono, 'IBM Plex Mono', monospace); font-size: 11px; color: var(--brand); }
+.cxlabel { margin: 2px 0 4px; font-size: 14px; line-height: 1.2; }
+.cxplain { margin: 0; font-size: 12px; line-height: 1.35; color: var(--dim); }
+.cxlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+.cxco {
+  all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: flex; justify-content: space-between;
+  align-items: baseline; flex-wrap: wrap; gap: 2px 6px; padding: 8px 9px; border-radius: 7px; border: 1px solid var(--line-2);
+  background: var(--surface-2, var(--surface)); font-size: 13px; font-weight: 600; color: var(--ink);
+  transition: opacity .18s ease, border-color .18s ease, background .18s ease, transform .18s ease;
+}
+.cxco:hover { border-color: var(--brand); }
+.cxco:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.cxname { min-width: 0; overflow-wrap: normal; hyphens: manual; }
+.cxtick { font-family: var(--m-mono, 'IBM Plex Mono', monospace); font-size: 10px; font-weight: 500; color: var(--dim); }
+
+/* Tracing: everything off the chain fades, the chain stays lit.
+   Upstream and downstream differ in colour AND marker, never colour alone. */
+.cx.is-tracing .cxco { opacity: .28; }
+.cx.is-tracing .cxco.is-picked,
+.cx.is-tracing .cxco.is-up,
+.cx.is-tracing .cxco.is-down { opacity: 1; }
+.cxco.is-picked { background: var(--brand); border-color: var(--brand); color: var(--bg); transform: scale(1.03); }
+.cxco.is-picked .cxtick { color: var(--bg); }
+.cxco.is-up { border-color: var(--t2c-cyan, #4fd1e8); }
+.cxco.is-up .cxname::before { content: '↑ '; color: var(--t2c-cyan, #4fd1e8); }
+.cxco.is-down { border-color: var(--brand); }
+.cxco.is-down .cxname::before { content: '↓ '; color: var(--brand); }
+
+.cxnote { margin: 12px 0 0; font-size: 12px; color: var(--dim); max-width: 72ch; line-height: 1.5; }
+
+/* ---- drawer ---- */
+.cxdrawer {
+  margin: 0 0 0 auto; height: 100%; max-height: 100%; width: min(460px, 100%); padding: 0;
+  border: 0; border-left: 1px solid var(--line-2); background: var(--surface); color: var(--ink);
+}
+.cxdrawer::backdrop { background: rgba(0, 0, 0, .55); }
+.cxdin { padding: 22px 22px 40px; position: relative; }
+.cxdclose { all: unset; cursor: pointer; position: absolute; top: 14px; right: 16px; font-size: 18px; color: var(--dim); padding: 4px 8px; }
+.cxdclose:focus-visible { outline: 2px solid var(--brand); }
+.cxdstage { margin: 0; font-size: 12px; color: var(--brand); font-family: var(--m-mono, monospace); }
+.cxdname { margin: 4px 0 8px; font-size: 24px; }
+.cxdmakes { margin: 0 0 10px; font-size: 15px; line-height: 1.45; }
+.cxdrawer h3 { margin: 22px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); }
+.cxdrawer ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.cxdrawer blockquote { margin: 6px 0 4px; padding-left: 10px; border-left: 2px solid var(--line-2); font-size: 13px; color: var(--dim); line-height: 1.45; }
+.cxsrc { font-size: 11.5px; color: var(--dim); }
+.cxdgo { all: unset; cursor: pointer; font-weight: 700; color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+.cxdgo:focus-visible { outline: 2px solid var(--brand); }
+.cxdkind { font-size: 12.5px; color: var(--ink); }
+.cxdnone { color: var(--dim); font-size: 13px; }
+.cxdmore { font-weight: 700; color: var(--brand); }
+.cxdnews a { color: var(--ink); font-size: 14px; line-height: 1.4; }
+.cxdwhen { display: block; font-size: 11.5px; color: var(--dim); margin-top: 2px; }
+
+@media (prefers-reduced-motion: reduce) { .cxco { transition: none; } .cxco.is-picked { transform: none; } }
+@media (max-width: 640px) {
+  .cxtrack { grid-template-columns: repeat(10, 72%); }
+  .cxdrawer { width: 100%; }
+}
+
+/* ================= homepage ================= */
+.hm { padding-top: 28px; }
+.hmhero { margin: 0 0 26px; max-width: 760px; }
+.hmkicker { margin: 0 0 8px; font-family: var(--m-mono, monospace); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--brand); }
+.hmh { margin: 0; font-size: clamp(34px, 5.2vw, 64px); line-height: 1.02; letter-spacing: -0.025em; }
+.hmsub { margin: 12px 0 0; font-size: clamp(16px, 1.6vw, 19px); color: var(--dim); line-height: 1.45; }
+.hmsec { margin: 0 0 44px; }
+.hmsechead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.hmsechead h2 { margin: 0; font-size: clamp(20px, 2vw, 26px); }
+.hmmore { color: var(--brand); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.hmweek { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-2); }
+.hmweek li { display: grid; grid-template-columns: 110px 1fr auto; gap: 14px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--line-2); }
+.hmwhen { font-family: var(--m-mono, monospace); font-size: 12px; color: var(--dim); }
+.hmwhat { font-size: 15.5px; line-height: 1.4; }
+.hmwhere { font-size: 13px; color: var(--brand); font-weight: 600; }
+.hmsites { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.hmsite { display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.hmsite:hover { border-color: var(--brand); }
+.hmstatus { align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.hmstatus-billing, .hmstatus-live { color: var(--ok, var(--brand)); }
+.hmstatus-building { color: var(--warn); }
+.hmstatus-planned, .hmstatus-unreported { color: var(--dim); }
+.hmsname { font-size: 16px; font-weight: 700; }
+.hmsmeta { font-size: 13px; color: var(--dim); }
+.hmplay { display: flex; align-items: center; gap: 14px; margin: 0 0 56px; padding: 16px 18px; border: 1px solid var(--brand); border-radius: 12px; color: var(--ink); text-decoration: none; font-size: 15px; }
+.hmplayk { font-family: var(--m-mono, monospace); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--bg); background: var(--brand); padding: 4px 9px; border-radius: 6px; }
+@media (max-width: 640px) {
+  .hmweek li { grid-template-columns: 1fr; gap: 4px; }
+}
+
+/* ================= site page ================= */
+.sx { padding-top: 18px; }
+.sxhead { margin: 10px 0 30px; max-width: 900px; }
+.sxhead h1 { margin: 10px 0 4px; font-size: clamp(30px, 4vw, 46px); letter-spacing: -0.02em; }
+.sxsub { margin: 0 0 18px; color: var(--dim); }
+.sxfacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 0; }
+.sxfacts > div { border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 14px; background: var(--surface); }
+.sxfacts dt { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin-bottom: 4px; }
+.sxfacts dd { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.35; }
+.sxbasis { font-size: 12px; font-weight: 500; color: var(--dim); }
+.sxnote { margin: 16px 0 0; color: var(--dim); line-height: 1.5; }
+.sxcols { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 32px; margin-bottom: 56px; }
+.sxsec { margin-bottom: 28px; }
+.sxsec h2 { font-size: 18px; margin: 0 0 12px; }
+.sxnews { list-style: none; margin: 0 0 28px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.sxnews a { color: var(--ink); font-size: 15px; line-height: 1.4; }
+.sxnewsh { margin-top: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+.sxsrc { display: block; margin-top: 4px; }
+@media (max-width: 860px) { .sxcols { grid-template-columns: 1fr; } }
+
+.sxnext { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.sxnext li { display: flex; flex-direction: column; gap: 2px; font-size: 14.5px; }
+.sxwhen { font-family: var(--m-mono, monospace); font-size: 12px; color: var(--brand); }
+.sxnextn { font-size: 12.5px; color: var(--dim); line-height: 1.45; }
+
+.sxfacts-list { list-style: none; margin: 0 0 28px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sxfact { display: grid; grid-template-columns: 110px 1fr; gap: 14px; font-size: 14.5px; line-height: 1.45; }
+.sxfact > span:only-child { grid-column: 1 / -1; }
+@media (max-width: 640px) { .sxfact { grid-template-columns: 1fr; gap: 2px; } }

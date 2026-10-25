@@ -122,14 +122,6 @@ test('an unmanifested asset falls back to neutral optics rather than shifting', 
   assert.equal(opticsStyle('not-a-real-asset'), '--asset-scale:1;--asset-x:0%;--asset-y:0%');
 });
 
-test('the built chain carries per-node optics, not one blanket nudge', () => {
-  const html = read('index.html');
-  const styles = [...html.matchAll(/<li class="cn-node[\s\S]{0,120}?style="([^"]+)"/g)].map(m => m[1]);
-  assert.equal(styles.length, 7, `expected 7 nodes with optics, found ${styles.length}`);
-  // If every node carried the same correction it would be a global fudge again.
-  assert.ok(new Set(styles).size > 1, 'all seven nodes share one correction');
-});
-
 test('no stylesheet reintroduces a per-stage margin hack', () => {
   const css = read('styles.css');
   assert.ok(!/object-fit:\s*fill/.test(css), 'object-fit: fill is forbidden by the pack');

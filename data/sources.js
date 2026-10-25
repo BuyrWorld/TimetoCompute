@@ -14,7 +14,10 @@ const AUGUST_AUDIT = '2026-08-15';
 const S = (id, o) => ({ id, accessedAt: AUGUST_AUDIT, ...o });
 const R = (id, o) => ({ id, accessedAt: AUDIT_CUTOFF, ...o });
 
+import { ANNUAL_REPORTS } from './annualreports.js';
+
 export const SOURCES = [
+  ...ANNUAL_REPORTS,
 
   /* ---------------- Company profiles, leadership and official links ----------------
      Each of these is an official company-controlled page. Socials were verified by

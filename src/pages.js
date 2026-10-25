@@ -5,7 +5,7 @@
  * and footer live in build.js. Internal pages deliberately do NOT repeat the
  * marketing hero, the aggregate strip or the ticker: the tool starts at the top.
  */
-import { METRICS, MODELS, POWER_BASIS, GATES } from '../data/schema.js';
+import { METRICS, MODELS, POWER_BASIS, GATES, GATE_BY_ID } from '../data/schema.js';
 import { sectorPanel } from './sector-panel.js';
 import { COUNTRY_NAMES } from '../data/projects.js';
 import { COMPANIES, WATCH_TICKERS, TICKER_NAMES } from '../data/companies.js';
@@ -23,7 +23,7 @@ import {
   countryPanel, evidenceKey, valueTypeKey, basisKey, reconciliationPanel, dataHealthPanel,
   deliveryRecordPanel, sourceChips, evidenceChip, pill, catalystPanel, gateTrack
 } from './ui.js';
-import { allSites, furthestStage, stageFilterOptions } from './lib/sites.js';
+import { allSites, furthestStage, stageFilterOptions, siteStatus } from './lib/sites.js';
 import { signals, availableCategories, todaySet, toSignal, CATEGORIES } from './lib/signals.js';
 import {
   siteCard, pathTrack, statusLadder, dependencyGrid, replayTrack, confidenceFact,
@@ -31,7 +31,8 @@ import {
   infrastructureMap, watchlistPanel, signalProgress
 } from './mission-ui.js';
 import { GROSS_TO_CRITICAL_IT } from './lib/estimate.js';
-import { leadStory, journeyRail } from './lib/leadstory.js';
+import { leadStory, journeyRail, headlineFor } from './lib/leadstory.js';
+import { chainExplorer } from './chainx.js';
 import {
   deliveryLeaders, nextCatalyst, promiseReality, megaprojects, imageForSite, EXPLAINER_STEPS
 } from './lib/homepage.js';
@@ -78,112 +79,73 @@ const section =(id, title, meta, body, { plain = false } = {}) => `
 /* ================= / — Today ================= */
 
 /**
- * The audience-led editorial homepage.
+ * The homepage is the supply chain.
  *
- * One dominant story, consequence before technical detail, and every figure
- * still carrying the evidence that makes it checkable. The dense operational
- * modules that used to live here are not deleted — they moved to the routes
- * built for them, which is where a reader who wants them is already going.
+ * It used to lead with a delivery tracker — seven stages, gates, a promise-vs-
+ * reality panel and four audience lenses — and readers found it hard to know
+ * where to look. Now it answers one question a newcomer actually has: who
+ * makes AI, from the ground up, and who pays for it? Then what changed this
+ * week, then where it is being built.
  */
 export function todayBody() {
-  const story = leadStory();
-  const leaders = deliveryLeaders(3);
-  const catalyst = nextCatalyst();
-  const pair = story.available ? promiseReality(story.signal.companyId) : null;
-  const projects = megaprojects(3);
-
-  /* Lens copy. Each panel explains the SAME facts for a different reader; none
-     filters or recalculates anything. Power & communities deliberately stays
-     general: T2C holds no sourced record of a named project's energy mix,
-     water use, jobs or local impact, so it explains the topic without
-     attributing a claim to anyone. */
-  const lensCopy = {
-    investments: `<p>Delivery is the thing a contract cannot guarantee. T2C tracks each operator from
-        announcement to billing and shows which gate the evidence actually supports, so a signed
-        agreement is never mistaken for revenue.</p>
-      <ul class="ed-lenslist">
-        <li>What has been <b>accepted by a customer</b>, not merely contracted.</li>
-        <li>Where a guided window has <b>moved</b>, and by how long.</li>
-        <li>Which figures rest on a primary document and which are second-hand.</li>
-      </ul>
-      <a class="ed-cta secondary press" href="/companies/">Compare the operators →</a>`,
-
-    race: `<p>The constraint on AI is no longer only chips. It is power, land, grid connections and the
-        years it takes to turn any of them into a hall a customer will accept.</p>
-      <ul class="ed-lenslist">
-        <li>Announced gigawatts are measured at the fence; usable compute is measured in the hall.</li>
-        <li>The gap between the two is the story, and it is measured in years.</li>
-        <li>${esc(String(projects.length))} of the tracked sites carry a dated change in the last quarter.</li>
-      </ul>
-      <a class="ed-cta secondary press" href="/sites/">See every tracked site →</a>`,
-
-    power: `<p>A data centre is an electrical project before it is a computing one. Securing power,
-        connecting to a grid and energising a site are separate gates that can each take years, and
-        T2C tracks them separately for that reason.</p>
-      <ul class="ed-lenslist">
-        <li>Gross utility power is what a site draws at the connection.</li>
-        <li>Critical IT load is what reaches the computing equipment — always the smaller figure.</li>
-        <li>T2C holds no sourced record of any named project's energy mix, water use or local
-          employment, so it makes no claim about them.</li>
-      </ul>
-      <a class="ed-cta secondary press" href="/methodology/#bases">How power is measured →</a>`
-  };
+  /* Routine filings (a revolver resized, notes priced) are on the news page;
+     the homepage shows what moved capacity, customers or targets. */
+  const week = signals({})
+    .filter(s => s.confidence === 'confirmed' && s.significance !== 'low')
+    .slice(0, 5);
+  const sites = allSites()
+    .filter(s => s.capacityMw)
+    .map(s => ({ s, st: siteStatus(s) }))
+    .sort((x, y) => (y.s.capacityMw || 0) - (x.s.capacityMw || 0))
+    .filter(x => x.st.id !== 'unreported')
+    .slice(0, 6);
 
   return `
-<div class="t2c-shell">
-  ${flagshipHero(chainState(), chainCoverage(), story)}
-</div>
-${whyDrawer(story)}
+<div class="t2c-shell hm">
+  <section class="hmhero">
+    <p class="hmkicker">The physical race behind AI</p>
+    <h1 class="hmh">Follow AI from the ground to the app.</h1>
+    <p class="hmsub">Who mines it, makes it, powers it, builds it and buys it — every link quoted
+      from a company filing.</p>
+  </section>
 
-<div class="t2c-shell ed-main">
-  ${sectorPanel("home")}
-  ${returningSummary()}
+  ${chainExplorer()}
 
-  <section class="ed-section" aria-labelledby="buildout-h">
-    <h2 class="ed-sectionh" id="buildout-h">The AI buildout today</h2>
-    <div class="ed-grid4">
-      <article class="ed-card">
-        <h3 class="ed-cardh"><span class="ed-cardn" aria-hidden="true">1</span> Who is delivering?</h3>
-        ${edDeliveryLeaders(leaders)}
-      </article>
+  <section class="hmsec" aria-labelledby="week-h">
+    <div class="hmsechead">
+      <h2 id="week-h">What changed</h2>
+      <a class="hmmore press" href="/news/">All news →</a>
+    </div>
+    <ul class="hmweek">
+      ${week.map(sg => `<li>
+        <span class="hmwhen">${esc(date(sg.announcedAt))}</span>
+        <span class="hmwhat">${esc(headlineFor(sg))}</span>
+        ${sg.projectId ? `<a class="hmwhere press" href="/sites/${esc(sg.projectId)}/">Site →</a>` : ''}
+      </li>`).join('')}
+    </ul>
+  </section>
 
-      <article class="ed-card">
-        <h3 class="ed-cardh"><span class="ed-cardn" aria-hidden="true">2</span> Next big catalyst</h3>
-        ${nextCatalystCard(catalyst)}
-      </article>
-
-      <article class="ed-card">
-        <h3 class="ed-cardh"><span class="ed-cardn" aria-hidden="true">3</span> Promise vs reality</h3>
-        ${pair ? `<p class="ed-cardsub">${esc(pair.ticker)}</p>` : ''}
-        ${promiseRealityPanel(pair)}
-      </article>
-
-      <article class="ed-card">
-        <h3 class="ed-cardh"><span class="ed-cardn" aria-hidden="true">4</span> Why should I care?</h3>
-        ${audienceLens(lensCopy)}
-      </article>
+  <section class="hmsec" aria-labelledby="sites-h">
+    <div class="hmsechead">
+      <h2 id="sites-h">Where it is being built</h2>
+      <a class="hmmore press" href="/sites/">All ${allSites().length} sites →</a>
+    </div>
+    <div class="hmsites">
+      ${sites.map(({ s, st }) => `<a class="hmsite press" href="/sites/${esc(s.slug)}/">
+        <span class="hmstatus hmstatus-${esc(st.id)}">${esc(st.label)}</span>
+        <span class="hmsname">${esc(s.name)}</span>
+        <span class="hmsmeta">${esc(s.ticker || s.companyName)} · ${esc(mw(s.capacityMw))}</span>
+      </a>`).join('')}
     </div>
   </section>
 
-  <section class="ed-section" aria-labelledby="mega-h">
-    <div class="ed-sectionhead">
-      <h2 class="ed-sectionh" id="mega-h">Megaprojects to watch</h2>
-      <a class="ed-morelink press" href="/sites/">All ${allSites().length} sites →</a>
-    </div>
-    <div class="ed-grid3">
-      ${projects.map(s => megaprojectCard(s, ASSET[imageForSite(s)])).join('')}
-    </div>
-  </section>
-
-  ${/* The explainer supplies its own visible <h2>; a hidden one repeating it
-        gave the page two identical headings. The section points its label at
-        the real one instead. */''}
-  <section class="ed-section" id="evidence" aria-labelledby="expl-h">
-    ${explainer(EXPLAINER_STEPS, ASSET['explainer-ai-datacentre-cutaway'])}
-  </section>
+  <a class="hmplay press" href="/time-machine/">
+    <span class="hmplayk">Play</span>
+    <span>The AI Time Machine — 34 real turning points, fictional money. Could you have called them?</span>
+    <span aria-hidden="true">→</span>
+  </a>
 </div>`;
 }
-
 
 /* ================= /companies/ ================= */
 
@@ -647,123 +609,122 @@ export function sitesBody() {
 
 /* ================= /sites/<slug>/ ================= */
 
-export function siteBody(site) {
-  const stage = furthestStage(site);
-  const customer = site.contracts.length
-    ? site.contracts.map(c => c.customer).join(', ')
-    : null;
+/**
+ * Words a headline would use for this site: its name, the name inside any
+ * brackets ("Horizon 1 (Childress)" gives both), and the campus name without
+ * a phase number ("Polaris Forge 1" also matches "Polaris Forge"). The news
+ * script matches these, so a story counts as this site's only if it names it.
+ */
+export function siteAliases(site) {
+  const raw = String(site.name);
+  const out = new Set();
+  const inner = raw.match(/\(([^)]+)\)/);
+  const outer = raw.replace(/\([^)]*\)/g, '').trim();
+  /* A bracketed state, country or customer is context, not the site's name:
+     "Muskie (Kentucky)" must not claim every Kentucky story. */
+  const notAName = /^(US|United States|Spain|Kansas|Kentucky|Maryland|Texas|Pennsylvania|Anthropic|Microsoft|British Columbia sites|US data centre estate)$/i;
+  for (const n of [outer, inner && inner[1]]) {
+    if (!n) continue;
+    const clean = n.replace(/,.*$/, '').trim();
+    if (clean.length > 3 && !notAName.test(clean)) out.add(clean);
+    // "Polaris Forge 1" also matches "Polaris Forge"; a one-word stem like
+    // "Horizon" is an ordinary word and would match anything.
+    const stem = clean.replace(/\s+\d+(–\d+)?$/, '').trim();
+    if (stem !== clean && stem.split(/\s+/).length > 1) out.add(stem);
+  }
+  return [...out];
+}
 
-  return `<div class="shell">
+/**
+ * A site is one status, its size, its customer, what happened there and what
+ * is expected next. The stage rail, gate record and replay that used to fill
+ * this page are gone from it; the gates stay in the data, where they feed the
+ * company's Reality Score.
+ */
+export function siteBody(site) {
+  const st = siteStatus(site);
+  const customer = site.contracts.length ? [...new Set(site.contracts.map(c => c.customer))].join(', ') : null;
+  const ticker = site.ticker;
+  /* Guided dates still ahead, newest guidance per gate and scope. The old
+     panel only read the next unfinished stage, so a campus with one building
+     live and another guided for 2027 said "every stage is complete". */
+  const today = new Date().toISOString().slice(0, 10);
+  const latest = new Map();
+  for (const sc of site.project.schedules || []) {
+    const key = `${sc.gate}|${sc.scope || ''}`;
+    if (!latest.has(key) || String(sc.announcedAt) > String(latest.get(key).announcedAt)) latest.set(key, sc);
+  }
+  /* The facts the gate notes carry — "Horizon 2 commissioning", "250 MW
+     live since 1 October" — as plain sentences, newest first, with no
+     tracker around them. Duplicate notes (a site gate repeated on a phase)
+     show once. */
+  const seenNote = new Set();
+  const facts = (site.project.gates || [])
+    .filter(g => g.notes && g.status !== 'notDisclosed' && !seenNote.has(g.notes) && seenNote.add(g.notes))
+    .map(g => ({ at: g.effectiveAt || null, text: g.notes }))
+    .sort((x, y) => String(y.at || '').localeCompare(String(x.at || '')));
+  const upcoming = [...latest.values()]
+    .filter(sc => String(sc.exact || sc.end || '9999') >= today)
+    .sort((x, y) => String(x.exact || x.start).localeCompare(String(y.exact || y.start)));
+
+  return `<div class="shell sx">
   <nav class="crumb" aria-label="Breadcrumb">
     <a href="/sites/">Sites</a>
-    ${site.companySlug ? `<span aria-hidden="true">/</span><a href="/companies/${esc(site.companySlug)}/">${esc(site.ticker || site.companyName)}</a>` : ''}
+    ${site.companySlug ? `<span aria-hidden="true">/</span><a href="/companies/${esc(site.companySlug)}/">${esc(ticker || site.companyName)}</a>` : ''}
     <span aria-hidden="true">/</span><span aria-current="page">${esc(site.name)}</span>
   </nav>
 
-  <section class="siteid">
-    <span class="siteticker" aria-hidden="true">${esc(site.ticker || '—')}</span>
-    <div class="siteidmain">
-      <h1>${esc(site.name)}</h1>
-      <p class="siteidsub">${esc(site.flag)} ${esc(site.countryName)} ·
-        ${site.companySlug
-          ? `<a class="press" href="/companies/${esc(site.companySlug)}/">${esc(site.companyName)}</a>`
-          : esc(site.companyName)}</p>
-    </div>
-    <div class="sitefacts">
-      <div class="sitefact">
-        <span class="sitefactv">${site.capacityMw === null
-          ? `<span class="nd">${NOT_DISCLOSED}</span>`
-          : esc(mw(site.capacityMw))}</span>
-        <span class="sitefactl">${esc(POWER_BASIS[site.powerBasis]?.short || 'Capacity')}</span>
-      </div>
-      <div class="sitefact">
-        <span class="sitefactv">${customer
-          ? esc(customer.length > 26 ? customer.slice(0, 24) + '…' : customer)
-          : `<span class="nd">${NOT_DISCLOSED}</span>`}</span>
-        <span class="sitefactl">Customer</span>
-      </div>
-      <div class="sitefact wide">
-        <span class="sitefactv">${confidenceFact(site.evidence).value}</span>
-        <span class="sitefactl">${esc(confidenceFact(site.evidence).label)}</span>
-      </div>
-    </div>
+  <section class="sxhead">
+    <span class="hmstatus hmstatus-${esc(st.id)}" title="${esc(st.plain)}">${esc(st.label)}</span>
+    <h1>${esc(site.name)}</h1>
+    <p class="sxsub">${esc(site.flag)} ${esc(site.countryName)} ·
+      ${site.companySlug ? `<a class="press" href="/companies/${esc(site.companySlug)}/">${esc(site.companyName)}</a>` : esc(site.companyName)}</p>
+    <dl class="sxfacts">
+      <div><dt>Size</dt><dd>${site.capacityMw === null ? `<span class="nd">Not disclosed</span>`
+        : `${esc(mw(site.capacityMw))} <span class="sxbasis">${esc(POWER_BASIS[site.powerBasis]?.short || '')}</span>`}</dd></div>
+      <div><dt>Customer</dt><dd>${customer ? esc(customer) : `<span class="nd">Not named</span>`}</dd></div>
+      <div><dt>Status</dt><dd>${esc(st.plain)}</dd></div>
+    </dl>
+    ${site.note ? `<p class="sxnote">${esc(site.note)}</p>` : ''}
   </section>
 
-  ${site.note ? `<p class="blocknote">${esc(site.note)}</p>` : ''}
+  <div class="sxcols">
+    <section class="sxsec" aria-labelledby="st-news">
+      <h2 id="st-news">News about this site</h2>
+      <ul class="sxnews" id="siteNews" data-ticker="${esc(ticker || '')}"
+          data-aliases="${esc(JSON.stringify(siteAliases(site)))}" data-company="${esc(site.companyName)}">
+        <li class="cxdnone">Loading the latest stories…</li>
+      </ul>
+      ${facts.length ? `<h2>Key facts</h2>
+      <ul class="sxfacts-list">${facts.map(f => `<li class="sxfact">
+        ${f.at ? `<span class="hmwhen">${esc(date(f.at))}</span>` : ''}<span>${esc(f.text)}</span>
+      </li>`).join('')}</ul>` : ''}
 
-  ${section('path', 'Path to billing',
-    stage ? `Furthest evidenced: ${esc(stage.label)}` : 'No stage evidenced',
-    /* A phased site draws one track per block. Drawing a single track for a site
-       whose blocks sit at different stages is what produced Lake Mariner's
-       construction-before-energised contradiction — two builds laid over each
-       other, with nothing to say which fact belonged to which. */
-    `${site.phasePaths.length
-      ? `${phaseRails(site.phasePaths, { idPrefix: `site-${site.slug}` })}
-         <p class="blocknote">This site is built in phases, and each is shown on its own track.
-           A phase reaches its stages on its own schedule, so one can be billing while another
-           is still being built.</p>`
-      : deliveryRail(journeyRail(site.path), { idPrefix: `site-${site.slug}` })}
-     <p class="blocknote">Each stage rolls up the project gates that evidence it. A stage marked
-       <b>Not disclosed</b> has no gate on record — which is not the same as a stage the site has
-       yet to reach.</p>`)}
+      ${site.events.length ? `<h2>On the record</h2>
+      <ul class="hmweek">${site.events.map(e => { const sg = toSignal(e); return `<li>
+        <span class="hmwhen">${esc(date(sg.announcedAt))}</span>
+        <span class="hmwhat">${esc(headlineFor(sg))}<span class="sxsrc">${sourceChips(e.sourceIds || [])}</span></span>
+      </li>`; }).join('')}</ul>` : ''}
+    </section>
 
-  <div class="sitecols">
-    <div>
-      ${section('view', 'Site view', 'Illustrative — not a photograph of this site',
-        `<div class="campus secondary">
-          <picture>
-            <source srcset="/assets/campus.webp" type="image/webp" />
-            <img class="campusimg" src="/assets/campus.png" alt="" loading="lazy"
-              decoding="async" width="1200" height="800" />
-          </picture>
-          <p class="campusnote">A generic campus illustration, shown to orient the layout of a site of this
-            kind. It is not imagery of ${esc(site.name)}, carries no live telemetry, and no element of it is
-            positioned from data. Every factual claim on this page is in the panels around it.</p>
-        </div>`, { plain: false })}
-
-      ${section('evidence', 'Latest evidence', '',
-        site.latestEvidence
-          ? `<div class="sig ${site.latestEvidence.kind === 'event' ? 'ok' : ''}">
-              <span class="sigglyph" aria-hidden="true">✓</span>
-              <div class="sigmain">
-                <p class="sigsum">${esc(site.latestEvidence.summary)}</p>
-                <div class="sigtop">${evidenceChip(site.latestEvidence.confidence)}
-                  ${sourceChips(site.latestEvidence.sourceIds)}</div>
-              </div>
-              <div class="sigside"><span class="sigdate">${esc(date(site.latestEvidence.at))}</span></div>
-            </div>`
-          : `<p class="mnote">Nothing on this site carries a dated, sourced record yet.</p>`)}
-
-      ${/* The dependency grid went: it re-sorted the same gates into seven
-            buckets, two of which (cooling, networking) no company discloses, so
-            it showed permanent blanks as if they were findings. The gate record
-            shows each reported gate once, with its note. */''}
-      ${section('gates', 'Gate record', `${site.gateSummary.trackedCount} of ${GATES.length} reported`, gateTrack(site.project))}
-
-      ${section('replay', 'Site replay', 'Documented progression', replayTrack(site.replay))}
-    </div>
-
-    <div>
-      ${/* The status ladder is no longer drawn here. It rendered the same
-            site.path array as the Path to billing rail above, so the page
-            showed one timeline twice and a reader scanning both had no way to
-            know they could never disagree.
-
-            The rail is the one kept because it carries more, not less: every
-            stage including the undisclosed ones, with more source links, more
-            effective dates, and the note that a stage marked Not disclosed has
-            no gate on record — which is not the same as a stage the site has
-            yet to reach. The ladder's contents were a subset of that.
-
-            What is next has no other home, so it keeps this column and the
-            heading now says what the column is actually for. */''}
-      ${section('status', 'What happens next', '', nextMilestonePanel(site.next))}
-
-      ${section('contracts', 'Customer contracts', '', siteContracts(site.contracts))}
-
-      ${site.events.length ? section('changes', 'What changed here', `${site.events.length} record${site.events.length === 1 ? '' : 's'}`,
-        signalList(site.events.map(toSignal), { reviewable: false })) : ''}
-    </div>
+    <aside class="sxside">
+      <section class="sxsec">
+        <h2>What happens next</h2>
+        ${upcoming.length ? `<ul class="sxnext">${upcoming.map(sc => `<li>
+            <span class="sxwhen">${esc(sc.exact ? date(sc.exact) : (sc.label || windowLabel(sc.start, sc.end)))}</span>
+            <span>${esc(GATE_BY_ID[sc.gate]?.label || sc.gate)}${sc.scope ? ` · ${esc(sc.scope)}` : ''}</span>
+            ${sc.notes ? `<span class="sxnextn">${esc(sc.notes)}</span>` : ''}
+          </li>`).join('')}</ul>` : nextMilestonePanel(site.next)}
+      </section>
+      <section class="sxsec">
+        <h2>Customer contracts</h2>
+        ${siteContracts(site.contracts)}
+      </section>
+      <section class="sxsec">
+        <h2>Sources</h2>
+        ${sourceChips(site.sourceIds)}
+      </section>
+    </aside>
   </div>
 </div>`;
 }
