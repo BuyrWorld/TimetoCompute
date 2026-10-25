@@ -1,0 +1,38 @@
+# Daily production rebuild.
+#
+# The build bakes a snapshot of every tracked company's earnings dates into the
+# catalysts page (src/lib/earnings-snapshot.js). Those dates only refresh when
+# the site rebuilds, so this triggers one rebuild a day through a Vercel deploy
+# hook, before the US market opens.
+#
+# Setup (once): create a deploy hook in Vercel (Project > Settings > Git >
+# Deploy Hooks, branch "main") and save its URL as the repository secret
+# VERCEL_DEPLOY_HOOK. The hook URL can trigger deploys, so keep it secret.
+name: Daily rebuild
+
+on:
+  schedule:
+    - cron: '0 10 * * *'   # 10:00 UTC every day
+  workflow_dispatch:        # "Run workflow" button for an on-demand rebuild
+
+permissions: {}
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger the Vercel production build
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::VERCEL_DEPLOY_HOOK is not set. Create a deploy hook in Vercel and add it as a repository secret."
+            exit 1
+          fi
+          code=$(curl -s -o response.json -w '%{http_code}' -X POST "$HOOK")
+          echo "Vercel answered HTTP $code"
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "::error::The deploy hook did not accept the request."
+            exit 1
+          fi
