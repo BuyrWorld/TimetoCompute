@@ -405,10 +405,11 @@ const run = async () => {
     }))
   }));
   check('the catalysts page leads with the earnings calendar', /Earnings calendar/.test(ec.first), ec.first);
-  // Operators lead even when a supplier reports sooner: IREN (day 11) before NVIDIA (day 1).
-  check('the neoclouds lead the calendar, then the rest of the chain',
-    ec.cards.length === 2 && /IREN/.test(ec.cards[0].name) && /NVIDIA/.test(ec.cards[1].name), JSON.stringify(ec.cards.map(c => c.name)));
-  const nv = ec.cards[1] || {};
+  // NVIDIA sits with the operators, soonest first: NVIDIA (day 1), then IREN (day 11).
+  const opsNames = await page.$$eval('#ecOps .ecname', els => els.map(e => e.textContent));
+  check('NVIDIA leads the calendar with the neoclouds',
+    opsNames.length === 2 && /NVIDIA/.test(opsNames[0]) && /IREN/.test(opsNames[1]), JSON.stringify(opsNames));
+  const nv = ec.cards.find(c => /NVIDIA/.test(c.name)) || {};
   check('a report this week is highlighted with a countdown', nv.soon && /Tomorrow/.test(nv.when || ''), nv.when);
   check('an NVIDIA report shows the neoclouds it touches',
     ['IREN', 'CoreWeave', 'Nebius'].every(n => (nv.touches || []).includes(n)), (nv.touches || []).join(','));

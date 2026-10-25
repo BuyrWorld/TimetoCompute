@@ -52,8 +52,13 @@ export function earningsData() {
     if (!rows.has(t)) rows.set(t, { t, n: 'Cipher Digital', h: '/companies/cipher/',
       art: `${ART_BY_ID['server-rack'].base}-192.webp`, frame: 'cyan', stage: 'Operators', ops: [] });
   }
+  /* NVIDIA leads with the operators: its results set the pace for the GPU
+     supply every neocloud is buying from, so it belongs in the top group. */
+  for (const t of LEAD_WITH_OPERATORS) if (rows.has(t)) rows.get(t).lead = true;
   return [...rows.values()];
 }
+
+export const LEAD_WITH_OPERATORS = ['NVDA'];
 
 export function earningsSection() {
   return `<section class="ec" id="earnings" aria-labelledby="ec-h">
@@ -66,7 +71,7 @@ export function earningsSection() {
     </div>
     <span class="nhmeta" id="ecMeta">Loading dates…</span>
   </div>
-  <h2 class="ecgroup">Neoclouds and AI infrastructure</h2>
+  <h2 class="ecgroup">Neoclouds, AI infrastructure and NVIDIA</h2>
   <ol class="ecnext" id="ecOps" aria-label="Next reports from the neoclouds and AI-infrastructure operators"></ol>
   <h2 class="ecgroup">Across the supply chain</h2>
   <ol class="ecnext" id="ecNext" aria-label="Next reports from the rest of the supply chain"></ol>

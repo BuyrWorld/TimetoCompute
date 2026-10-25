@@ -149,6 +149,7 @@ test('the catalysts page leads with the earnings calendar', () => {
   }
   const nvda = data.find(r => r.t === 'NVDA');
   assert.ok(nvda.ops.some(o => o.name === 'CoreWeave'), 'an NVIDIA report does not reach the neoclouds');
+  assert.equal(nvda.lead, true, 'NVIDIA does not lead with the operators');
 });
 
 test('the sites page has no animated map', () => {
