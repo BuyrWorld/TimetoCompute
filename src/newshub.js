@@ -60,7 +60,26 @@ export function newsHubData() {
   };
 }
 
-export function newsHubBody() {
+/** The sidebar's freshness note: what the record has not caught up with yet. */
+export function freshnessPanel(freshness) {
+  if (!freshness) return '';
+  const rows = freshness.companies.flatMap(c => c.unreviewed.map(u => ({ ...u, c })))
+    .sort((a, b) => b.filed.localeCompare(a.filed));
+  const through = [...new Set(freshness.companies.map(c => c.reviewedThrough))].sort()[0];
+  const checked = date(freshness.checkedAt.slice(0, 10));
+  if (!rows.length) {
+    return `<div class="nhfresh is-ok"><p><b>Up to date.</b> Every SEC filing by the tracked companies is
+      reviewed through ${esc(date(through))}.</p><p class="nhmeta">Checked against EDGAR ${esc(checked)}</p></div>`;
+  }
+  return `<div class="nhfresh"><p><b>${rows.length} new filing${rows.length === 1 ? '' : 's'} not yet reviewed</b> —
+    the figures on this site do not reflect ${rows.length === 1 ? 'it' : 'them'} yet.</p>
+    <ul>${rows.slice(0, 8).map(u => `<li><span class="hmwhen">${esc(date(u.filed))}</span>
+      <a href="/companies/${esc(u.c.slug)}/">${esc(u.c.name)}</a> · ${esc(u.form)} · ${esc(u.description)}
+      <a class="cxsrc" href="${esc(u.url)}" target="_blank" rel="noopener">EDGAR ↗</a></li>`).join('')}</ul>
+    <p class="nhmeta">Checked against EDGAR ${esc(checked)}</p></div>`;
+}
+
+export function newsHubBody({ freshness = null } = {}) {
   const record = signals({}).filter(s => s.confidence === 'confirmed').slice(0, 8);
   const tickers = newsTickers();
 
@@ -97,6 +116,7 @@ export function newsHubBody() {
     <aside class="nhside" aria-labelledby="nh-record">
       <h2 id="nh-record">On the record</h2>
       <p class="nhmeta">Filings T2C has read</p>
+      ${freshnessPanel(freshness)}
       <ul class="nhrecord">
         ${record.map(sg => `<li>
           <span class="hmwhen">${esc(date(sg.announcedAt))}</span>

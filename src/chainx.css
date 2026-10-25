@@ -256,3 +256,11 @@
 
 .ecgroup { margin: 22px 0 10px; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
 .nhmore { margin-top: 12px; }
+
+/* freshness note */
+.nhfresh { margin: 12px 0 4px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface)); font-size: 13.5px; line-height: 1.45; }
+.nhfresh.is-ok { border-color: color-mix(in srgb, var(--brand) 45%, var(--line-2)); background: color-mix(in srgb, var(--brand) 5%, var(--surface)); }
+.nhfresh p { margin: 0 0 6px; }
+.nhfresh ul { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.nhfresh a { color: var(--ink); }

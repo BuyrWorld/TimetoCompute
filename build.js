@@ -36,6 +36,7 @@ import { chainExplorerData } from './src/chainx.js';
 import { newsHubBody, newsHubData } from './src/newshub.js';
 import { earningsData } from './src/earnings.js';
 import { earningsSnapshot } from './src/lib/earnings-snapshot.js';
+import { checkFreshness } from './src/lib/freshness.js';
 import { STAGE_ART } from './data/artpack.js';
 import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
 import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
@@ -968,7 +969,7 @@ function aiNewsPage({ canonical = '/news/', active = 'ainews' } = {}) {
       'Live stories from every stage of the AI supply chain, which neoclouds and AI-infrastructure ' +
       'operators each one touches, and the current models from every major provider.',
     canonical: SITE + canonical,
-    body: newsHubBody(),
+    body: newsHubBody({ freshness: FRESHNESS }),
     inlineData: { T2C_NEWS: newsHubData() },
     extraScripts: ['/news-classify.js', '/newshub.js'],
     active
@@ -1846,6 +1847,13 @@ function write(rel, content) {
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
+/* Which filings the record has not caught up with (src/lib/freshness.js).
+   Computed before any page is written, because several pages show it. */
+const FRESHNESS = await checkFreshness({ log: m => console.log(m) }).catch(e => {
+  console.log(`  freshness: skipped (${e.message})`);
+  return null;
+});
+
 let bytes = 0;
 bytes += write('index.html', todayPage());
 bytes += write('track/index.html', trackPage());
@@ -1954,6 +1962,7 @@ const urls = [
   { loc: SITE + '/contact/', priority: '0.3', freq: 'yearly' }
 ];
 
+if (FRESHNESS) bytes += write('freshness.json', JSON.stringify(FRESHNESS, null, 2));
 bytes += write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 bytes += write('sitemap.xml',
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +

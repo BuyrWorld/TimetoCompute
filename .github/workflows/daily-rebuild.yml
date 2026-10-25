@@ -1,9 +1,11 @@
-# Daily production rebuild.
+# Daily production rebuild, then the filing freshness report.
 #
-# The build bakes a snapshot of every tracked company's earnings dates into the
-# catalysts page (src/lib/earnings-snapshot.js). Those dates only refresh when
-# the site rebuilds, so this triggers one rebuild a day through a Vercel deploy
-# hook, before the US market opens.
+# 1. Triggers a production rebuild through a Vercel deploy hook. The build
+#    refreshes the earnings snapshot (src/lib/earnings-snapshot.js) and checks
+#    EDGAR for filings the record has not caught up with (src/lib/freshness.js).
+# 2. Waits for that build's /freshness.json and keeps one GitHub issue,
+#    labelled "freshness", listing the filings waiting to be reviewed — opened
+#    or updated when there are some, closed when there are none.
 #
 # Setup (once): create a deploy hook in Vercel (Project > Settings > Git >
 # Deploy Hooks, branch "main") and save its URL as the repository secret
@@ -15,12 +17,14 @@ on:
     - cron: '0 10 * * *'   # 10:00 UTC every day
   workflow_dispatch:        # "Run workflow" button for an on-demand rebuild
 
-permissions: {}
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   rebuild:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
       - name: Trigger the Vercel production build
         env:
@@ -36,3 +40,16 @@ jobs:
             echo "::error::The deploy hook did not accept the request."
             exit 1
           fi
+
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Report filings not yet reviewed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/freshness-issue.mjs
