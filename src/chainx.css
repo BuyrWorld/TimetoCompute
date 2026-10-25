@@ -5,22 +5,6 @@
 .cxhint { margin: 0; color: var(--dim); font-size: 14px; min-height: 1.4em; }
 .cx.is-tracing .cxhint { color: var(--brand); }
 
-/* Nine columns, each headed by the pack's glowing hexagon art. The track
-   reuses the old homepage's .cn-track/.cn-node pulse (one sweep, left to
-   right) and its connector line; only the layout is overridden here. */
-.cx .cxtrack {
-  --cn-gap: 10px; --cn-node: 116px;
-  display: grid; grid-template-columns: repeat(12, minmax(150px, 1fr)); gap: var(--cn-gap);
-  min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity;
-  padding: 4px 2px 12px;
-}
-.cx .cxcol.cn-node {
-  width: auto; scroll-snap-align: start;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 5%, var(--surface)) 0, var(--surface) 160px);
-  border: 1px solid var(--line-2); border-radius: 14px; padding: 12px 10px 12px;
-  display: flex; flex-direction: column; gap: 12px; min-width: 0;
-}
-.cx .cxcol.cn-node + .cxcol.cn-node::before { top: 72px; left: calc(var(--cn-gap) * -1 - 1px); width: calc(var(--cn-gap) + 2px); }
 .cxstage { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .cxart { width: var(--cn-node); max-width: 100%; margin: 0 auto 8px; }
 .cxn { font-family: var(--m-mono, 'IBM Plex Mono', monospace); font-size: 11px; color: var(--brand); }
@@ -79,10 +63,7 @@
 .cxdwhen { display: block; font-size: 11.5px; color: var(--dim); margin-top: 2px; }
 
 @media (prefers-reduced-motion: reduce) { .cxco { transition: none; } .cxco.is-picked { transform: none; } }
-@media (max-width: 640px) {
-  .cx .cxtrack { grid-template-columns: repeat(12, 72%); }
-  .cxdrawer { width: 100%; }
-}
+@media (max-width: 640px) { .cxdrawer { width: 100%; } }
 
 /* ================= homepage ================= */
 .hm { padding-top: 28px; }
@@ -265,17 +246,6 @@
 .nhfresh ul { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .nhfresh a { color: var(--ink); }
 
-/* ---- 12-stage navigation ---- */
-.cxnav { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
-.cxnav[hidden] { display: none; }
-.cxarrow { all: unset; cursor: pointer; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px;
-  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font-size: 16px; }
-.cxarrow:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
-.cxarrow:disabled { opacity: .35; cursor: default; }
-.cxarrow:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.cxrail { flex: 1; height: 4px; border-radius: 4px; background: var(--line-2); overflow: hidden; }
-.cxrail span { display: block; height: 100%; background: var(--brand); border-radius: 4px; transition: margin-left .12s linear; }
-.cx .cxtrack { scroll-behavior: smooth; }
 .cxcol.is-collapsed .is-extra { display: none; }
 .cx.is-tracing .cxcol.is-collapsed .is-extra:has(.is-picked, .is-up, .is-down) { display: list-item; }
 .cxmore { all: unset; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--dim); padding: 4px 2px; }
@@ -285,7 +255,6 @@
 .cxco.is-tracked .cxname::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
   background: var(--brand); margin-left: 6px; vertical-align: middle; }
 .cxco.is-flash { box-shadow: 0 0 0 3px var(--brand); }
-@media (prefers-reduced-motion: reduce) { .cx .cxtrack { scroll-behavior: auto; } .cxrail span { transition: none; } }
 
 /* ================= company page ================= */
 .cohero { padding: 22px 0 8px; }
@@ -414,3 +383,115 @@ html:not(.has-cotabs) .cotabs { display: none; }
   font-size: 13px; font-weight: 600; color: var(--soft); text-decoration: none; }
 .cofeed:hover { border-color: var(--brand); color: var(--brand); }
 .cofeed:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ================= the chain, fitted to the screen =================
+   No sideways scrolling at any width. Desktop: two rows of six stages.
+   Tablet: three rows of four. Phone: one stage per row, running down the
+   page with its companies as wrapping chips. A bend carries the flow from
+   the end of one row to the start of the next. */
+.cx .cxtrack {
+  --cols: 6; --gap: 14px;
+  position: relative; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: var(--gap); padding: 2px 0 6px;
+}
+.cx .cxcol.cn-node {
+  position: relative; width: auto; min-width: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 5%, var(--surface)) 0, var(--surface) 130px);
+  border: 1px solid var(--line-2); border-radius: 14px; padding: 12px 10px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+/* The pack's ambient sweep is retired here: motion answers the reader instead. */
+.cx .cn-node .cn-art, .cx .cn-node .cn-asset { animation: none; }
+.cx .cxart { width: 64px; margin: 0 auto 6px; }
+.cx .cxplain { min-height: 0; }
+
+/* Stage-to-stage connector inside a row, hidden at each row's end. */
+.cx .cxcol.cn-node::before { display: none; }
+.cx .cxcol.cn-node::after {
+  content: ''; position: absolute; top: 44px; right: calc(var(--gap) * -1 - 1px); width: calc(var(--gap) + 2px); height: 2px;
+  background: linear-gradient(90deg, var(--surface-3), var(--brand)); opacity: .7;
+}
+.cx .cxcol[data-n="6"]::after, .cx .cxcol[data-n="12"]::after { display: none; }
+
+/* The bend: down from the last stage of a row, back across, down into the next. */
+.cxbend { display: none; grid-column: 1 / -1; position: relative; height: 26px; margin: calc(var(--gap) * -1 + 2px) 0;
+  margin-inline: calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols) / 2); --bend: color-mix(in srgb, var(--brand) 55%, var(--line)); }
+.cxbend::before, .cxbend::after { content: ''; position: absolute; left: 0; right: 0; height: 50%; border: 0 solid var(--bend); }
+.cxbend::before { top: 0; border-right-width: 2px; border-bottom-width: 2px; border-bottom-right-radius: 12px; }
+.cxbend::after { bottom: 0; border-left-width: 2px; border-top-width: 2px; border-top-left-radius: 12px; top: calc(50% - 2px); height: auto; }
+.cxbend-6 { display: block; }
+
+@media (max-width: 1199px) {
+  .cx .cxtrack { --cols: 4; }
+  .cxbend-6 { display: none; }
+  .cxbend-4, .cxbend-8 { display: block; }
+  .cx .cxcol[data-n="6"]::after { display: block; }
+  .cx .cxcol[data-n="4"]::after, .cx .cxcol[data-n="8"]::after { display: none; }
+}
+
+/* Lines drawn when a company is traced: above the cards, never catching a tap. */
+.cxlines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 3; }
+.cxlines path { fill: none; stroke-width: 1.6; stroke-linecap: round; }
+.cxlines .ln-up { stroke: var(--t2c-cyan, #4fd1e8); }
+.cxlines .ln-down { stroke: var(--brand); }
+.cxlines .ln-pulse { stroke-width: 3; opacity: 0; }
+
+/* ---- phone: the chain runs down the page ---- */
+@media (max-width: 719px) {
+  .cx .cxtrack { display: flex; flex-direction: column; gap: 0; }
+  .cxbend, .cxlines { display: none !important; }
+  .cx .cxcol.cn-node {
+    display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 12px; row-gap: 8px; align-items: start;
+    background: none; border: 0; border-radius: 0; padding: 12px 0 16px;
+  }
+  .cx .cxcol.cn-node::after { display: none !important; }
+  .cx .cxstage { display: contents; text-align: left; }
+  .cx .cxart { grid-column: 1; grid-row: 1 / span 4; width: 48px; margin: 0; }
+  .cx .cxn, .cx .cxlabel, .cx .cxplain, .cx .cxcolmove, .cx .cxlist, .cx .cxmore { grid-column: 2; }
+  .cx .cxn { grid-row: 1; }
+  .cx .cxlabel { margin: -6px 0 0; font-size: 16px; }
+  .cx .cxplain { font-size: 13px; }
+  .cx .cxcolmove { justify-self: start; }
+  /* The flow line down the left, through the centre of each hexagon. */
+  .cx .cxcol.cn-node::before {
+    display: block; content: ''; position: absolute; left: 23px; top: 64px; bottom: -6px; width: 2px; height: auto;
+    background: var(--line); animation: none; opacity: 1; transition: background .25s ease;
+    transition-delay: calc(var(--i, 0) * 70ms);
+  }
+  .cx .cxcol[data-n="12"]::before { display: none; }
+  .cx.is-tracing .cxcol.has-lit::before { background: var(--brand); }
+  .cx .cxlist { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .cx .cxlist li { display: block; }
+  .cx .cxcol.is-collapsed .is-extra { display: none; }
+  .cx.is-tracing .cxcol.is-collapsed .is-extra:has(.is-picked, .is-up, .is-down) { display: block; }
+  .cx .cxco { width: auto; padding: 7px 11px; border-radius: 999px; font-size: 13.5px; flex-wrap: nowrap; }
+  .cx .cxmore { justify-self: start; }
+}
+
+/* ---- one-time intro: the stages light 1 → 12, once per visit ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .cx.is-intro .cxcol { animation: cx-light .55s ease both; animation-delay: calc(var(--i, 0) * 65ms); }
+  .cx.is-intro .cxart { animation: cx-glow .9s ease both; animation-delay: calc(var(--i, 0) * 65ms); }
+}
+@keyframes cx-light { from { opacity: .3; } to { opacity: 1; } }
+@keyframes cx-glow { 0% { filter: brightness(.6); } 45% { filter: brightness(1.35) drop-shadow(0 0 12px var(--brand)); } 100% { filter: none; } }
+
+/* ---- tighter, so both rows sit on one laptop screen ---- */
+@media (min-width: 720px) {
+  .cx .cxart { width: 52px; margin-bottom: 4px; }
+  .cx .cxlabel { font-size: 13.5px; }
+  .cx .cxplain { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 11.5px; }
+  .cx .cxcol.cn-node { padding: 10px 9px; gap: 8px; }
+  .cx .cxcol.cn-node::after { top: 36px; }
+  .cx .cxlist { gap: 5px; }
+  .cx .cxco { padding: 6px 9px; }
+}
+/* The homepage hero gives the chain the screen. */
+.hm:has(.hmtop) { padding-top: 12px; }
+.hmtop.fl-hero { padding: clamp(.5rem, 1.4vw, 1.25rem) 0 var(--s3); }
+.hmtop .fl-h1 { font-size: clamp(2.3rem, 4.4vw, 4.4rem); }
+.hmtop .fl-lede { margin-top: var(--s2); }
+.hmtop .fl-acts { margin-top: var(--s3); }
+.cx { margin-top: 0; }
+/* On a phone the move replaces the ticker, so chips stay two to a row. */
+@media (max-width: 719px) { .cx.is-heat .cxco[data-move] .cxtick { display: none; } }

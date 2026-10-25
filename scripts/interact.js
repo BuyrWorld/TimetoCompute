@@ -167,7 +167,7 @@ const run = async () => {
   check('the chain shows twelve illustrated columns', cols === 12, `${cols}`);
 
   await page.click('[data-co="nvidia"]');
-  await new Promise(r => setTimeout(r, 250));
+  await new Promise(r => setTimeout(r, 1400));
   const trace = await page.evaluate(() => ({
     picked: document.querySelectorAll('.cxco.is-picked').length,
     up: [...document.querySelectorAll('.cxco.is-up')].map(b => b.dataset.co),
@@ -184,7 +184,7 @@ const run = async () => {
   check('the details say who it buys from and who it sells to', /Buys from/.test(drawerText) && /Sells to/.test(drawerText));
 
   await page.click('#cxdBody [data-go="tsmc"]');
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise(r => setTimeout(r, 1400));
   const hopped = await page.$eval('#cxdName', el => el.textContent);
   check('a linked company opens from inside the details', /TSMC/.test(hopped), hopped);
 
@@ -216,13 +216,40 @@ const run = async () => {
     return { hiddenBefore, hiddenAfter, expanded: col.querySelector('.cxmore').getAttribute('aria-expanded') };
   });
   check('"+N more" reveals the rest of a column and says so', more.hiddenBefore > 0 && more.hiddenAfter === 0 && more.expanded === 'true', JSON.stringify(more));
-  const scrolled = await page.evaluate(async () => {
-    const t = document.getElementById('cxTrack'); const before = t.scrollLeft;
-    document.getElementById('cxNext').click();
-    await new Promise(r => setTimeout(r, 700));
-    return t.scrollLeft > before;
-  });
-  check('the forward arrow scrolls the twelve-stage chain', scrolled);
+  /* The whole chain fits: no sideways scrolling at desktop, tablet or phone width. */
+  const vp = page.viewport();
+  const fits = [];
+  for (const w of [1440, 1024, 390]) {
+    await page.setViewport({ width: w, height: 900 });
+    await page.goto(base + '/', { waitUntil: 'networkidle0' });
+    fits.push(await page.evaluate(w => { const t = document.getElementById('cxTrack');
+      return { w, over: t.scrollWidth - t.clientWidth, page: document.documentElement.scrollWidth - innerWidth }; }, w));
+  }
+  check('all twelve stages fit without sideways scrolling, desktop to phone', fits.every(f => f.over <= 1 && f.page <= 1), JSON.stringify(fits));
+
+  /* Tracing draws the disclosed links as lines on wide screens, and lights the flow line on a phone. */
+  await page.setViewport({ width: 1440, height: 900 });
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  await page.click('[data-co="nvidia"]');
+  await new Promise(r => setTimeout(r, 1500));
+  const lines = await page.evaluate(() => ({ n: document.querySelectorAll('#cxLines path:not(.ln-pulse)').length,
+    up: document.querySelectorAll('#cxLines .ln-up:not(.ln-pulse)').length, down: document.querySelectorAll('#cxLines .ln-down:not(.ln-pulse)').length,
+    drawer: document.getElementById('cxDrawer').open }));
+  check('tracing a company draws its disclosed links, upstream and downstream apart', lines.up > 0 && lines.down > 0, JSON.stringify(lines));
+  check('the details panel opens once the lines have drawn', lines.drawer);
+  await page.keyboard.press('Escape');
+  await page.click('[data-co="nvidia"]');
+  const linesLeft = await page.evaluate(() => document.querySelectorAll("#cxLines path").length);
+  check("tapping the company again clears its lines", linesLeft === 0, String(linesLeft));
+  await page.setViewport({ width: 390, height: 844 });
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  await page.click('[data-co="iren"]');
+  await new Promise(r => setTimeout(r, 300));
+  const phone = await page.evaluate(() => ({ lit: document.querySelectorAll('.cxcol.has-lit').length,
+    svg: getComputedStyle(document.getElementById('cxLines')).display, drawer: document.getElementById('cxDrawer').open }));
+  check('on a phone a trace lights the stages it runs through and opens details at once', phone.lit > 1 && phone.svg === 'none' && phone.drawer, JSON.stringify(phone));
+  await page.keyboard.press('Escape');
+  await page.setViewport(vp);
 
   /* ---- a site page: status, news, what comes next ---- */
   await page.goto(base + '/sites/apld-polaris-1/', { waitUntil: 'networkidle0' });

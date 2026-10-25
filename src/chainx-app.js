@@ -20,21 +20,151 @@
 
   /* Walk the links in one direction until nothing new turns up. Upstream is
      "who it depends on", downstream is "who depends on it". */
+  var depth = {};
   function walk(start, dir) {
     var seen = {}, queue = [start];
+    depth[start] = 0;
     while (queue.length) {
       var id = queue.shift();
       D.links.forEach(function (l) {
         var next = dir === 'up' ? (l.to === id ? l.from : null) : (l.from === id ? l.to : null);
-        if (next && !seen[next] && next !== start) { seen[next] = true; queue.push(next); }
+        if (next && !seen[next] && next !== start) { seen[next] = true; depth[next] = depth[id] + 1; queue.push(next); }
       });
     }
     return Object.keys(seen);
   }
 
+  /* ---- the lines a trace draws ----
+     Only links a filing discloses, only along the traced chain: upstream
+     edges run between the picked company's suppliers, downstream edges
+     between its customers. Each line grows from supplier to customer, one
+     hop at a time, and a single pulse runs along it to show the direction.
+     Then everything is still. Reduced motion draws them instantly. */
+  var svg = document.getElementById('cxLines');
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var traced = null;
+  var STEP = 230, DRAW = 420;
+
+  function anchor(r, side, box) {
+    var x = r.left - box.left, y = r.top - box.top;
+    return side === 'r' ? [x + r.width, y + r.height / 2] : side === 'l' ? [x, y + r.height / 2]
+      : side === 'b' ? [x + r.width / 2, y + r.height] : [x + r.width / 2, y];
+  }
+  /* A polyline with rounded corners, for routes that run along the gutters. */
+  function rounded(pts) {
+    var d = 'M' + pts[0];
+    for (var i = 1; i < pts.length - 1; i++) {
+      var p = pts[i - 1], c = pts[i], n = pts[i + 1];
+      var r1 = Math.min(7, Math.hypot(c[0] - p[0], c[1] - p[1]) / 2), r2 = Math.min(7, Math.hypot(n[0] - c[0], n[1] - c[1]) / 2);
+      var u1 = [(c[0] - p[0]) / (Math.hypot(c[0] - p[0], c[1] - p[1]) || 1), (c[1] - p[1]) / (Math.hypot(c[0] - p[0], c[1] - p[1]) || 1)];
+      var u2 = [(n[0] - c[0]) / (Math.hypot(n[0] - c[0], n[1] - c[1]) || 1), (n[1] - c[1]) / (Math.hypot(n[0] - c[0], n[1] - c[1]) || 1)];
+      d += ' L' + [c[0] - u1[0] * r1, c[1] - u1[1] * r1] + ' Q' + c + ' ' + [c[0] + u2[0] * r2, c[1] + u2[1] * r2];
+    }
+    return d + ' L' + pts[pts.length - 1];
+  }
+
+  /* Between rows a line never crosses a card: out of the card's side into
+     the gutter beside its stage, along the gap between rows, down the gutter
+     beside the target stage, and in. Like a metro map. */
+  function route(a, b, box) {
+    var ca = a.closest('.cxcol').getBoundingClientRect(), cb = b.closest('.cxcol').getBoundingClientRect();
+    var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    var half = parseFloat(getComputedStyle(document.getElementById('cxTrack')).columnGap || 14) / 2;
+    var X = function (v) { return v - box.left; }, Y = function (v) { return v - box.top; };
+    var right = cb.left + cb.width / 2 >= ca.left + ca.width / 2;
+    var gx1 = right ? ca.right + half : ca.left - half;
+    var sx = right ? ra.right : ra.left;
+    var tRight = ca.left + ca.width / 2 > cb.left + cb.width / 2;      // approach the target from its right?
+    var gx2 = tRight ? cb.right + half : cb.left - half;
+    var tx = tRight ? rb.right : rb.left;
+    var sameRow = Math.abs(cb.top - ca.top) <= 4;
+    var down = sameRow || cb.top > ca.top;
+    // The gap between the source's row and the next row towards the target;
+    // a line within one row dips into the gap below it (or below the chain).
+    var tops = [].slice.call(root.querySelectorAll('.cxcol')).map(function (c) { return c.getBoundingClientRect(); });
+    var gy;
+    if (down) {
+      var below = tops.filter(function (r) { return r.top > ca.top + 4; }).map(function (r) { return r.top; });
+      gy = below.length ? (ca.bottom + Math.min.apply(null, below)) / 2 : ca.bottom + half + 4;
+    } else {
+      var prevBottom = Math.max.apply(null, tops.filter(function (r) { return r.bottom < ca.top - 4; }).map(function (r) { return r.bottom; }));
+      gy = (ca.top + prevBottom) / 2;
+    }
+    var sy = ra.top + ra.height / 2, ty = rb.top + rb.height / 2;
+    if (!sameRow) gy += right ? 6 : -6;        // keep clear of the bend drawn along the same gap
+    return rounded([[X(sx), Y(sy)], [X(gx1), Y(sy)], [X(gx1), Y(gy)], [X(gx2), Y(gy)], [X(gx2), Y(ty)], [X(tx), Y(ty)]]);
+  }
+
+  function curve(a, b, box) {
+    var ka = a.closest('.cxcol').getBoundingClientRect(), kb = b.closest('.cxcol').getBoundingClientRect();
+    // Another row, or a stage skipped in this one: take the gutters. Neighbours join directly.
+    if (Math.abs(ka.top - kb.top) > 4 || Math.abs((kb.left + kb.right) - (ka.left + ka.right)) / 2 > ka.width * 1.5) return route(a, b, box);
+    var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    var dx = (rb.left + rb.width / 2) - (ra.left + ra.width / 2), dy = (rb.top + rb.height / 2) - (ra.top + ra.height / 2);
+    var p, q, k;
+    if (Math.abs(dx) < 24) {                       // same column: bow out to the right
+      p = anchor(ra, 'r', box); q = anchor(rb, 'r', box); k = 34;
+      return 'M' + p + ' C' + (p[0] + k) + ',' + p[1] + ' ' + (q[0] + k) + ',' + q[1] + ' ' + q;
+    }
+    if (Math.abs(dx) >= Math.abs(dy) * 0.6) {       // across a row
+      p = anchor(ra, dx > 0 ? 'r' : 'l', box); q = anchor(rb, dx > 0 ? 'l' : 'r', box);
+      k = Math.max(30, Math.abs(q[0] - p[0]) / 2) * (dx > 0 ? 1 : -1);
+      return 'M' + p + ' C' + (p[0] + k) + ',' + p[1] + ' ' + (q[0] - k) + ',' + q[1] + ' ' + q;
+    }
+    p = anchor(ra, dy > 0 ? 'b' : 't', box); q = anchor(rb, dy > 0 ? 't' : 'b', box);
+    k = Math.max(30, Math.abs(q[1] - p[1]) / 2) * (dy > 0 ? 1 : -1);
+    return 'M' + p + ' C' + p[0] + ',' + (p[1] + k) + ' ' + q[0] + ',' + (q[1] - k) + ' ' + q;
+  }
+  function edgesFor(id, up, down) {
+    var U = {}, W = {};
+    up.forEach(function (x) { U[x] = 1; }); down.forEach(function (x) { W[x] = 1; });
+    return D.links.filter(function (l) {
+      return ((U[l.from]) && (U[l.to] || l.to === id)) || ((W[l.to]) && (W[l.from] || l.from === id));
+    }).map(function (l) {
+      var isUp = !!U[l.from];
+      return { l: l, up: isUp, hop: isUp ? depth[l.from] : depth[l.to] };
+    });
+  }
+  function draw(animate) {
+    if (!svg) return;
+    svg.innerHTML = '';
+    if (!traced || getComputedStyle(svg).display === 'none') return;
+    var box = svg.getBoundingClientRect();
+    traced.edges.forEach(function (e) {
+      var a = root.querySelector('[data-co="' + e.l.from + '"]'), b = root.querySelector('[data-co="' + e.l.to + '"]');
+      if (!a || !b || !a.offsetParent || !b.offsetParent) return;
+      var d = curve(a, b, box), cls = e.up ? 'ln-up' : 'ln-down';
+      var line = document.createElementNS(SVGNS, 'path');
+      line.setAttribute('d', d); line.setAttribute('class', cls);
+      svg.appendChild(line);
+      if (!animate || still || !line.animate) return;
+      var len = line.getTotalLength(), delay = (e.hop - 1) * STEP;
+      line.style.strokeDasharray = len; line.style.strokeDashoffset = len;
+      line.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+        { duration: DRAW, delay: delay, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
+      var pulse = document.createElementNS(SVGNS, 'path');
+      pulse.setAttribute('d', d); pulse.setAttribute('class', cls + ' ln-pulse');
+      pulse.style.strokeDasharray = '10 ' + len;
+      svg.appendChild(pulse);
+      pulse.animate([{ strokeDashoffset: 10, opacity: 1 }, { strokeDashoffset: -len, opacity: 1, offset: 0.9 }, { strokeDashoffset: -len, opacity: 0 }],
+        { duration: 600, delay: delay + DRAW * 0.7, easing: 'ease-in', fill: 'forwards' });
+    });
+  }
+  /* How long the drawing takes, so the details panel waits for it. */
+  function drawTime() {
+    if (still || !traced || !svg || getComputedStyle(svg).display === 'none' || !traced.edges.length) return 0;
+    var hops = Math.max.apply(null, traced.edges.map(function (e) { return e.hop; }));
+    return Math.min(1100, (hops - 1) * STEP + DRAW + 280);
+  }
+  var resizeT;
+  window.addEventListener('resize', function () { clearTimeout(resizeT); resizeT = setTimeout(function () { draw(false); }, 120); });
+
   function clearTrace() {
     try { if (/[?&]entity=/.test(location.search)) history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
     root.classList.remove('is-tracing');
+    traced = null; if (svg) svg.innerHTML = '';
+    root.querySelectorAll('.cxcol.has-lit').forEach(function (c) { c.classList.remove('has-lit'); });
     root.querySelectorAll('.cxco').forEach(function (b) {
       b.classList.remove('is-picked', 'is-up', 'is-down');
       b.removeAttribute('aria-pressed');
@@ -52,6 +182,11 @@
       else if (up.indexOf(c) > -1) b.classList.add('is-up');
       else if (down.indexOf(c) > -1) b.classList.add('is-down');
     });
+    root.querySelectorAll('.cxco.is-picked, .cxco.is-up, .cxco.is-down').forEach(function (b) {
+      b.closest('.cxcol').classList.add('has-lit');
+    });
+    traced = { id: id, edges: edgesFor(id, up, down) };
+    requestAnimationFrame(function () { draw(true); });
     var co = byId[id];
     try { history.replaceState(null, '', location.pathname + '?entity=' + encodeURIComponent(id) + location.hash); } catch (e) {}
     if (hint) {
@@ -73,6 +208,15 @@
     return '<li class="cxdlink"><button type="button" class="cxdgo press" data-go="' + esc(otherId) + '">' +
       esc(o.name) + '</button> <span class="cxdkind">' + esc(D.kinds[l.kind] || l.kind) + ' · ' + esc(l.what) + '</span>' +
       '<blockquote>' + esc(l.excerpt) + '</blockquote>' + srcLink(l.src) + '</li>';
+  }
+
+  /* The panel opens once the lines have drawn, so the trace is seen first. */
+  var openT;
+  function later(id, extra) {
+    clearTimeout(openT);
+    var wait = drawTime() + (extra || 0);
+    if (!wait) return open(id);
+    openT = setTimeout(function () { if (traced && traced.id === id) open(id); }, wait);
   }
 
   function open(id) {
@@ -134,12 +278,12 @@
     var id = b.getAttribute('data-co');
     if (b.classList.contains('is-picked')) { clearTrace(); return; }
     trace(id);
-    open(id);
+    later(id);
   });
 
   drawer.addEventListener('click', function (e) {
     var go = e.target.closest('[data-go]');
-    if (go) { var id = go.getAttribute('data-go'); trace(id); open(id); return; }
+    if (go) { var id = go.getAttribute('data-go'); drawer.close(); trace(id); later(id); return; }
     if (e.target === drawer || e.target.closest('#cxdClose')) drawer.close();
   });
 
@@ -150,8 +294,8 @@
     var id = t.getAttribute('data-trace');
     trace(id);
     var btn = root.querySelector('[data-co="' + id + '"]');
-    if (btn && btn.scrollIntoView) btn.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
-    open(id);
+    if (btn && btn.scrollIntoView) btn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    later(id, 400);
   });
 
   document.addEventListener('keydown', function (e) {
@@ -160,32 +304,19 @@
 
   root.querySelectorAll('.cxmore').forEach(function (m) { m.setAttribute('data-label', m.textContent); });
 
-  /* Twelve columns do not fit on one screen: arrows, a progress rail, and
-     native horizontal scrolling (trackpad, shift+wheel, swipe) all work. */
-  var track = document.getElementById('cxTrack');
-  var rail = document.getElementById('cxRail');
-  var prev = document.getElementById('cxPrev'), nxt = document.getElementById('cxNext');
-  function step(dir) {
-    var col = track.querySelector('.cxcol');
-    track.scrollBy({ left: dir * (col ? col.getBoundingClientRect().width + 10 : 200) * 3, behavior: 'smooth' });
-  }
-  function sync() {
-    var max = track.scrollWidth - track.clientWidth;
-    var scrollable = max > 4;
-    track.parentNode.querySelector('.cxnav').hidden = !scrollable;
-    if (!scrollable) return;
-    var f = track.clientWidth / track.scrollWidth;
-    rail.style.width = (f * 100) + '%';
-    rail.style.marginLeft = ((track.scrollLeft / track.scrollWidth) * 100) + '%';
-    prev.disabled = track.scrollLeft < 4;
-    nxt.disabled = track.scrollLeft > max - 4;
-  }
-  if (track) {
-    prev.addEventListener('click', function () { step(-1); });
-    nxt.addEventListener('click', function () { step(1); });
-    track.addEventListener('scroll', sync, { passive: true });
-    window.addEventListener('resize', sync);
-    sync();
+  /* One-time intro: the stages light 1 to 12 the first time the chain is
+     seen in a visit. CSS skips it entirely under reduced motion. */
+  var seenIntro = false;
+  try { seenIntro = sessionStorage.getItem('t2c-intro') === '1'; } catch (e) {}
+  if (!seenIntro && !still && 'IntersectionObserver' in window && !/[?&]entity=/.test(location.search)) {
+    var io = new IntersectionObserver(function (es) {
+      if (!es[0].isIntersecting) return;
+      io.disconnect();
+      root.classList.add('is-intro');
+      try { sessionStorage.setItem('t2c-intro', '1'); } catch (e) {}
+      setTimeout(function () { root.classList.remove('is-intro'); }, 1800);
+    }, { threshold: 0.25 });
+    io.observe(document.getElementById('cxTrack'));
   }
 
   /* Deep link: /?entity=iren opens the chain already traced from IREN. */
@@ -196,7 +327,7 @@
     var btn0 = root.querySelector('[data-co="' + id0 + '"]');
     if (btn0) {
       root.scrollIntoView({ block: 'start' });
-      btn0.scrollIntoView({ block: 'nearest', inline: 'center' });
+      btn0.scrollIntoView({ block: 'nearest' });
       btn0.classList.add('is-flash');
       setTimeout(function () { btn0.classList.remove('is-flash'); }, 1600);
     }

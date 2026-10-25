@@ -89,7 +89,7 @@ export function chainExplorer({ moves = null } = {}) {
      so the six names a column shows before "+N more" are the useful ones. */
   const order = cos => cos.map((c, i) => ({ c, i })).sort((a, b) =>
     (b.c.href ? 1 : 0) - (a.c.href ? 1 : 0) || degree(b.c.id) - degree(a.c.id) || a.i - b.i).map(x => x.c);
-  const SHOWN = 6;
+  const SHOWN = 4;
   const KIND = { private: 'PRIVATE', 'non-us': 'NON-US', model: 'MODEL', app: 'APP' };
 
   return `<section class="cx" aria-labelledby="cx-h">
@@ -102,19 +102,18 @@ export function chainExplorer({ moves = null } = {}) {
         <span class="nhmeta">on ${esc(date(moves.session))}, close to close</span></span>
     </div>` : ''}
   </div>
-  <div class="cxnav" aria-hidden="false">
-    <button type="button" class="cxarrow press" id="cxPrev" aria-label="Scroll the chain back">←</button>
-    <div class="cxrail" role="presentation"><span id="cxRail"></span></div>
-    <button type="button" class="cxarrow press" id="cxNext" aria-label="Scroll the chain forward">→</button>
-  </div>
-  <div class="cxtrack cn-track" id="cxTrack" role="list" style="--cn-count:${CX_COLUMNS.length}">
+  <div class="cxtrack" id="cxTrack" role="list" style="--cn-count:${CX_COLUMNS.length}">
+    <svg class="cxlines" id="cxLines" aria-hidden="true" focusable="false"></svg>
     ${CX_COLUMNS.map((col, i) => {
       const label = col.label;
       const plain = col.plain;
       const cos = order(col.stages.flatMap(byStage));
       const extra = Math.max(0, cos.length - SHOWN);
       const med = moves ? medianMove(cos.map(dpOf)) : null;
-      return `<div class="cxcol cn-node${extra ? ' is-collapsed' : ''}" role="listitem" data-stage="${esc(col.stages.join(' '))}"
+      /* A bend after the 4th, 6th and 8th stage carries the flow onto the next
+         row; CSS shows only the bends that match the current number of columns. */
+      const bend = [4, 6, 8].includes(i) ? `<div class="cxbend cxbend-${i}" aria-hidden="true"></div>` : '';
+      return `${bend}<div class="cxcol cn-node${extra ? ' is-collapsed' : ''}" role="listitem" data-n="${i + 1}" data-stage="${esc(col.stages.join(' '))}"
         style="--i:${i};${opticsStyle(col.art)}">
       <div class="cxstage">
         <span class="cn-art cxart" data-frame="${esc(col.frame)}">
