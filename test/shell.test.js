@@ -25,7 +25,7 @@ const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites
   'catalysts/index.html', 'lab/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/chain-mapping/', '/companies/', '/ai-news/', '/catalysts/', '/explainers/', '/time-machine/'];
+const NAV_HREFS = ['/', '/track/', '/chain-mapping/', '/companies/', '/ai-news/', '/catalysts/', '/explainers/', '/time-machine/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
 const SECONDARY = ['/sites/', '/intelligence/', '/news/', '/lab/', '/compare/', '/research/', '/methodology/'];
@@ -719,14 +719,13 @@ test('undisclosed figures render as not disclosed, never as zero', () => {
 /* ================= mobile and interaction affordances ================= */
 
 test('the mobile bar carries four reachable destinations', () => {
-  // Six labels collide at 390px, so mobile prioritises Today, Chain, AI news
-  // and Search. Everything omitted stays reachable from the utility menu, which
-  // the "no orphaned route" test above already enforces on every page.
+  // Track is the quiet page. Chain stays in the desktop nav and the utility
+  // menu is unchanged, so the chain route is not orphaned.
   for (const r of ROUTES) {
     const html = read(r);
     assert.ok(html.includes('class="bottomnav"'), `${r} has no mobile navigation`);
     const hrefs = [...html.matchAll(/class="bnav[^"]*" href="([^"]+)"/g)].map(m => m[1]);
-    assert.deepEqual(hrefs, ['/', '/chain-mapping/', '/ai-news/'],
+    assert.deepEqual(hrefs, ['/', '/track/', '/ai-news/'],
       `${r} mobile navigation is wrong`);
     assert.ok(/id="palOpenMobile"/.test(html), `${r} mobile bar has no search`);
   }

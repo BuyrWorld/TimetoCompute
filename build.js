@@ -59,6 +59,7 @@ import {
 } from './src/lib/estimate.js';
 import { LAB_COVERAGE, CONTRACT_ECONOMICS, CAPEX_REFERENCE, MODEL_DEFAULTS, ASSUMPTION_PROVENANCE } from './data/economics.js';
 import { PHOTONICS_SUPPLIERS } from './data/suppliers.js';
+import { trackBody } from './src/track-page.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(ROOT, 'dist');
@@ -111,6 +112,7 @@ console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
  */
 const NAV = [
   { id: 'today', label: 'Today', href: '/' },
+  { id: 'track', label: 'Track', href: '/track/', primary: true, search: 'sentiment checklist IREN Childress horizon wire' },
   /* The pack renames the visible label. The route moves to /chain-mapping/ and
      /chain/ survives as a published alias — it is linked from the homepage, the
      explainers, the sitemap and the palette. */
@@ -138,7 +140,7 @@ const NAV = [
  */
 const MOBILE_NAV = [
   { id: 'today', label: 'Today', href: '/' },
-  { id: 'chain', label: 'Chain', href: '/chain-mapping/' },
+  { id: 'track', label: 'Track', href: '/track/' },
   /* AI news, not the watchlist. A bar slot is the most expensive space on the
      site and should hold a destination that is worth something on a first
      visit; a watchlist is empty until the reader has built one, so it spent
@@ -852,6 +854,17 @@ function catalystsPage() {
     body: catalystsBody(),
     inlineData: { T2C_CATALYSTS: catalystPayload() },
     active: 'catalysts'
+  });
+}
+
+function trackPage() {
+  return page({
+    title: 'Track — the wire and the IREN checklist | T2C',
+    description:
+      'Hourly, daily and weekly headlines for the neocloud names, and Elon’s build list scored from the T2C ledger. Horizon 1 and Horizons 2–4 share the Childress campus.',
+    canonical: SITE + '/track/',
+    body: trackBody(),
+    active: 'track'
   });
 }
 
@@ -1931,6 +1944,7 @@ fs.mkdirSync(OUT, { recursive: true });
 
 let bytes = 0;
 bytes += write('index.html', todayPage());
+bytes += write('track/index.html', trackPage());
 bytes += write('companies/index.html', companiesPage());
 bytes += write('compare/index.html', comparePage());
 bytes += write('catalysts/index.html', catalystsPage());
@@ -2003,6 +2017,7 @@ bytes += write('contact/index.html', simplePage('contact', 'Contact',
 
 const urls = [
   { loc: SITE + '/', priority: '1.0', freq: 'hourly' },
+  { loc: SITE + '/track/', priority: '0.9', freq: 'hourly' },
   { loc: SITE + '/companies/', priority: '0.9', freq: 'daily' },
   { loc: SITE + '/sites/', priority: '0.9', freq: 'daily' },
   { loc: SITE + '/intelligence/', priority: '0.9', freq: 'daily' },
