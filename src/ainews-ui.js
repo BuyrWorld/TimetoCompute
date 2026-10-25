@@ -28,7 +28,7 @@ import { MATERIALITY } from './lib/ainews.js';
 export function newsHeader({ set, total, disclosures, combined }) {
   return `<header class="an-head">
     <div class="an-headcopy">
-      <h1 class="an-h1">AI catalysts &mdash; everything that influences the chain<span class="dot">.</span></h1>
+      <h2 class="ed-sectionh">What has already moved the chain</h2>
       <p class="an-lede">What has already moved it, and what could move it next. Every sourced change
         to the record, written as what happened, why it matters and what may happen next &mdash;
         followed by the dated events still ahead.</p>

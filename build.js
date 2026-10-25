@@ -34,6 +34,7 @@ import {
 import { allSites, companyPath, path as projectPath, siteStatus } from './src/lib/sites.js';
 import { chainExplorerData } from './src/chainx.js';
 import { newsHubBody, newsHubData } from './src/newshub.js';
+import { earningsData } from './src/earnings.js';
 import { STAGE_ART } from './data/artpack.js';
 import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
 import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
@@ -119,6 +120,7 @@ const NAV = [
   { id: 'today', label: 'Chain', href: '/', search: 'supply chain map home today' },
   { id: 'news', label: 'News', href: '/news/', also: ['ainews'], search: 'AI news stories neoclouds' },
   { id: 'models', label: 'Models', href: '/news/#models', search: 'AI models GPT Claude Gemini Muse Grok DeepSeek Mistral Qwen' },
+  { id: 'catalysts', label: 'Catalysts', href: '/catalysts/', search: 'earnings dates calendar results catalysts' },
   { id: 'companies', label: 'Companies', href: '/companies/' }
 ];
 
@@ -143,7 +145,6 @@ const UTILITY_ROUTES = [
   { id: 'sites', label: 'Data centres', href: '/sites/' },
   { id: 'chain', label: 'Detailed chain map', href: '/chain-mapping/' },
   { id: 'explainers', label: 'Explainers', href: '/explainers/' },
-  { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
   { id: 'track', label: 'Track', href: '/track/' },
   { id: 'intelligence', label: 'Intelligence ledger', href: '/intelligence/' },
   { id: 'research', label: 'Research', href: '/research/' },
@@ -814,14 +815,15 @@ function comparePage() {
 
 function catalystsPage() {
   return page({
-    title: 'AI catalysts — everything that influences the chain | T2C',
+    title: 'Catalysts — the earnings calendar and what moves the AI supply chain | T2C',
     description:
       'What has already moved the AI infrastructure record and what could move it next: every ' +
       'sourced change written as what happened, why it matters and what may happen next, followed ' +
       'by the dated events still ahead.',
     canonical: SITE + '/catalysts/',
     body: catalystsBody(),
-    inlineData: { T2C_CATALYSTS: catalystPayload() },
+    inlineData: { T2C_CATALYSTS: catalystPayload(), T2C_EARNINGS: earningsData() },
+    extraScripts: ['/earnings.js'],
     active: 'catalysts'
   });
 }
@@ -1968,6 +1970,7 @@ fs.cpSync(path.join(ROOT, 'src', 'lab-ui.js'), path.join(OUT, 'lab-ui.js'));
 fs.cpSync(path.join(ROOT, 'src', 'chainmap-app.js'), path.join(OUT, 'chain-mapping.js'));
 fs.cpSync(path.join(ROOT, 'src', 'chainx-app.js'), path.join(OUT, 'chainx.js'));
 fs.cpSync(path.join(ROOT, 'src', 'newshub-app.js'), path.join(OUT, 'newshub.js'));
+fs.cpSync(path.join(ROOT, 'src', 'earnings-app.js'), path.join(OUT, 'earnings.js'));
 fs.cpSync(path.join(ROOT, 'src', 'sitenews-app.js'), path.join(OUT, 'site-news.js'));
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'chain-mapping'),
   path.join(OUT, 'assets', 't2c', 'chain-mapping'), { recursive: true });

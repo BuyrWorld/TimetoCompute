@@ -81,10 +81,10 @@ test('the explorer ships its data and every cited document', () => {
   for (const l of data.links) assert.ok(data.sources[l.src], `${l.from}>${l.to} ships without its source`);
 });
 
-test('the header carries four destinations and no mode switch or game', () => {
+test('the header carries five destinations and no mode switch or game', () => {
   const html = read('index.html');
   const labels = [...html.matchAll(/class="navlink[^"]*"[^>]*>([^<]+)</g)].map(m => m[1]);
-  assert.deepEqual(labels, ['Chain', 'News', 'Models', 'Companies']);
+  assert.deepEqual(labels, ['Chain', 'News', 'Models', 'Catalysts', 'Companies']);
   assert.ok(!html.includes('/time-machine/'), 'the retired game is still linked');
   assert.ok(!html.includes('class="modetoggle"'), 'the Standard/Focus switch is back in the header');
 });
@@ -131,4 +131,27 @@ test('retired tools redirect instead of 404ing', () => {
   }
   assert.ok((v.redirects || []).some(r => r.source === '/time-machine/' && r.destination === '/'),
     '/time-machine/ does not redirect');
+});
+
+/* ---- catalysts: earnings lead ---- */
+
+test('the catalysts page leads with the earnings calendar', () => {
+  const html = read('catalysts/index.html');
+  const h1 = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)];
+  assert.equal(h1.length, 1);
+  assert.match(h1[0][1], /Earnings calendar/);
+  assert.ok(html.indexOf('id="ecNext"') < html.indexOf('an-head'), 'earnings do not come first');
+  assert.ok(html.includes('src="/earnings.js"'), 'the earnings script is not loaded');
+  const data = JSON.parse(html.match(/Object\.assign\(window, (\{[\s\S]*?\})\);<\/script>/)[1]).T2C_EARNINGS;
+  for (const t of ['IREN', 'CRWV', 'NBIS', 'WULF', 'APLD', 'KEEL', 'CIFR', 'NVDA', 'TSM']) {
+    assert.ok(data.some(r => r.t === t), `${t} is not in the earnings calendar`);
+  }
+  const nvda = data.find(r => r.t === 'NVDA');
+  assert.ok(nvda.ops.some(o => o.name === 'CoreWeave'), 'an NVIDIA report does not reach the neoclouds');
+});
+
+test('the sites page has no animated map', () => {
+  const html = read('sites/index.html');
+  assert.ok(!/id="infrastructure"/.test(html), 'the infrastructure map is back');
+  assert.ok(!/class="vehicle/.test(html), 'the moving vehicle is back');
 });

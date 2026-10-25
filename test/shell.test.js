@@ -25,10 +25,10 @@ const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites
   'catalysts/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/news/', '/news/#models', '/companies/'];
+const NAV_HREFS = ['/', '/news/', '/news/#models', '/catalysts/', '/companies/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
-const SECONDARY = ['/sites/', '/chain-mapping/', '/explainers/', '/catalysts/', '/track/', '/intelligence/', '/research/', '/methodology/'];
+const SECONDARY = ['/sites/', '/chain-mapping/', '/explainers/', '/track/', '/intelligence/', '/research/', '/methodology/'];
 
 /** Primary destinations must not also sit in the utility menu. */
 const NOT_SECONDARY = ['/news/', '/companies/'];
@@ -132,7 +132,7 @@ test('a demoted route still tells the reader where they are', () => {
   // Research and Compare have no nav slot. They must still mark themselves
   // current somewhere, or the reader lands on a page the shell does not admit to.
   for (const [file, href] of [['research/index.html', '/research/'],
-    ['catalysts/index.html', '/catalysts/'], ['explainers/index.html', '/explainers/'],
+    ['sites/index.html', '/sites/'], ['explainers/index.html', '/explainers/'],
     ['intelligence/index.html', '/intelligence/'], ['methodology/index.html', '/methodology/']]) {
     const html = read(file);
     const link = html.match(new RegExp(`<a class="umenubtn[^"]*"[^>]*href="${href}"[^>]*>`));
@@ -363,13 +363,11 @@ test('no shipped image exceeds its budget', () => {
 test('every raster image offers a WebP with a PNG fallback', () => {
   // <picture> in markup, image-set in CSS — a browser without WebP still gets
   // an image, and a build without sharp still gets a page.
-  for (const r of ['sites/index.html']) {
-    const html = read(r);
-    assert.ok(/<source srcset="\/assets\/campus\.webp" type="image\/webp"/.test(html),
-      `${r} offers no WebP for the campus image`);
-    assert.ok(/<img[^>]+src="\/assets\/campus\.png"/.test(html),
-      `${r} has no PNG fallback for the campus image`);
-  }
+  // The campus illustration left with the sites map (October 2026); the stage
+  // cutouts carry WebP in srcset with a PNG src, which is the same rule.
+  const home = read('index.html');
+  assert.ok(/srcset="[^"]*\.webp/.test(home), 'the homepage art offers no WebP');
+  assert.ok(/<img[^>]+class="cn-asset[^"]*"[^>]+src="[^"]+\.png"/.test(home), 'the homepage art has no PNG fallback');
   const css = fs.readFileSync(path.join(DIST, 'styles.css'), 'utf8');
   assert.ok(/image-set\(/.test(css), 'the vehicle sprite has no image-set');
   assert.ok(/vehicles\.png/.test(css), 'the vehicle sprite has no PNG fallback');
@@ -385,7 +383,7 @@ test('the vehicle sheet exposes all eight facings', () => {
 });
 
 test('images declare their dimensions so the layout cannot shift', () => {
-  for (const r of ['sites/index.html', 'explainers/index.html']) {
+  for (const r of ['index.html', 'explainers/index.html']) {
     const html = read(r);
     const imgs = [...html.matchAll(/<img[^>]+src="\/assets\/[^"]+"[^>]*>/g)].map(m => m[0]);
     assert.ok(imgs.length > 0, `${r} renders no asset image`);
@@ -394,36 +392,6 @@ test('images declare their dimensions so the layout cannot shift', () => {
         `an image in ${r} declares no dimensions: ${img}`);
     }
   }
-});
-
-test('the map is schematic and says so', () => {
-  // The map lives on the Sites explorer, where a reader is already looking for
-  // sites; the homepage leads with the story instead.
-  const html = read('sites/index.html');
-  assert.ok(/class="mapnote"/.test(html), 'the map carries no explanation');
-  assert.ok(/not geographic/i.test(html),
-    'the map does not disclaim that its positions are not geographic');
-  // Every hotspot opens a real site.
-  const hots = [...html.matchAll(/class="hot press[^"]*" href="(\/sites\/[^"]+)"/g)].map(m => m[1]);
-  assert.ok(hots.length > 0, 'the map has no hotspots');
-  for (const h of hots) {
-    assert.ok(exists(h.replace(/^\//, '') + 'index.html'), `hotspot points at unbuilt ${h}`);
-  }
-  // Every hotspot names itself for assistive technology, not by position alone.
-  const labelled = [...html.matchAll(/class="hot press[^"]*"[\s\S]{0,220}?aria-label="([^"]+)"/g)];
-  assert.equal(labelled.length, hots.length, 'a hotspot has no accessible name');
-});
-
-test('the map surface cannot steal a hotspot click', () => {
-  const html = read('sites/index.html');
-  // The full-surface link must precede the hotspots in source order and must not
-  // wrap them — a nested link would fire both destinations.
-  const surface = html.indexOf('class="mapsurface"');
-  const firstHot = html.indexOf('class="hot press');
-  assert.ok(surface > -1 && firstHot > -1, 'the map is missing its surface or hotspots');
-  assert.ok(surface < firstHot, 'the map surface is drawn over the hotspots');
-  assert.ok(/<a class="mapsurface"[^>]*><\/a>/.test(html),
-    'the map surface is not an empty link — a hotspot may be nested inside it');
 });
 
 /* ================= document structure ================= */

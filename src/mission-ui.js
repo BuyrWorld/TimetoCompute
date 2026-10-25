@@ -10,7 +10,7 @@
 import { GATE_STATUS } from '../data/schema.js';
 import { esc, mw, date, usdBn, NOT_DISCLOSED, windowLabel, firstSentence } from './lib/format.js';
 import { CATEGORIES } from './lib/signals.js';
-import { furthestStage } from './lib/sites.js';
+import { furthestStage, siteStatus } from './lib/sites.js';
 import { siteEstimates } from './lib/estimate.js';
 import { FACTOR_BY_ID } from './lib/score.js';
 import { sourceChips, evidenceChip, pill } from './ui.js';
@@ -150,12 +150,7 @@ export function siteCard(site) {
     </div>
     ${site.note ? `<p class="mnote secondary">${esc(firstSentence(site.note))}</p>` : ''}
     <div class="sitecardfoot">
-      <span class="sitecardstage${stage ? '' : ' none'}">${esc(stage ? stage.label : 'No stage evidenced')}</span>
-      ${site.evidence ? meter(site.evidence.share * 5, 5, {
-        tone: confidenceTone(site.evidence.level),
-        showLabel: false,
-        label: `${site.evidence.label} evidence confidence — ${site.evidence.confirmed} of ${site.evidence.total} gates confirmed`
-      }) : ''}
+      ${(() => { const st = siteStatus(site); return `<span class="hmstatus hmstatus-${esc(st.id)}" title="${esc(st.plain)}">${esc(st.label)}</span>`; })()}
     </div>
   </a>`;
 }

@@ -14,7 +14,8 @@ const TTL = 6 * 60 * 60 * 1000;
 export default async function handler(req, res) {
   const symbols = String(req.query.symbols || TRADING_TICKERS.join(','))
     .toUpperCase().split(',').map(s => s.trim())
-    .filter(s => /^[A-Z.\-]{1,8}$/.test(s)).slice(0, 12);
+    // The earnings calendar asks for every listed company on the supply-chain map.
+    .filter(s => /^[A-Z.\-]{1,8}$/.test(s)).slice(0, 45);
 
   const days = Math.min(Math.max(parseInt(req.query.days, 10) || 180, 7), 365);
   const from = new Date().toISOString().slice(0, 10);
@@ -45,6 +46,9 @@ export default async function handler(req, res) {
         expectedWindowEnd: null,
         // Finnhub reports bmo / amc / dmh where known.
         session: e.hour || null,
+        // Fiscal period being reported, where the provider gives it.
+        quarter: e.quarter || null,
+        year: e.year || null,
         timezone: 'America/New_York',
         confidence: 'confirmed',
         isCompanyGuidance: false,

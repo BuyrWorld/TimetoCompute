@@ -223,3 +223,33 @@
 .nhstage { display: block; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--brand); margin-bottom: 3px; }
 .hmprov { margin: 0; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
 @media (max-width: 560px) { .nhstory { grid-template-columns: 40px minmax(0, 1fr); } .nhhex { width: 40px; height: 44px; } .nhhex img { width: 30px; height: 30px; } }
+
+/* ================= earnings calendar ================= */
+.ec { padding-top: 28px; margin-bottom: 48px; }
+.ecsechead { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 24px; margin-bottom: 18px; }
+.ech { margin: 6px 0 10px; font-size: clamp(32px, 4.6vw, 56px); line-height: 1.03; letter-spacing: -0.025em; }
+.eclede { margin: 0; max-width: 64ch; color: var(--dim); font-size: clamp(15px, 1.5vw, 18px); line-height: 1.5; }
+.ecnext { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.eccard { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 14px; padding: 16px; border-radius: 14px;
+  border: 1px solid var(--line-2); background: var(--surface); }
+.eccard.is-soon { border-color: var(--brand); background: linear-gradient(160deg, color-mix(in srgb, var(--brand) 9%, var(--surface)), var(--surface) 70%); }
+.ecdate { display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px;
+  background: var(--surface-2, var(--surface)); border: 1px solid var(--line-2); padding: 8px 4px; align-self: start; }
+.eccard.is-soon .ecdate { background: var(--brand); border-color: var(--brand); color: var(--bg); }
+.ecmon { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.ecday { font-size: 30px; font-weight: 800; line-height: 1.05; }
+.ecdow { font-size: 11px; opacity: .8; }
+.eccountdown { margin: 0; font-size: 12px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: .06em; }
+.ecname { margin: 4px 0 6px; font-size: 18px; }
+.ecname a { color: var(--ink); text-decoration: none; }
+.ecname a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ecstage { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: var(--dim); }
+.ecstage .nhhex { width: 34px; height: 37px; flex: none; }
+.ecstage .nhhex img { width: 26px; height: 26px; }
+.eclater { margin-top: 16px; border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 16px; background: var(--surface); }
+.eclater > summary { cursor: pointer; font-weight: 700; }
+.eclist { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; }
+.eclist li { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line-2); font-size: 14px; }
+.eclname a { color: var(--ink); }
+.ecsess { color: var(--dim); font-size: 12.5px; }
+@media (max-width: 560px) { .eclist li { grid-template-columns: 1fr; gap: 2px; } }

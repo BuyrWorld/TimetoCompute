@@ -35,6 +35,7 @@ import { leadStory, journeyRail, headlineFor } from './lib/leadstory.js';
 import { chainExplorer } from './chainx.js';
 import { touches, chainIdFor } from './lib/impact.js';
 import { modelStrip, newsTickers } from './newshub.js';
+import { earningsSection } from './earnings.js';
 import {
   deliveryLeaders, nextCatalyst, promiseReality, megaprojects, imageForSite, EXPLAINER_STEPS
 } from './lib/homepage.js';
@@ -281,6 +282,10 @@ export function compareBody() {
  */
 export function catalystsBody() {
   return `<div class="t2c-shell ed-main an-page">
+  ${/* Earnings lead: they are the most predictable catalyst, and where the
+        record gets updated. Everything below is what has already happened. */''}
+  ${earningsSection()}
+
   ${aiCatalystsBody()}
 
   <section class="an-section" id="upcoming" aria-labelledby="cat-upcoming-h">
@@ -548,8 +553,8 @@ export function sitesBody() {
   return `<div class="shell">
   ${pageHeadHtml({
     title: 'Sites',
-    lede: 'Every project tracked at the level its milestones are actually evidenced — one record per ' +
-      'site, with the gates it has passed and the documents that prove each one.',
+    lede: 'Every AI data centre T2C tracks: its size, its status, its customer and the latest news ' +
+      'naming it. Open a site for what happens next.',
     meta: `<span class="pill-lite">${sites.length} sites</span>
            <span class="pill-lite">${disclosed} disclose capacity</span>
            <span class="pill-lite">${countries.length} countries</span>`
@@ -584,16 +589,8 @@ export function sitesBody() {
     <span class="filtercount" id="siteCount" aria-live="polite">${sites.length} shown</span>
   </div>
 
-  <section class="mpanel flush mapcard" id="infrastructure" aria-labelledby="imh">
-    <div class="mhead mappad">
-      <span class="mkicker" id="imh">Infrastructure map</span>
-      <span class="mnote secondary">Schematic � positions are not geographic</span>
-    </div>
-    ${infrastructureMap([...sites].sort((a, b) =>
-      b.gateSummary.completeCount - a.gateSummary.completeCount ||
-      (b.capacityMw ?? -1) - (a.capacityMw ?? -1)))}
-  </section>
-
+  ${/* The schematic map with the animated vehicle went in October 2026: readers
+        found it gimmicky, and it carried no information the cards do not. */''}
   <div class="sitegrid" id="siteGrid">${sites.map(siteCard).join('')}</div>
 
   <p class="blocknote">Capacity figures state what they measure, and half this estate quotes gross

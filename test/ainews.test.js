@@ -282,8 +282,8 @@ test('catalysts, the ledger and the wire are distinct and say so', () => {
 
 test('the page carries the headline it was asked for', () => {
   const html = page();
-  assert.match(html, /AI catalysts &mdash; everything that influences the chain/i,
-    'the catalysts headline is missing');
+  assert.match(html, /<h1[^>]*>Earnings calendar<\/h1>/, 'the catalysts page does not lead with earnings');
+  assert.match(html, /What has already moved the chain/, 'the record section heading is missing');
 });
 
 test('the wire and the record are two different pages', () => {

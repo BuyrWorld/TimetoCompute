@@ -33,6 +33,20 @@ function serve() {
          carrying the generic house placeholder every Yahoo item shares, and a
          story with no image at all. Everything else still fails, so the rest of
          the site is exercised against an unavailable provider. */
+      if (p === '/api/catalysts') {
+        const day = n => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+        res.writeHead(200, { 'content-type': 'application/json' });
+        return res.end(JSON.stringify({ available: true, events: [
+          { id: 'earn-NVDA', ticker: 'NVDA', title: 'NVDA quarterly results', category: 'earnings', status: 'confirmed-date',
+            expectedAt: day(1), expectedWindowStart: null, expectedWindowEnd: null, session: 'amc', quarter: 3, year: 2027,
+            timezone: 'America/New_York', confidence: 'confirmed', isCompanyGuidance: false, provider: 'finnhub',
+            affectsMetric: null, description: 'Scheduled quarterly results.' },
+          { id: 'earn-IREN', ticker: 'IREN', title: 'IREN quarterly results', category: 'earnings', status: 'confirmed-date',
+            expectedAt: day(11), expectedWindowStart: null, expectedWindowEnd: null, session: null,
+            timezone: 'America/New_York', confidence: 'confirmed', isCompanyGuidance: false, provider: 'finnhub',
+            affectsMetric: null, description: 'Scheduled quarterly results.' }
+        ] }));
+      }
       if (p === '/api/news') {
         // A reachable image, so the card's own onerror handler does not remove it.
         const realArt = `http://${req.headers.host}/Logo/logo-header.png`;
@@ -367,21 +381,35 @@ const run = async () => {
     focusTrail.length === 15 && !focusTrail.includes('BODY'),
     `${walk.start} → ${focusTrail.join(',')}`);
 
-  /* ---- the map now lives on the Sites explorer ---- */
+  /* ---- sites: cards, no animated map ---- */
   await page.goto(base + '/sites/', { waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 300));
-  const zoomBefore = await page.$eval('#mapImg', el => getComputedStyle(el).transform);
-  await page.click('#mapIn');
-  await new Promise(r => setTimeout(r, 320));
-  const zoomAfter = await page.$eval('#mapImg', el => getComputedStyle(el).transform);
-  check('the map zoom control works on its new route', zoomBefore !== zoomAfter, `${zoomBefore} -> ${zoomAfter}`);
+  const sitesPage = await page.evaluate(() => ({
+    map: !!document.getElementById('infrastructure'),
+    cards: document.querySelectorAll('.sitecard').length,
+    labels: [...document.querySelectorAll('.sitecard .hmstatus')].map(e => e.textContent.trim())
+  }));
+  check('the sites page has no animated map', !sitesPage.map);
+  check('every site card carries its one-word status',
+    sitesPage.cards > 0 && sitesPage.labels.length === sitesPage.cards, `${sitesPage.labels.length}/${sitesPage.cards}`);
 
-  const hotHref = await page.$eval('#mapView .hot', el => el.getAttribute('href'));
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle0' }),
-    page.click('#mapView .hot')
-  ]);
-  check('a map hotspot still opens its site', page.url().endsWith(hotHref), page.url());
+  /* ---- catalysts: the earnings calendar leads ---- */
+  await page.goto(base + '/catalysts/', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 300));
+  const ec = await page.evaluate(() => ({
+    first: document.querySelector('main h1').textContent.trim(),
+    cards: [...document.querySelectorAll('#ecNext .eccard')].map(c => ({
+      name: c.querySelector('.ecname').textContent.replace(/\s+/g, ' ').trim(),
+      when: c.querySelector('.eccountdown').textContent.trim(),
+      soon: c.classList.contains('is-soon'),
+      touches: [...c.querySelectorAll('.nhtag-op')].map(t => t.firstChild.textContent.trim())
+    }))
+  }));
+  check('the catalysts page leads with the earnings calendar', /Earnings calendar/.test(ec.first), ec.first);
+  check('the next reports render as date cards, soonest first',
+    ec.cards.length === 2 && /NVIDIA/.test(ec.cards[0].name), JSON.stringify(ec.cards.map(c => c.name)));
+  check('a report this week is highlighted with a countdown', ec.cards[0].soon && /Tomorrow/.test(ec.cards[0].when), ec.cards[0].when);
+  check('an NVIDIA report shows the neoclouds it touches',
+    ['IREN', 'CoreWeave', 'Nebius'].every(n => ec.cards[0].touches.includes(n)), ec.cards[0].touches.join(','));
 
   /* ---- the watchlist journey works end to end ---- */
   await page.evaluate(() => localStorage.removeItem('t2c-watch'));
@@ -466,7 +494,7 @@ const run = async () => {
     palClosed && focusRestored === 'palOpen', `closed=${palClosed} focus=${focusRestored}`);
 
   /* ---- nav marks exactly one destination current ---- */
-  for (const [route, expect] of [['/companies/', '/companies/'], ['/news/', '/news/'],
+  for (const [route, expect] of [['/companies/', '/companies/'], ['/news/', '/news/'], ['/catalysts/', '/catalysts/'],
     ['/ai-news/', '/news/']]) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const current = await page.$$eval('[aria-current="page"]', els =>
@@ -476,7 +504,7 @@ const run = async () => {
   }
 
   // A route demoted to the utility menu still says where you are.
-  for (const route of ['/sites/', '/catalysts/', '/explainers/', '/intelligence/']) {
+  for (const route of ['/sites/', '/explainers/', '/intelligence/']) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const marked = await page.$$eval('.umenubtn[aria-current="page"]', els =>
       els.map(e => e.getAttribute('href')));
