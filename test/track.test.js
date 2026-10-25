@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { PROJECTS } from "../data/projects.js";
 import { trackRead } from "../src/lib/track.js";
+import { trackBody } from "../src/track-page.js";
+import { sectorPanel } from "../src/sector-panel.js";
 
 const project = (id) => PROJECTS.find((item) => item.id === id);
 const point = (id) => ({
@@ -25,6 +27,16 @@ test("Horizon 1 grid is the energised campus, not a copied permit", () => {
   const grid = trackRead(hall, point("grid"));
   assert.equal(grid.label, "On the grid");
   assert.match(grid.note, /13 Aug 2026/);
+});
+
+test("the sector reading is a word count, and the long list starts closed", () => {
+  const home = sectorPanel("home");
+  const track = trackBody();
+  assert.match(home, /Sector now/);
+  assert.match(home, /Not a forecast and not advice/);
+  assert.match(track, /data-sector/);
+  assert.equal(track.includes("The rest of the list"), false);
+  assert.equal(track.includes("<script>"), false);
 });
 
 test("Spain does not borrow Childress", () => {

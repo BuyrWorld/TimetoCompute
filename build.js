@@ -813,6 +813,7 @@ function todayPage() {
     body: todayBody(),
     inlineData: { T2C_COMPARE: comparePayload() },
     active: 'today',
+    extraScripts: ['/sector-wire.js'],
     structured: DATASET_LD()
   });
 }
@@ -864,7 +865,8 @@ function trackPage() {
       'Hourly, daily and weekly headlines for the neocloud names, and Elon’s build list scored from the T2C ledger. Horizon 1 and Horizons 2–4 share the Childress campus.',
     canonical: SITE + '/track/',
     body: trackBody(),
-    active: 'track'
+    active: 'track',
+    extraScripts: ['/sector-wire.js']
   });
 }
 
@@ -2067,6 +2069,7 @@ fs.writeFileSync(path.join(OUT, 'styles.css'),
   ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css', 'ainews.css', 'timemachine.css', 'chainmap.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
+fs.cpSync(path.join(ROOT, 'src', 'sector-wire.js'), path.join(OUT, 'sector-wire.js'));
 fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
 fs.cpSync(path.join(ROOT, 'src', 'lab-ui.js'), path.join(OUT, 'lab-ui.js'));
 fs.cpSync(path.join(ROOT, 'src', 'timemachine-app.js'), path.join(OUT, 'time-machine.js'));

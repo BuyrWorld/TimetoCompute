@@ -6,6 +6,7 @@
  * marketing hero, the aggregate strip or the ticker: the tool starts at the top.
  */
 import { METRICS, MODELS, POWER_BASIS } from '../data/schema.js';
+import { sectorPanel } from './sector-panel.js';
 import { COUNTRY_NAMES } from '../data/projects.js';
 import { COMPANIES, WATCH_TICKERS, TICKER_NAMES } from '../data/companies.js';
 import { PROFILES, PROFILE_BY_ID, PROFILE_BY_TICKER } from '../data/profiles.js';
@@ -135,6 +136,7 @@ export function todayBody() {
 ${whyDrawer(story)}
 
 <div class="t2c-shell ed-main">
+  ${sectorPanel("home")}
   ${returningSummary()}
 
   <section class="ed-section" aria-labelledby="buildout-h">

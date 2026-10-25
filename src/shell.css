@@ -34,13 +34,18 @@ html[data-theme="light"] .appbar { background: rgba(255, 255, 255, 0.92); }
 .brand img { height: 30px; width: auto; display: block; }
 
 .mainnav { display: flex; gap: 2px; margin-right: auto; }
+.sector-line { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; max-width: 18em; margin: 12px 0 4px; }
+.sector details { margin-top: 16px; }
+.sector details summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
 .winrow { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
 .winrow .press { min-height: 44px; padding: 0 14px; border: 1px solid var(--line); background: transparent; color: inherit; }
 .winrow .press[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
 .namenames { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .namenames a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid var(--line); text-decoration: none; }
 .tapelist { list-style: none; margin: 0; padding: 0; }
-.tapelist li { padding: 12px 0; border-top: 1px solid var(--line); }
+.sector-line { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; max-width: 18em; margin: 12px 0 4px; }
+.sector details { margin-top: 16px; }
+.sector details summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
 .navlink {
   display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px;
   font-size: 14.5px; font-weight: 700; color: var(--dim); text-decoration: none;
