@@ -978,7 +978,7 @@ function aiNewsPage({ canonical = '/news/', active = 'ainews' } = {}) {
     canonical: SITE + canonical,
     body: newsHubBody({ freshness: FRESHNESS }),
     inlineData: { T2C_NEWS: newsHubData() },
-    extraScripts: ['/news-classify.js', '/newshub.js'],
+    extraScripts: ['/news-classify.js', '/newshub.js', '/digest.js'],
     active
   });
 }
@@ -1453,7 +1453,7 @@ function companyPage(c) {
     canonical: `${SITE}/companies/${c.slug}/`,
     body,
     inlineData: { T2C_NEWS: newsHubData() },
-    extraScripts: ['/news-classify.js', '/newshub.js', '/company.js'],
+    extraScripts: ['/news-classify.js', '/newshub.js', '/company.js', '/digest.js'],
     active: 'companies',
     structured: [organizationLd(PROFILE_BY_ID[c.id]), {
       '@context': 'https://schema.org',
@@ -2008,6 +2008,7 @@ fs.cpSync(path.join(ROOT, 'src', 'chainx-app.js'), path.join(OUT, 'chainx.js'));
 fs.cpSync(path.join(ROOT, 'src', 'newshub-app.js'), path.join(OUT, 'newshub.js'));
 fs.cpSync(path.join(ROOT, 'src', 'news-classify.js'), path.join(OUT, 'news-classify.js'));
 fs.cpSync(path.join(ROOT, 'src', 'company-app.js'), path.join(OUT, 'company.js'));
+fs.cpSync(path.join(ROOT, 'src', 'digest-app.js'), path.join(OUT, 'digest.js'));
 fs.cpSync(path.join(ROOT, 'src', 'earnings-app.js'), path.join(OUT, 'earnings.js'));
 fs.cpSync(path.join(ROOT, 'src', 'sitenews-app.js'), path.join(OUT, 'site-news.js'));
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'chain-mapping'),

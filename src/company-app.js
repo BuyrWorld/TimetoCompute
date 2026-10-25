@@ -62,10 +62,15 @@
     document.querySelector('.cotabs').scrollIntoView({ block: 'start' });
   });
 
-  // A deep link to a section inside a tab (e.g. #score) opens that tab first.
-  var hash = location.hash.slice(1);
-  var target = hash && document.getElementById(hash);
-  var owner = target && panels.filter(function (p) { return p && p.contains(target); })[0];
-  show(owner ? owner.id : hash || 'overview');
-  if (owner && target !== owner) setTimeout(function () { target.scrollIntoView(); }, 0);
+  // A deep link to a section inside a tab (e.g. #score) opens that tab first —
+  // on load, and whenever the hash changes (back button, an edited address).
+  function follow() {
+    var hash = location.hash.slice(1);
+    var target = hash && document.getElementById(hash);
+    var owner = target && panels.filter(function (p) { return p && p.contains(target); })[0];
+    show(owner ? owner.id : 'overview');
+    if (owner && target !== owner) setTimeout(function () { target.scrollIntoView(); }, 0);
+  }
+  window.addEventListener('hashchange', follow);
+  follow();
 })();

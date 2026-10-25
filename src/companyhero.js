@@ -15,6 +15,7 @@ import { chainIdFor } from './lib/impact.js';
 import { siteStatus } from './lib/sites.js';
 import { isKnown } from './lib/compute.js';
 import { esc, mw, date } from './lib/format.js';
+import { digestControl } from './newshub.js';
 
 const fmtMw = m => isKnown(m) ? `${m.valueStatus === 'minimum' ? '≥' : ''}${mw(m.valueMw)}` : null;
 
@@ -120,7 +121,8 @@ export function overviewPanel(c, v, { freshness, cats }) {
   ${fr ? (fr.unreviewed.length
     ? `<div class="nhfresh"><p><b>${fr.unreviewed.length} new filing${fr.unreviewed.length === 1 ? '' : 's'} not yet reviewed</b> — the figures on this page do not reflect ${fr.unreviewed.length === 1 ? 'it' : 'them'} yet.</p>
         <ul>${fr.unreviewed.map(u => `<li><span class="hmwhen">${esc(date(u.filed))}</span> ${esc(u.form)} · ${esc(u.description)}
-          <a class="cxsrc" href="${esc(u.url)}" target="_blank" rel="noopener">EDGAR ↗</a></li>`).join('')}</ul></div>`
+          <a class="cxsrc" href="${esc(u.url)}" target="_blank" rel="noopener">EDGAR ↗</a>
+          ${digestControl(u)}</li>`).join('')}</ul></div>`
     : `<p class="cofresh">Every SEC filing reviewed through ${esc(date(fr.reviewedThrough))}.</p>`) : ''}
   <div class="cogrid2">
     <div>

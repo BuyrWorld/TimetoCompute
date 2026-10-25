@@ -11,6 +11,7 @@
  * Without one the check is skipped and the site says nothing either way — it
  * never claims to be up to date when it could not look.
  */
+import fs from 'node:fs';
 import { REVIEWED_THROUGH, SEC_CIK } from '../../data/review.js';
 import { COMPANIES } from '../../data/companies.js';
 
@@ -36,6 +37,8 @@ function describe(rec, i) {
 }
 
 export async function checkFreshness({ log = () => {}, ua = process.env.SEC_UA } = {}) {
+  // QA renders the not-yet-reviewed state from a fixture, since a fresh review leaves nothing to show.
+  if (process.env.T2C_FRESHNESS_FIXTURE) return JSON.parse(fs.readFileSync(process.env.T2C_FRESHNESS_FIXTURE, 'utf8'));
   if (!ua) { log('  freshness: skipped (no SEC_UA at build time)'); return null; }
   const out = [];
   for (const c of COMPANIES) {

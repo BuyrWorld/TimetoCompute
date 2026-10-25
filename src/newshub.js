@@ -61,6 +61,12 @@ export function newsHubData() {
 }
 
 /** The sidebar's freshness note: what the record has not caught up with yet. */
+/** The button that asks /api/digest for a plain-English summary of one unreviewed filing. */
+export function digestControl(u) {
+  return `<button class="dgbtn press" type="button" data-digest="${esc(u.url)}" aria-expanded="false">Summarise in plain English</button>
+    <div class="dgout" hidden aria-live="polite"></div>`;
+}
+
 export function freshnessPanel(freshness) {
   if (!freshness) return '';
   const rows = freshness.companies.flatMap(c => c.unreviewed.map(u => ({ ...u, c })))
@@ -75,7 +81,8 @@ export function freshnessPanel(freshness) {
     the figures on this site do not reflect ${rows.length === 1 ? 'it' : 'them'} yet.</p>
     <ul>${rows.slice(0, 8).map(u => `<li><span class="hmwhen">${esc(date(u.filed))}</span>
       <a href="/companies/${esc(u.c.slug)}/">${esc(u.c.name)}</a> · ${esc(u.form)} · ${esc(u.description)}
-      <a class="cxsrc" href="${esc(u.url)}" target="_blank" rel="noopener">EDGAR ↗</a></li>`).join('')}</ul>
+      <a class="cxsrc" href="${esc(u.url)}" target="_blank" rel="noopener">EDGAR ↗</a>
+      ${digestControl(u)}</li>`).join('')}</ul>
     <p class="nhmeta">Checked against EDGAR ${esc(checked)}</p></div>`;
 }
 

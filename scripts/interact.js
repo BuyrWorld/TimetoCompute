@@ -83,6 +83,15 @@ function serve() {
           ]
         }));
       }
+      /* A digest whose points have already been checked server-side; the
+         button only appears in a build that has unreviewed filings
+         (T2C_FRESHNESS_FIXTURE), so the check below runs only then. */
+      if (p === '/api/digest') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        return res.end(JSON.stringify({ ok: true, headline: 'IREN reported its full-year results.', unverifiedDropped: 1,
+          truncated: false, writtenAt: new Date().toISOString(),
+          points: [{ point: 'Signed a multi-year contract with a frontier AI lab.', quote: 'Signed a new multi-year AI Cloud contract with a leading frontier AI lab' }] }));
+      }
       if (p.startsWith('/api/')) {
         res.writeHead(503, { 'content-type': 'application/json' });
         return res.end('{"error":"offline in QA"}');
@@ -334,6 +343,22 @@ const run = async () => {
   await page.click('.coscore');
   const ring = await page.evaluate(() => !document.getElementById('record').hidden);
   check('the Reality Score ring opens the record that explains it', ring);
+
+  /* ---- company page: plain-English digest of an unreviewed filing ---- */
+  await page.goto(base + '/companies/iren/', { waitUntil: 'networkidle0' });
+  if (await page.$('#overview [data-digest]')) {
+    await page.click('#overview [data-digest]');
+    await page.waitForSelector('#overview .dgpoints', { timeout: 5000 }).catch(() => {});
+    const dg = await page.evaluate(() => {
+      const out = document.querySelector('#overview .dgout');
+      return { open: !out.hidden, label: !!out.querySelector('.dglabel'), quote: !!out.querySelector('.dgpoints blockquote'),
+        dropped: /1 point was dropped/.test(out.textContent), btn: document.querySelector('#overview [data-digest]').textContent };
+    });
+    check('a new filing can be read in plain English, each point beside its quote, labelled as AI', dg.open && dg.label && dg.quote && dg.dropped, JSON.stringify(dg));
+    await page.click('#overview [data-digest]');
+    const shut = await page.evaluate(() => document.querySelector('#overview .dgout').hidden);
+    check('the digest button closes what it opened', shut);
+  }
 
   /* ---- company page: score, path, x-ray (in the Record tab) ---- */
   await page.goto(base + '/companies/iren/#record', { waitUntil: 'networkidle0' });
