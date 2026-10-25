@@ -49,7 +49,7 @@ export function newsHubData() {
   // The client needs the chain to work out who each live story touches.
   return {
     companies: CHAIN_COMPANIES.map(c => ({ id: c.id, name: c.name, ticker: c.ticker, stage: c.stage, href: c.href || null })),
-    links: CHAIN_LINKS.map(l => ({ from: l.from, to: l.to, what: l.what })),
+    links: CHAIN_LINKS.map(l => ({ from: l.from, to: l.to, what: l.what, kind: l.kind })),
     stages: CX_COLUMNS.map((col, i) => ({
       i, stages: col.stages, frame: col.frame,
       label: col.label || CHAIN_STAGES.find(s => s.id === col.stages[0]).label,

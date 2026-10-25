@@ -36,8 +36,8 @@
   function neighbours(id) {
     var out = [];
     D.links.forEach(function (l) {
-      if (l.from === id) out.push({ id: l.to, what: l.what });
-      if (l.to === id) out.push({ id: l.from, what: l.what });
+      if (l.from === id) out.push({ id: l.to, what: l.what, dir: 'down', kind: l.kind });
+      if (l.to === id) out.push({ id: l.from, what: l.what, dir: 'up', kind: l.kind });
     });
     return out;
   }
@@ -53,6 +53,12 @@
         }
         if (byId[n1.id] && byId[n1.id].stage !== 'operators') {
           neighbours(n1.id).forEach(function (n2) {
+            /* Two hops only along one direction: TSMC -> NVIDIA -> CoreWeave is a
+               supply chain; AMD -> OpenAI <- CoreWeave is two suppliers sharing a
+               customer, and is not a link between them. */
+            // Credit backing is the exception: Google guaranteeing Fluidstack's lease
+            // reaches the landlord (TeraWulf) whichever way the link is drawn.
+            if (n2.dir !== n1.dir && n1.kind !== 'backing') return;
             if (byId[n2.id] && byId[n2.id].stage === 'operators' && named.indexOf(n2.id) < 0 && !found[n2.id]) {
               found[n2.id] = 'via ' + byId[n1.id].name;
             }
