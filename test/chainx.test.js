@@ -14,6 +14,7 @@ import { CHAIN_STAGES } from '../data/chainstages.js';
 import { SOURCE_BY_ID } from '../data/sources.js';
 import { allSites, siteStatus } from '../src/lib/sites.js';
 import { siteAliases } from '../src/pages.js';
+import vm from 'node:vm';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const read = rel => fs.readFileSync(path.join(ROOT, 'dist', rel), 'utf8');
@@ -156,4 +157,34 @@ test('the sites page has no animated map', () => {
   const html = read('sites/index.html');
   assert.ok(!/id="infrastructure"/.test(html), 'the infrastructure map is back');
   assert.ok(!/class="vehicle/.test(html), 'the moving vehicle is back');
+});
+
+/* ---- news: industry news vs market commentary ---- */
+
+const classify = (() => {
+  const m = { exports: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'src', 'news-classify.js'), 'utf8'), { module: m });
+  return m.exports.classify;
+})();
+
+test('real industry headlines are kept as news', () => {
+  for (const h of [
+    'Nebius Group (NBIS) Starts On Site Power At Its 300 MW New Jersey Data Center',
+    'Amazon.com (AMZN) Cancels $427 Million Loudoun County Data Center Project',
+    'Nebius Secures $3.5 Billion From Citi as It Shifts From Converts to Secured Debt',
+    'IREN Rises 4% on 300MW Spanish “Sovereign AI” Campus as Neocloud Stocks Rebound',
+    'TSMC warns of tight advanced-packaging supply'
+  ]) assert.equal(classify(h), 'industry', h);
+});
+
+test('stock-tip and valuation pieces are market commentary', () => {
+  for (const h of [
+    "Here's What $10,000 Invested Equally in Nvidia, AMD, and Broadcom Could Be Worth by 2030",
+    'Where Will Broadcom Stock Be in 5 Years?',
+    'Nvidia vs. Micron: The AI Revolution Is Big Enough for Both. Here\'s the Better Buy.',
+    'Can GE Vernova\'s Gas Turbines Make Up for a Collapsing Wind Business?',
+    'GE Vernova Fell Nearly 11% in a Day After Meta\'s Earnings. Here\'s Where the Stock Could Go by 2030',
+    'Top 3 Grid Infrastructure Stocks To Watch In October 2026',
+    'Elon Musk Just Delivered Spectacular News for SpaceX Stock Investors'
+  ]) assert.equal(classify(h), 'commentary', h);
 });

@@ -783,7 +783,7 @@ function todayPage() {
     body: todayBody(),
     inlineData: { T2C_CHAIN: chainExplorerData(), T2C_NEWS: newsHubData() },
     active: 'today',
-    extraScripts: ['/chainx.js', '/newshub.js'],
+    extraScripts: ['/chainx.js', '/news-classify.js', '/newshub.js'],
     structured: DATASET_LD()
   });
 }
@@ -970,7 +970,7 @@ function aiNewsPage({ canonical = '/news/', active = 'ainews' } = {}) {
     canonical: SITE + canonical,
     body: newsHubBody(),
     inlineData: { T2C_NEWS: newsHubData() },
-    extraScripts: ['/newshub.js'],
+    extraScripts: ['/news-classify.js', '/newshub.js'],
     active
   });
 }
@@ -1979,6 +1979,7 @@ fs.cpSync(path.join(ROOT, 'src', 'lab-ui.js'), path.join(OUT, 'lab-ui.js'));
 fs.cpSync(path.join(ROOT, 'src', 'chainmap-app.js'), path.join(OUT, 'chain-mapping.js'));
 fs.cpSync(path.join(ROOT, 'src', 'chainx-app.js'), path.join(OUT, 'chainx.js'));
 fs.cpSync(path.join(ROOT, 'src', 'newshub-app.js'), path.join(OUT, 'newshub.js'));
+fs.cpSync(path.join(ROOT, 'src', 'news-classify.js'), path.join(OUT, 'news-classify.js'));
 fs.cpSync(path.join(ROOT, 'src', 'earnings-app.js'), path.join(OUT, 'earnings.js'));
 fs.cpSync(path.join(ROOT, 'src', 'sitenews-app.js'), path.join(OUT, 'site-news.js'));
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'chain-mapping'),

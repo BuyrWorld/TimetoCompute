@@ -88,7 +88,9 @@ export function newsHubBody() {
       <ol class="nhstories" id="nhStories" data-tickers="${esc(tickers.join(','))}">
         <li class="nhempty">Loading the latest stories…</li>
       </ol>
-      <p class="nhdisc">Headlines are third-party and shown as published. “Touches” lists the operators a named
+      <button type="button" class="nhchip press nhmore" id="nhMore" aria-pressed="false" hidden>Show market commentary</button>
+      <p class="nhdisc">Headlines are third-party and shown as published. Stock-tip and valuation pieces are
+        hidden as market commentary — one tap shows them. “Touches” lists the operators a named
         company is linked to by a filing — exposure, not a prediction, and never investment advice.</p>
     </section>
 

@@ -79,9 +79,22 @@
   function tone(h) { return DOWN.test(h) ? 'down' : UP.test(h) ? 'up' : 'flat'; }
 
   var stories = [];
+  var showAll = false;
+  var classify = window.T2C_classifyNews || function () { return 'industry'; };
 
+  var current = 'all';
   function render(filter) {
-    var rows = stories.filter(function (s) {
+    current = filter;
+    var industry = stories.filter(function (s) { return s.cls === 'industry'; });
+    var pool = showAll ? stories : industry;
+    var hidden = stories.length - industry.length;
+    var more = document.getElementById('nhMore');
+    if (more) {
+      more.hidden = !hidden;
+      more.textContent = showAll ? 'Hide market commentary' : 'Show ' + hidden + ' market-commentary stor' + (hidden === 1 ? 'y' : 'ies');
+      more.setAttribute('aria-pressed', String(showAll));
+    }
+    var rows = pool.filter(function (s) {
       if (filter === 'all') return true;
       if (filter === 'neocloud') return s.ops.length || s.named.some(function (id) { return byId[id].stage === 'operators'; });
       if (filter === 'models') return s.model;
@@ -115,6 +128,9 @@
       '</li>';
     }).join('') : '<li class="nhempty">No story in this part of the chain in the last few days.</li>';
   }
+
+  var moreBtn = document.getElementById('nhMore');
+  if (moreBtn) moreBtn.addEventListener('click', function () { showAll = !showAll; render(current); });
 
   var filters = document.querySelectorAll('[data-filter]');
   filters.forEach(function (b) {
@@ -152,10 +168,14 @@
           // Yahoo sends one generic house image for every story; that is not story art.
           headline: h, url: n.url, source: n.source, datetime: n.datetime,
           image: n.image && !/s\.yimg\.com\/.*yahoo_finance/i.test(n.image) ? n.image : null,
-          named: named, model: model, tone: tone(h), ops: touchedOperators(named),
+          named: named, model: model, tone: tone(h), ops: touchedOperators(named), cls: classify(h),
           stages: named.map(function (id) { return stageIndex(byId[id].stage); })
         };
       }).filter(Boolean);
+      /* Industry news first, newest first within each class; commentary only
+         appears when asked for. */
+      var rank = { industry: 0, other: 1, commentary: 2 };
+      stories.sort(function (a, b) { return (rank[a.cls] - rank[b.cls]) || ((b.datetime || 0) - (a.datetime || 0)); });
       render('all');
     })
     .catch(function () {

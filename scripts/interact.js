@@ -60,7 +60,7 @@ function serve() {
               image: realArt, symbols: ['IREN']
             },
             {
-              headline: 'CoreWeave and Nebius trade higher on Yahoo placeholder day', url: 'https://example.com/b',
+              headline: 'CoreWeave and Nebius sign capacity deal on Yahoo placeholder day', url: 'https://example.com/b',
               source: 'Yahoo', datetime: Math.floor(Date.now() / 1000) - 7200,
               image: 'https://s.yimg.com/rz/stage/p/yahoo_finance_en-US_h_p_finance_2.png',
               symbols: ['CRWV', 'NBIS']
@@ -69,6 +69,11 @@ function serve() {
               headline: 'TSMC warns of tight advanced-packaging supply', url: 'https://example.com/c',
               source: 'SeekingAlpha', datetime: Math.floor(Date.now() / 1000) - 86400,
               image: null, symbols: ['TSM']
+            },
+            {
+              headline: "Here's what $10,000 invested in Nvidia could be worth by 2030", url: 'https://example.com/e',
+              source: 'Yahoo', datetime: Math.floor(Date.now() / 1000) - 900,
+              image: null, symbols: ['NVDA']
             },
             {
               headline: 'Elon Musk delivers spectacular news for rocket investors', url: 'https://example.com/d',
@@ -222,6 +227,14 @@ const run = async () => {
   const tsmc = hub.find(x => /TSMC/.test(x.h));
   check('a chip story reaches the neoclouds through disclosed links',
     tsmc && ['IREN', 'CoreWeave', 'Nebius'].every(n => tsmc.touches.includes(n)), JSON.stringify(tsmc && tsmc.touches));
+  check('stock-tip commentary is hidden by default', !hub.some(x => /could be worth/.test(x.h)));
+  await page.click('#nhMore');
+  await new Promise(r => setTimeout(r, 150));
+  const withAll = await page.$$eval('.nhstory .nhstoryh', els => els.map(e => e.textContent));
+  const moreLabel = await page.$eval('#nhMore', el => el.textContent);
+  check('one tap shows the market commentary, and says it can hide it again',
+    withAll.some(h => /could be worth/.test(h)) && /Hide/.test(moreLabel), moreLabel);
+  await page.click('#nhMore');
   const hexes = await page.$$eval('.nhstory .nhhex img', els => els.length);
   check('each mapped story carries its stage art', hexes >= 3, `${hexes}`);
 
