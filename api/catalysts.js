@@ -33,15 +33,22 @@ export default async function handler(req, res) {
      limit; a small pool keeps a refresh well inside it, and the hour-long
      edge cache means a refresh happens about once an hour. */
   const POOL = 6;
-  const queue = [...symbols];
+  /* The tracked operators go first. If the provider's quota runs short it is
+     the end of the queue that misses out, and that should be a supplier, not
+     a neocloud — the calendar exists to show those. */
+  const priority = new Set(TRADING_TICKERS);
+  const queue = [...symbols].sort((a, b) => (priority.has(b) ? 1 : 0) - (priority.has(a) ? 1 : 0));
   const worker = async () => { for (let sym; (sym = queue.shift());) await one(sym); };
+  const pause = ms => new Promise(r => setTimeout(r, ms));
   async function one(sym) {
     /* A failed lookup (rate limit, outage) must not be cached: it used to be
        kept for the full six hours, so one burst of traffic could drop a
        company off the calendar for the rest of the day. Throwing skips the
-       cache write, and `cached` serves any older good copy instead. */
+       cache write, and `cached` serves any older good copy instead. A rate
+       limit gets one retry after a pause. */
     const r = await cached(`earn:${sym}:${from}`, TTL, async () => {
-      const c = await finnhub('/calendar/earnings', { from, to, symbol: sym });
+      let c = await finnhub('/calendar/earnings', { from, to, symbol: sym });
+      if (!c.ok && c.reason === 'rate-limited') { await pause(1500); c = await finnhub('/calendar/earnings', { from, to, symbol: sym }); }
       if (!c.ok) throw Object.assign(new Error(c.reason || 'provider-error'), { reason: c.reason });
       return { ok: true, rows: c.data?.earningsCalendar || [], reason: null };
     }).catch(err => ({ ok: false, rows: [], reason: err.reason || err.message || 'provider-error' }));
