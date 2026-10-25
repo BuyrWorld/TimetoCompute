@@ -1,0 +1,42 @@
+# Every push and pull request: build the site and run the full check —
+# data validation, the test suite, the page audit and the anchor check
+# (npm run verify). A failing commit is marked with a red cross on GitHub.
+#
+# Vercel deploys main on its own. To stop a failing commit going live, turn on
+# Vercel > Project > Settings > Git > "Wait for checks" (or Deployment Checks)
+# and select this workflow's "verify" job.
+#
+# The build runs without the provider keys, so the snapshots that need them
+# (earnings dates, share moves, the EDGAR freshness check) are skipped here,
+# exactly as on a local build. The exchange-rate fetch falls back to its
+# snapshot if the ECB is unreachable.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build and check
+        run: npm run verify

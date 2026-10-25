@@ -22,7 +22,9 @@
     "centring": "node scripts/centring.js",
     "//verify": "build first: the shell tests read dist/, and build.js already gates itself on data validation",
     "verify": "npm run build && npm run test && node scripts/audit.js && node scripts/anchors.js",
-    "verify:visual": "npm run verify && npm run shots && npm run overflow && npm run imagecheck && npm run centring && npm run interact"
+    "verify:visual": "npm run verify && npm run shots && npm run overflow && npm run imagecheck && npm run centring && npm run interact",
+    "//health": "checks the live site: key pages and API routes, each for the content that proves it works",
+    "health": "node scripts/health.mjs"
   },
   "engines": {
     "node": ">=20"

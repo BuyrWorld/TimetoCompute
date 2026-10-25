@@ -1,4 +1,4 @@
-# Daily production rebuild, then the filing freshness report.
+# Daily production rebuild, then the filing freshness report and a live health check.
 #
 # 1. Triggers a production rebuild through a Vercel deploy hook. The build
 #    refreshes the earnings snapshot (src/lib/earnings-snapshot.js) and checks
@@ -6,6 +6,8 @@
 # 2. Waits for that build's /freshness.json and keeps one GitHub issue,
 #    labelled "freshness", listing the filings waiting to be reviewed — opened
 #    or updated when there are some, closed when there are none.
+# 3. Checks the live pages and API routes (scripts/health.mjs) and keeps one
+#    issue labelled "health" open while anything is broken.
 #
 # Setup (once): create a deploy hook in Vercel (Project > Settings > Git >
 # Deploy Hooks, branch "main") and save its URL as the repository secret
@@ -53,3 +55,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/freshness-issue.mjs
+
+      # Runs even if the freshness report failed: a broken site matters more.
+      - name: Check the live site works
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/health.mjs
