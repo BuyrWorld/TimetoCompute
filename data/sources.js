@@ -6,9 +6,13 @@
  * the company or a regulator — only a primary source can support a `confirmed`
  * value. All URLs were checked reachable on the audit date below.
  */
-export const AUDIT_CUTOFF = '2026-08-15';
+export const AUDIT_CUTOFF = '2026-10-25';
 
-const S = (id, o) => ({ id, accessedAt: AUDIT_CUTOFF, ...o });
+/* Sources read in the August audit keep their own access date; only documents
+   read in the October refresh carry the new cutoff. */
+const AUGUST_AUDIT = '2026-08-15';
+const S = (id, o) => ({ id, accessedAt: AUGUST_AUDIT, ...o });
+const R = (id, o) => ({ id, accessedAt: AUDIT_CUTOFF, ...o });
 
 export const SOURCES = [
 
@@ -483,7 +487,95 @@ export const SOURCES = [
       'Describes Fabrinet as a provider of advanced optical packaging and precision optical, ' +
       'electro-mechanical and electronic manufacturing services to OEMs. Establishes the business ' +
       'model; names no optical customer.'
-  })
+  }),
+
+  /* ---------------- October 2026 refresh ----------------
+     Every SEC filing made by a tracked company between the August audit and
+     25 October 2026, read from EDGAR. Filings that changed no tracked figure
+     (insider Form 4s, AGM results) are not listed. */
+  R('iren-fy26-results', {
+    title: 'IREN Reports FY26 Results (Exhibit 99.1)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1878848/000187884826000051/irenreportsfy26results.htm',
+    publisher: 'IREN Limited (SEC EDGAR)', sourceType: 'sec-filing',
+    publishedAt: '2026-08-27', effectiveAt: '2026-08-27', isPrimary: true,
+    supportingExcerpt:
+      '"$4bn contracted ARR for 2026 capacity; $1bn ARR operating today." Horizon 2 commissioning ' +
+      'underway and Horizon 3-4 in late-stage construction, targeting delivery in Q4 2026. Targeting ' +
+      'cumulative delivery of approximately 0.3GW (IT) in 2026 and 0.8GW (IT) in 2027. New multi-year ' +
+      'AI Cloud contract with a leading frontier AI lab.'
+  }),
+  R('iren-10k-fy26', {
+    title: 'IREN Limited annual report, fiscal year ended 30 June 2026 (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1878848/000187884826000052/iren-20260630.htm',
+    publisher: 'IREN Limited (SEC EDGAR)', sourceType: 'sec-filing',
+    publishedAt: '2026-08-27', effectiveAt: '2026-06-30', isPrimary: true,
+    supportingExcerpt:
+      '"As of June 30, 2026, our operating AI Cloud Services capacity represented approximately 40MW." ' +
+      '"Executed grid connection agreements ... representing approximately 5GW of total power capacity." ' +
+      '"Horizon 2-4 is targeted for delivery in phases in calendar Q4 2026, with grace periods under the ' +
+      'Microsoft Agreement for delivery extending from mid-Q4 2026 to the beginning of Q2 2027."'
+  }),
+  R('apld-q1-fy27-results', {
+    title: 'Applied Digital Reports Fiscal First Quarter 2027 Results (Exhibit 99.1)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1144879/000114487926000057/apldq127earningsrelease.htm',
+    publisher: 'Applied Digital Corporation (SEC EDGAR)', sourceType: 'sec-filing',
+    publishedAt: '2026-10-07', effectiveAt: '2026-10-01', isPrimary: true,
+    supportingExcerpt:
+      '"On October 1, 2026, the Company achieved Ready for Service for the second 75 MW phase of Building 2 ' +
+      'at Polaris Forge 1, bringing fully operational critical IT load at the campus to 250 MW." Leases for ' +
+      'approximately 1.41 GW of critical IT across five campuses, approximately $36bn over initial base ' +
+      'terms. Expects initial operations at Polaris Forge 2 to bring delivered critical IT load across the ' +
+      'North Dakota campuses to 300 MW by the end of calendar 2026.'
+  }),
+  R('apld-10q-20260831', {
+    title: 'Applied Digital Corporation quarterly report, quarter ended 31 August 2026 (Form 10-Q)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1144879/000114487926000059/apld-20260831.htm',
+    publisher: 'Applied Digital Corporation (SEC EDGAR)', sourceType: 'sec-filing',
+    publishedAt: '2026-10-07', effectiveAt: '2026-08-31', isPrimary: true,
+    supportingExcerpt:
+      'Polaris Forge 1 third building (150MW) under construction, full ready for service in calendar 2027. ' +
+      'Polaris Forge 2: two buildings, aggregate 300MW, initial ready for service H2 2026, full capacity early ' +
+      '2027. Polaris Forge 3: aggregate 300MW, initial RFS H2 2027. Delta Forge 1: aggregate 300MW, initial ' +
+      'RFS H1 2027.'
+  }),
+  R('wulf-muskie-1gw', {
+    title: 'TeraWulf Expands Contracted Power Capacity at its Muskie Data Campus to 1 GW (Exhibit 99.1)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1083301/000162828026064757/muskieexpansionpr.htm',
+    publisher: 'TeraWulf Inc. (SEC EDGAR)', sourceType: 'sec-filing',
+    publishedAt: '2026-10-05', effectiveAt: '2026-10-05', isPrimary: true,
+    supportingExcerpt:
+      'Amended and restated electric service agreement with Kentucky Power increasing contracted power ' +
+      'capacity at Muskie from 500 MW to 1 GW; second 500 MW phase advanced from 2030 to 2029, subject to ' +
+      'Kentucky PSC approval. First 500 MW phase remains targeted to begin ramping in 2028.'
+  }),
+  R('wulf-revolver-amendment', {
+    title: 'TeraWulf Form 8-K: amendment to revolving credit agreement',
+    url: 'https://www.sec.gov/Archives/edgar/data/1083301/000162828026067100/wulf-20261023.htm',
+    publisher: 'TeraWulf Inc. (SEC EDGAR)', sourceType: 'sec-filing',
+    publishedAt: '2026-10-23', effectiveAt: '2026-10-23', isPrimary: true,
+    supportingExcerpt: 'Senior secured revolving credit commitments increased from $250 million to approximately $400 million.'
+  }),
+  R('crwv-convert-2026-09', {
+    title: 'CoreWeave Announces Proposed $3.0 Billion Convertible Senior Notes Offering (Exhibit 99.1)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1769628/000176962826000429/ex9911.htm',
+    publisher: 'CoreWeave, Inc. (SEC EDGAR)', sourceType: 'sec-filing',
+    publishedAt: '2026-09-17', effectiveAt: '2026-09-17', isPrimary: true,
+    supportingExcerpt: '$3.0 billion of convertible senior notes due 2033, with an option for a further $500 million. The accompanying presentation restates ~1.5 GW active and ~4.2 GW contracted power.'
+  }),
+  R('nbis-convert-2026-08', {
+    title: 'Nebius Group announces closing of private offering of convertible senior notes (Exhibit 99.1)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1513845/000110465926100347/tm2623863d1_ex99-1.htm',
+    publisher: 'Nebius Group N.V. (SEC EDGAR)', sourceType: 'sec-filing',
+    publishedAt: '2026-08-24', effectiveAt: '2026-08-24', isPrimary: true,
+    supportingExcerpt: 'Closing of 0.50% notes due 2030 and 4.50% notes due 2034, aggregate gross proceeds of approximately $5.75 billion.'
+  }),
+  R('nbis-citi-facility', {
+    title: 'Nebius secures $3.5 billion financing facility with Citi (Exhibit 99.1)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1513845/000110465926117978/tm2628078d1_ex99-1.htm',
+    publisher: 'Nebius Group N.V. (SEC EDGAR)', sourceType: 'sec-filing',
+    publishedAt: '2026-10-22', effectiveAt: '2026-10-22', isPrimary: true,
+    supportingExcerpt: '$3.5 billion senior secured facility provided by Citi to support the global capacity build-out.'
+  }),
 ];
 
 export const SOURCE_BY_ID = Object.fromEntries(SOURCES.map(s => [s.id, s]));

@@ -850,8 +850,12 @@ export function callPanel(c, view) {
         <div class="fld">
           <label for="callGate-${esc(c.ticker)}">What happens next</label>
           <select id="callGate-${esc(c.ticker)}" name="gate">
-            ${PATH.slice(view.stage ? view.stage.order + 1 : 0)
-              .map(st => `<option value="${esc(CALL_GATE[st.id])}"${gate && st.id === gate.id ? ' selected' : ''}>${esc(st.label)}</option>`).join('')}
+            ${/* Every stage is offered, not only those past the company's
+                  furthest. "Furthest anywhere" says nothing about the next
+                  site: IREN bills on one estate while Horizons 2-4 are still
+                  being commissioned, and once a company reached Billing the
+                  list used to be empty. The next stage is preselected. */''}
+            ${PATH.map(st => `<option value="${esc(CALL_GATE[st.id])}"${(gate ? st.id === gate.id : st.id === 'billing') ? ' selected' : ''}>${esc(st.label)}</option>`).join('')}
           </select>
         </div>
         <div class="fld">

@@ -546,7 +546,10 @@ const run = async () => {
   check('the per-share figure is qualified as enterprise, not equity, value',
     /net debt/i.test(caveat), caveat.slice(0, 60));
 
-  /* ---- estimates are marked, and can be switched off ---- */
+  /* ---- estimates are marked, and can be switched off ----
+     On Keel's page: IREN's billing estimate went away once its 10-K disclosed
+     a real billing figure, which is the estimate rule working as intended. */
+  await page.goto(base + '/companies/keel/', { waitUntil: 'networkidle0' });
   const estOn = await page.$$eval('[data-estimate]', els =>
     els.filter(e => getComputedStyle(e).display !== 'none').length);
   check('estimates are visible by default', estOn > 0, `${estOn}`);

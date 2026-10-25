@@ -10,6 +10,15 @@
 export const EVENTS = [
   /* ---------------- CoreWeave ---------------- */
   {
+    id: 'crwv-2026-09-17-convert', companyId: 'coreweave', projectId: null,
+    metric: null, eventType: 'financing',
+    previousValue: null, newValue: 3.0, unit: '$bn',
+    announcedAt: '2026-09-17', effectiveAt: '2026-09-17',
+    sourceIds: ['crwv-convert-2026-09'], confidence: 'confirmed', significance: 'low',
+    summary: 'CoreWeave offers $3.0bn of convertible senior notes due 2033.',
+    implication: 'Financing only. The accompanying presentation restates ~1.5 GW active and ~4.2 GW contracted power, unchanged since August.'
+  },
+  {
     id: 'crwv-2026-08-11-contracted-4200', companyId: 'coreweave', projectId: 'crwv-fleet',
     metric: 'securedPowerMw', eventType: 'capacity-change',
     previousValue: 3700, newValue: 4200, unit: 'MW',
@@ -46,6 +55,38 @@ export const EVENTS = [
 
   /* ---------------- IREN ---------------- */
   {
+    id: 'iren-2026-08-27-fy26', companyId: 'iren', projectId: null,
+    metric: 'revenueLiveMw', eventType: 'revenue-commenced',
+    previousValue: null, newValue: 40, unit: 'MW',
+    announcedAt: '2026-08-27', effectiveAt: '2026-06-30',
+    sourceIds: ['iren-10k-fy26', 'iren-fy26-results'], confidence: 'confirmed', significance: 'high',
+    summary: 'IREN reports about 40 MW of AI Cloud capacity operating and $1bn of operating ARR.',
+    implication:
+      'The first disclosed billing figure for IREN: roughly 40 MW was earning AI Cloud revenue at 30 June, ' +
+      'before Horizon 1 was delivered. Billing on Horizon 1 itself is still not separately disclosed.'
+  },
+  {
+    id: 'iren-2026-08-27-horizons', companyId: 'iren', projectId: 'iren-horizons-2-4',
+    metric: null, eventType: 'stage-change',
+    previousValue: null, newValue: null, unit: 'MW',
+    announcedAt: '2026-08-27', effectiveAt: '2026-08-27',
+    sourceIds: ['iren-fy26-results', 'iren-10k-fy26'], confidence: 'confirmed', significance: 'medium',
+    summary: 'Horizon 2 is commissioning and Horizons 3-4 are in late-stage construction, targeting Q4 2026.',
+    implication:
+      'The remaining 150 MW of the Microsoft contract is guided for Q4 2026, with contractual grace ' +
+      'periods running to the beginning of Q2 2027.'
+  },
+  {
+    id: 'iren-2026-08-27-frontier-lab', companyId: 'iren', projectId: null,
+    metric: null, eventType: 'contract-signed',
+    previousValue: null, newValue: null, unit: 'MW',
+    announcedAt: '2026-08-27', effectiveAt: '2026-08-27',
+    sourceIds: ['iren-fy26-results'], confidence: 'confirmed', significance: 'medium',
+    summary: 'New multi-year AI Cloud contract with a leading frontier AI lab.',
+    implication:
+      'Neither the customer nor the megawatts are disclosed, so the 260 MW contracted figure stays a minimum.'
+  },
+  {
     id: 'iren-2026-08-13-horizon1', companyId: 'iren', projectId: 'iren-horizon-1',
     metric: 'customerAcceptedMw', eventType: 'customer-accepted',
     previousValue: null, newValue: 50, unit: 'MW',
@@ -55,7 +96,7 @@ export const EVENTS = [
     implication:
       'The only formally accepted hyperscaler capacity across every company tracked here. Acceptance ' +
       'is the milestone that normally starts the revenue clock, but IREN has not separately disclosed ' +
-      'that billing has commenced, so it is not recorded as revenue-live.'
+      'that billing on Horizon 1 has commenced, so this site is not recorded as revenue-live.'
   },
   {
     id: 'iren-2026-06-nvidia', companyId: 'iren', projectId: null,
@@ -82,6 +123,24 @@ export const EVENTS = [
 
   /* ---------------- Nebius ---------------- */
   {
+    id: 'nbis-2026-10-22-citi', companyId: 'nebius', projectId: null,
+    metric: null, eventType: 'financing',
+    previousValue: null, newValue: 3.5, unit: '$bn',
+    announcedAt: '2026-10-22', effectiveAt: '2026-10-22',
+    sourceIds: ['nbis-citi-facility'], confidence: 'confirmed', significance: 'medium',
+    summary: 'Nebius secures a $3.5bn senior secured facility from Citi.',
+    implication: 'Capital for the capacity build-out. It changes no tracked megawatt figure.'
+  },
+  {
+    id: 'nbis-2026-08-24-convert', companyId: 'nebius', projectId: null,
+    metric: null, eventType: 'financing',
+    previousValue: null, newValue: 5.75, unit: '$bn',
+    announcedAt: '2026-08-24', effectiveAt: '2026-08-24',
+    sourceIds: ['nbis-convert-2026-08'], confidence: 'confirmed', significance: 'low',
+    summary: 'Nebius closes about $5.75bn of convertible senior notes due 2030 and 2034.',
+    implication: 'Financing only. It changes no tracked megawatt figure.'
+  },
+  {
     id: 'nbis-2026-q2-target-5gw', companyId: 'nebius', projectId: null,
     metric: 'securedPowerMw', eventType: 'target-change',
     previousValue: 3500, newValue: 5000, unit: 'MW',
@@ -106,6 +165,26 @@ export const EVENTS = [
   },
 
   /* ---------------- TeraWulf ---------------- */
+  {
+    id: 'wulf-2026-10-05-muskie', companyId: 'terawulf', projectId: 'wulf-muskie',
+    metric: 'securedPowerMw', eventType: 'capacity-change',
+    previousValue: 500, newValue: 1000, unit: 'MW',
+    announcedAt: '2026-10-05', effectiveAt: '2026-10-05',
+    sourceIds: ['wulf-muskie-1gw'], confidence: 'confirmed', significance: 'medium',
+    summary: 'TeraWulf doubles contracted power at Muskie to 1 GW and brings the second phase forward to 2029.',
+    implication:
+      'Power at the utility, not customer capacity: no tenant is announced. The amendment still needs ' +
+      'Kentucky PSC approval, and the first 500 MW is targeted to begin ramping in 2028.'
+  },
+  {
+    id: 'wulf-2026-10-23-revolver', companyId: 'terawulf', projectId: null,
+    metric: null, eventType: 'financing',
+    previousValue: 0.25, newValue: 0.4, unit: '$bn',
+    announcedAt: '2026-10-23', effectiveAt: '2026-10-23',
+    sourceIds: ['wulf-revolver-amendment'], confidence: 'confirmed', significance: 'low',
+    summary: 'TeraWulf raises its revolving credit facility from $250m to about $400m.',
+    implication: 'Financing only. It changes no tracked megawatt figure.'
+  },
   {
     id: 'wulf-2026-08-04-anthropic', companyId: 'terawulf', projectId: 'wulf-justified',
     metric: 'customerContractedMw', eventType: 'contract-signed',
@@ -179,6 +258,17 @@ export const EVENTS = [
   },
 
   /* ---------------- Applied Digital ---------------- */
+  {
+    id: 'apld-2026-10-01-pf1-250', companyId: 'applied-digital', projectId: 'apld-polaris-1',
+    metric: 'energisedCriticalItMw', eventType: 'capacity-change',
+    previousValue: 100, newValue: 250, unit: 'MW',
+    announcedAt: '2026-10-07', effectiveAt: '2026-10-01',
+    sourceIds: ['apld-q1-fy27-results'], confidence: 'confirmed', significance: 'high',
+    summary: 'Applied Digital brings Polaris Forge 1 to 250 MW of live critical IT.',
+    implication:
+      'Building 2 was delivered in two 75 MW phases, on 1 July and 1 October. Rent commencement on ' +
+      'Building 2 is not separately stated, so billing stays recorded at the 100 MW first building.'
+  },
   {
     id: 'apld-2026-05-31-1410', companyId: 'applied-digital', projectId: null,
     metric: 'customerContractedMw', eventType: 'new-disclosure',

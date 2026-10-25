@@ -12,18 +12,31 @@ import { EVENTS } from '../data/events.js';
 import { COMPANIES } from '../data/companies.js';
 import { signals, toSignal } from '../src/lib/signals.js';
 import { getMeasure, isKnown } from '../src/lib/compute.js';
-import { leadStory, headlineFor, consequenceFor, JOURNEY } from '../src/lib/leadstory.js';
+import { leadStory, storyFor, headlineFor, consequenceFor, JOURNEY } from '../src/lib/leadstory.js';
 
 const sig = id => toSignal(EVENTS.find(e => e.id === id));
 
+/* The acceptance story is the fixture for every gate-wording test. These used
+   to read whatever leadStory() returned, so refreshing the data — a newer event
+   taking the front page — broke tests that were about wording, not selection. */
+const horizon1 = () => storyFor(sig('iren-2026-08-13-horizon1'));
+
 /* ---- selection ---- */
 
-test('the lead story is the newest confirmed record', () => {
+test('the lead story is the newest high-significance confirmed record', () => {
   const s = leadStory();
   assert.ok(s.available);
   assert.equal(s.confidence, 'confirmed');
-  const newest = signals({}).filter(x => x.confidence === 'confirmed')[0];
-  assert.equal(s.id, newest.id);
+  const high = signals({}).filter(x => x.confidence === 'confirmed' && x.significance === 'high')
+    .sort((a, b) => String(b.announcedAt).localeCompare(String(a.announcedAt)));
+  assert.equal(s.id, high[0].id);
+});
+
+test('a routine filing never takes the front page from a high-significance one', () => {
+  // The revolver amendment is the newest record on file and must not lead.
+  const s = leadStory();
+  assert.notEqual(s.signal.eventType, 'financing');
+  assert.equal(s.signal.significance, 'high');
 });
 
 test('only a confirmed record may lead the homepage', () => {
@@ -41,27 +54,29 @@ test('selection is deterministic', () => {
 /* ---- the gate is never overstated ---- */
 
 test('acceptance is never rendered as revenue', () => {
-  const s = leadStory();
-  assert.equal(s.signal.eventType, 'customer-accepted', 'fixture changed — revisit this test');
+  const s = horizon1();
+  assert.equal(s.signal.eventType, 'customer-accepted');
   const text = [s.headline, s.consequence].join(' ').toLowerCase();
   for (const forbidden of ['earning money', 'earning revenue', 'revenue has begun', 'is billing', 'now billing']) {
     assert.ok(!text.includes(forbidden), `acceptance was promoted to billing: "${forbidden}"`);
   }
-  // And it says so explicitly.
-  assert.match(s.consequence, /billing has not yet been disclosed/i);
+  // For an operator with no billing on record, it says so explicitly.
+  const asIfKeel = consequenceFor({ ...sig('iren-2026-08-13-horizon1'), companyId: 'keel' });
+  assert.match(asIfKeel, /billing has not yet been disclosed/i);
 });
 
 test('the consequence checks the record instead of assuming what follows', () => {
-  // IREN has no disclosed billing, so the acceptance sentence must say so.
-  const iren = COMPANIES.find(c => c.ticker === 'IREN');
-  assert.equal(isKnown(getMeasure(iren, 'revenueLiveMw')), false, 'fixture changed');
-  assert.match(consequenceFor(sig('iren-2026-08-13-horizon1')), /not yet been disclosed/i);
+  // Keel has no disclosed billing, so the acceptance sentence must say so.
+  const keel = COMPANIES.find(c => c.ticker === 'KEEL');
+  assert.equal(isKnown(getMeasure(keel, 'revenueLiveMw')), false, 'fixture changed');
+  const asIfKeel = consequenceFor({ ...sig('iren-2026-08-13-horizon1'), companyId: 'keel' });
+  assert.match(asIfKeel, /not yet been disclosed/i);
 
-  // TeraWulf HAS disclosed billing, so the same event type must not claim it is missing.
-  const wulf = COMPANIES.find(c => c.ticker === 'WULF');
-  assert.equal(isKnown(getMeasure(wulf, 'revenueLiveMw')), true, 'fixture changed');
-  const asIfWulf = consequenceFor({ ...sig('iren-2026-08-13-horizon1'), companyId: 'terawulf' });
-  assert.ok(!/not yet been disclosed/i.test(asIfWulf),
+  // IREN HAS disclosed billing capacity (its 10-K), so its own acceptance
+  // sentence must not claim the disclosure is missing.
+  const iren = COMPANIES.find(c => c.ticker === 'IREN');
+  assert.equal(isKnown(getMeasure(iren, 'revenueLiveMw')), true, 'fixture changed');
+  assert.ok(!/not yet been disclosed/i.test(consequenceFor(sig('iren-2026-08-13-horizon1'))),
     'the sentence ignored the company and asserted a missing disclosure that exists');
 });
 
@@ -94,7 +109,7 @@ test('every event type produces a headline and a consequence', () => {
 /* ---- the rail ---- */
 
 test('the rail carries all five path stages with both label layers', () => {
-  const s = leadStory();
+  const s = horizon1();
   assert.equal(s.rail.length, 5);
   for (const step of s.rail) {
     assert.ok(step.simple && step.detailed, 'a stage is missing a label layer');
@@ -115,7 +130,7 @@ test('the journey vocabulary matches the canonical delivery model', () => {
 test('an unreported stage before a confirmed one reads as implied', () => {
   // Horizon 1 has no power gate on record, but Microsoft accepted it —
   // it cannot have been accepted without having had power secured.
-  const s = leadStory();
+  const s = horizon1();
   const announced = s.rail.find(r => r.id === 'power');
   assert.equal(announced.state, 'implied');
   assert.equal(announced.statusLabel, 'Implied');
@@ -123,15 +138,16 @@ test('an unreported stage before a confirmed one reads as implied', () => {
 });
 
 test('an unreported stage after the last confirmed one stays unknown', () => {
-  // Billing does not follow from acceptance, and is not implied by it.
-  const s = leadStory();
+  // Billing does not follow from acceptance, and is not implied by it — at the
+  // site level, Horizon 1's own billing is still undisclosed.
+  const s = horizon1();
   const billing = s.rail.find(r => r.id === 'billing');
   assert.equal(billing.state, 'unknown');
   assert.equal(billing.statusLabel, 'Not disclosed');
 });
 
 test('implied is a state of its own, never folded into complete', () => {
-  const s = leadStory();
+  const s = horizon1();
   const implied = s.rail.filter(r => r.state === 'implied');
   assert.ok(implied.length > 0, 'fixture no longer produces implied stages');
   for (const r of implied) {

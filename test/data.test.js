@@ -55,13 +55,21 @@ test('IREN: 260 MW is a minimum, 50 MW accepted, no revenue-live, no GPU count',
   assert.equal(accepted.valueMw, 50);
   assert.equal(accepted.confidence, 'confirmed');
 
-  // acceptance must not imply revenue
-  assert.equal(getMeasure(c, 'revenueLiveMw').valueMw, null);
+  // Billing rests on its own disclosure, never on acceptance: the 10-K's ~40 MW
+  // of operating AI Cloud capacity, which predates Horizon 1's acceptance.
+  const live = getMeasure(c, 'revenueLiveMw');
+  assert.equal(live.valueMw, 40);
+  assert.equal(live.valueStatus, 'minimum');
+  assert.ok(live.sourceIds.includes('iren-10k-fy26'), 'billing must cite the 10-K, not the acceptance release');
+  assert.ok(!live.sourceIds.includes('iren-horizon1-delivery'), 'acceptance is not evidence of billing');
 
-  // 480 MW is a target, not construction
+  // The 480 MW gross target is superseded history, never construction; the
+  // current target is 0.3 GW of critical IT, and still only a target.
   assert.equal(getMeasure(c, 'constructionMw').valueMw, null);
-  const target = (c.targets || []).find(t => t.metric === 'constructionMw');
-  assert.equal(target.valueMw, 480);
+  assert.ok((c.historical || []).find(h => h.metric === 'constructionMw' && h.valueMw === 480));
+  const target = (c.targets || []).find(t => t.asOf === '2026-12-31');
+  assert.equal(target.valueMw, 300);
+  assert.equal(target.valueStatus, 'target');
   assert.equal(target.valueStatus, 'target');
 
   // the GPU claim is gone
@@ -110,10 +118,11 @@ test('TeraWulf: 839 MW minimum, 102 MW revenue-live, stale figures kept as histo
   assert.ok(hist.find(h => h.valueMw === 642.5 && h.asOf === '2026-02-01'));
   assert.equal(getMeasure(c, 'securedPowerMw').valueMw, null);
 
-  // Muskie is power availability, not contracted critical IT
+  // Muskie is contracted utility power (1 GW since October), never customer
+  // critical IT: gross basis, and no customer gate.
   const muskie = PROJECTS.find(p => p.id === 'wulf-muskie');
-  assert.equal(muskie.valueStatus, 'potential');
   assert.equal(muskie.powerBasis, 'gross-utility');
+  assert.ok(!(muskie.gates || []).some(g => g.id === 'customerContracted' && g.status === 'complete'));
 
   // Abernathy disposal recorded
   assert.ok(EVENTS.find(e => e.id === 'wulf-2026-08-04-abernathy'));
@@ -158,8 +167,11 @@ test('Applied Digital: 1,410 MW across five itemised campuses', () => {
   assert.equal(getMeasure(c, 'customerContractedMw').valueMw, 1410);
   assert.equal(getMeasure(c, 'customerContractedMw').isExhaustive, true);
   assert.equal(getMeasure(c, 'securedPowerMw').valueMw, 2150);
-  assert.equal(getMeasure(c, 'energisedCriticalItMw').valueMw, 100);
+  // 250 MW live at Polaris Forge 1 since 1 October; billing stays at the 100 MW
+  // the company explicitly called revenue-generating — Ready for Service is not billing.
+  assert.equal(getMeasure(c, 'energisedCriticalItMw').valueMw, 250);
   assert.equal(getMeasure(c, 'revenueLiveMw').valueMw, 100);
+  assert.equal(getMeasure(c, 'revenueLiveMw').valueStatus, 'minimum');
 
   const campuses = PROJECTS.filter(p => p.companyId === 'applied-digital');
   assert.equal(campuses.length, 5, 'all five campuses must be present');
@@ -182,10 +194,10 @@ test('customer-contracted confirmed minimum is >= 2.51 GW on one basis', () => {
   assert.deepEqual(k.included.map(i => i.ticker).sort(), ['APLD', 'IREN', 'WULF']);
 });
 
-test('energised critical IT confirmed minimum is >= 1.75 GW', () => {
+test('energised critical IT confirmed minimum is >= 1.9 GW', () => {
   const k = aggregate('energisedCriticalItMw', { basis: 'critical-it' });
-  assert.equal(k.total, 1500 + 102 + 100 + 50, 'CRWV 1500 + WULF 102 + APLD 100 + IREN Horizon 1 50');
-  assert.ok(k.total >= 1750, `expected >= 1.75 GW, got ${k.total}`);
+  assert.equal(k.total, 1500 + 102 + 250 + 50, 'CRWV 1500 + WULF 102 + APLD 250 + IREN Horizon 1 50');
+  assert.ok(k.total >= 1900, `expected >= 1.9 GW, got ${k.total}`);
 });
 
 test('customer accepted is 50 MW sourced to IREN Horizon 1', () => {
@@ -552,8 +564,9 @@ test('stage reflects the furthest evidenced gate', () => {
   // TeraWulf and Applied Digital both disclose revenue-generating capacity.
   assert.equal(stage('WULF'), 'billing');
   assert.equal(stage('APLD'), 'billing');
-  // IREN has acceptance but has not disclosed billing.
-  assert.equal(stage('IREN'), 'acceptance');
+  // IREN now discloses billing capacity company-wide (its 10-K's ~40 MW of
+  // operating AI Cloud), even though Horizon 1's own billing is undisclosed.
+  assert.equal(stage('IREN'), 'billing');
   // Keel has energised grid power; the path names the stage, not the gate.
   assert.equal(stage('KEEL'), 'energised');
 });

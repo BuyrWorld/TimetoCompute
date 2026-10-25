@@ -83,7 +83,7 @@ export function headlineFor(s) {
 
     case 'capacity-change':
       return delta && s.newValue > s.previousValue
-        ? `${name} adds ${delta} of ${(s.metricLabel || 'capacity').toLowerCase()}`
+        ? `${name} adds ${delta} of ${lowerKeepingAcronyms(s.metricLabel || 'capacity')}`
         : `${name} restates its capacity`;
 
     case 'target-change':
@@ -95,6 +95,11 @@ export function headlineFor(s) {
 
     case 'disposal':
       return `${name} disposes of capacity`;
+
+    case 'financing':
+      return s.unit === '$bn' && typeof s.newValue === 'number'
+        ? `${name} arranges $${s.newValue}bn of financing`
+        : `${name} arranges new financing`;
 
     case 'new-disclosure':
     default:
@@ -108,6 +113,10 @@ export function headlineFor(s) {
  * This is where overstating a gate would be easiest, so each branch checks what
  * the company has disclosed about the NEXT gate before saying anything about it.
  */
+/** Lower-case a label for mid-sentence use without mangling "IT" or "GPU". */
+const lowerKeepingAcronyms = label =>
+  String(label).split(' ').map(w => (/^[A-Z]{2,}$/.test(w) ? w : w.toLowerCase())).join(' ');
+
 export function consequenceFor(s) {
   const co = COMPANY_BY_ID[s.companyId];
   const billingKnown = co ? isKnown(getMeasure(co, 'revenueLiveMw')) : false;
@@ -124,10 +133,20 @@ export function consequenceFor(s) {
     case 'contract-signed':
       return 'Demand is now contracted. Contracted capacity is not built capacity, and no delivery date follows from a signature.';
 
-    case 'capacity-change':
-      return typeof s.previousValue === 'number' && s.newValue > s.previousValue
-        ? 'Supply controlled has grown. Power controlled on paper is not compute a customer is paying for.'
-        : 'A published capacity figure has been restated.';
+    case 'capacity-change': {
+      if (!(typeof s.previousValue === 'number' && s.newValue > s.previousValue)) {
+        return 'A published capacity figure has been restated.';
+      }
+      /* The sentence depends on WHAT grew. More secured power is paper; more
+         energised capacity is real halls running — and still not proof that a
+         customer is paying, which is checked rather than assumed. */
+      if (s.metric === 'energisedCriticalItMw' || s.metric === 'energisedGrossMw') {
+        return billingKnown
+          ? 'More capacity is live. Live is not the same as billing, and only part of it is disclosed as earning.'
+          : 'More capacity is live. Live is not the same as billing, which has not been disclosed.';
+      }
+      return 'Supply controlled has grown. Power controlled on paper is not compute a customer is paying for.';
+    }
 
     case 'target-change':
       return 'This is a management goal for a future date, not capacity that exists today. It is excluded from every current-capacity total.';
@@ -137,6 +156,9 @@ export function consequenceFor(s) {
 
     case 'stage-change':
       return 'An independently evidenced gate has advanced. Gates move at different rates and one does not imply the next.';
+
+    case 'financing':
+      return 'Capital to build with, not capacity: no tracked megawatt figure changes.';
 
     default:
       return 'A new figure has been published and added to the record.';
@@ -328,8 +350,14 @@ function watchItems(s) {
  * rather than promoting a weaker record into the hero.
  */
 export function leadStory() {
-  const eligible = signals({})
-    .filter(s => s.confidence === 'confirmed')
+  /* Significance first, then recency. Newest-first alone put a $150m revolver
+     amendment on the front page the day it was filed, ahead of 150 MW going
+     live, because recency is not importance. A high-significance record leads
+     whenever one exists; the rest only lead when nothing high is on file. */
+  const confirmed = signals({}).filter(s => s.confidence === 'confirmed');
+  const high = confirmed.filter(s => s.significance === 'high');
+  const eligible = (high.length ? high : confirmed)
+    .slice()
     .sort((a, b) =>
       String(b.announcedAt).localeCompare(String(a.announcedAt)) ||
       (SIGNIFICANCE_RANK[b.significance] || 0) - (SIGNIFICANCE_RANK[a.significance] || 0) ||

@@ -94,14 +94,59 @@ export const CATALYSTS = [
   {
     id: 'iren-horizons-2-4', ticker: 'IREN', companyId: 'iren', projectId: 'iren-horizons-2-4',
     title: 'Microsoft Horizons 2–4 — remaining tranches',
-    category: 'customer-acceptance', status: 'estimated-date',
-    expectedAt: null, expectedWindowStart: null, expectedWindowEnd: null,
-    timezone: null, sourceIds: ['iren-8k-microsoft'], confidence: 'reported',
+    category: 'customer-acceptance', status: 'guided-window',
+    expectedAt: null, expectedWindowStart: '2026-10-01', expectedWindowEnd: '2026-12-31',
+    timezone: null, sourceIds: ['iren-10k-fy26', 'iren-fy26-results'], confidence: 'confirmed',
     affectsMetric: 'customerAcceptedMw',
-    isCompanyGuidance: false,
+    isCompanyGuidance: true,
     description:
-      'The balance of the 200 MW Microsoft contract after Horizon 1\'s 50 MW. No delivery date has ' +
-      'been published for the remaining tranches, so no date is shown — the timing is genuinely unknown.'
+      'The remaining 150 MW of the 200 MW Microsoft contract. Targeted for delivery in phases in ' +
+      'Q4 2026; Horizon 2 was commissioning at the FY26 results. Contractual grace periods run from ' +
+      'mid-Q4 2026 to the beginning of Q2 2027, so a Q1 2027 delivery would not be a breach.'
+  },
+  {
+    id: 'apld-polaris-2-initial', ticker: 'APLD', companyId: 'applied-digital', projectId: 'apld-polaris-2',
+    title: 'Polaris Forge 2 — initial operations',
+    category: 'capacity-delivery', status: 'guided-window',
+    expectedAt: null, expectedWindowStart: '2026-07-01', expectedWindowEnd: '2026-12-31',
+    timezone: null, sourceIds: ['apld-10q-20260831', 'apld-q1-fy27-results'], confidence: 'confirmed',
+    affectsMetric: 'energisedCriticalItMw',
+    isCompanyGuidance: true,
+    description:
+      'Initial ready for service guided for H2 2026, which the company says would take delivered ' +
+      'critical IT across its North Dakota campuses to 300 MW by year end. Full capacity early 2027.'
+  },
+  {
+    id: 'apld-delta-1-initial', ticker: 'APLD', companyId: 'applied-digital', projectId: 'apld-delta-1',
+    title: 'Delta Forge 1 — initial ready for service',
+    category: 'capacity-delivery', status: 'guided-window',
+    expectedAt: null, expectedWindowStart: '2027-01-01', expectedWindowEnd: '2027-06-30',
+    timezone: null, sourceIds: ['apld-10q-20260831'], confidence: 'confirmed',
+    affectsMetric: 'energisedCriticalItMw',
+    isCompanyGuidance: true,
+    description: '300 MW for a high investment-grade hyperscaler. Initial ready for service H1 2027, full capacity early 2028.'
+  },
+  {
+    id: 'apld-polaris-3-initial', ticker: 'APLD', companyId: 'applied-digital', projectId: 'apld-polaris-3',
+    title: 'Polaris Forge 3 — initial ready for service',
+    category: 'capacity-delivery', status: 'guided-window',
+    expectedAt: null, expectedWindowStart: '2027-07-01', expectedWindowEnd: '2027-12-31',
+    timezone: null, sourceIds: ['apld-10q-20260831'], confidence: 'confirmed',
+    affectsMetric: 'energisedCriticalItMw',
+    isCompanyGuidance: true,
+    description: '300 MW for a high investment-grade hyperscaler. Initial ready for service H2 2027, full capacity H2 2028.'
+  },
+  {
+    id: 'wulf-muskie-first-phase', ticker: 'WULF', companyId: 'terawulf', projectId: 'wulf-muskie',
+    title: 'Muskie — first 500 MW begins ramping',
+    category: 'capacity-delivery', status: 'guided-window',
+    expectedAt: null, expectedWindowStart: '2028-01-01', expectedWindowEnd: '2028-12-31',
+    timezone: null, sourceIds: ['wulf-muskie-1gw'], confidence: 'confirmed',
+    affectsMetric: 'energisedGrossMw',
+    isCompanyGuidance: true,
+    description:
+      'Utility power, not a customer delivery: no tenant has been announced for Muskie. The second ' +
+      '500 MW phase is guided for 2029, subject to Kentucky PSC approval.'
   }
 ];
 

@@ -10,6 +10,8 @@
 import { metric } from './schema.js';
 
 const V = '2026-08-15'; // date a human read the underlying documents
+/* October refresh: records re-read against every filing made since the August audit. */
+const R = '2026-10-25';
 
 export const COMPANIES = [
   /* ==================== IREN ==================== */
@@ -21,8 +23,8 @@ export const COMPANIES = [
     measures: [
       metric({
         metric: 'securedPowerMw', valueMw: 5000, confidence: 'confirmed', valueStatus: 'actual',
-        powerBasis: 'gross-utility', asOf: '2026-03-31', verifiedAt: V,
-        sourceIds: ['iren-q3-fy26-results', 'iren-10q-20260331'], isExhaustive: true,
+        powerBasis: 'gross-utility', asOf: '2026-06-30', verifiedAt: R,
+        sourceIds: ['iren-10k-fy26'], isExhaustive: true,
         notes: 'Secured global power portfolio, quoted at the utility connection. Not critical IT and not comparable with a critical-IT figure.'
       }),
       metric({
@@ -31,7 +33,9 @@ export const COMPANIES = [
         sourceIds: ['iren-8k-microsoft', 'iren-ex991-nvidia'], isExhaustive: false,
         notes:
           'Microsoft 200 MW plus NVIDIA 60 MW. A disclosed minimum: the further AI developer contracts ' +
-          'worth approximately $2.8bn do not disclose megawatts, so the true total is higher.'
+          'worth approximately $2.8bn, and the multi-year frontier-lab contract announced with the FY26 ' +
+          'results, do not disclose megawatts, so the true total is higher. IREN describes its 2026 ' +
+          'capacity as "largely sold out" with $4bn of contracted ARR.'
       }),
       metric({
         metric: 'customerAcceptedMw', valueMw: 50, confidence: 'confirmed', valueStatus: 'actual',
@@ -40,10 +44,15 @@ export const COMPANIES = [
         notes: 'Horizon 1 delivered to and accepted by Microsoft on 13 August 2026.'
       }),
       metric({
-        metric: 'revenueLiveMw', valueMw: null,
+        metric: 'revenueLiveMw', valueMw: 40, confidence: 'confirmed', valueStatus: 'minimum',
+        powerBasis: 'critical-it', asOf: '2026-06-30', verifiedAt: R,
+        sourceIds: ['iren-10k-fy26', 'iren-fy26-results'], isExhaustive: false,
         notes:
-          'Acceptance of Horizon 1 is confirmed, but the company has not separately disclosed that ' +
-          'billing or revenue has commenced. Acceptance is not assumed to mean revenue-live.'
+          'Approximately 40 MW of operating AI Cloud Services capacity at 30 June 2026, which earned ' +
+          '$70.5m of AI Cloud revenue in the June quarter. IREN does not state the basis; it quotes its ' +
+          'AI Cloud deployments in MW (IT) elsewhere, so it is carried as critical IT. A minimum: it ' +
+          'predates Horizon 1, and IREN reported $1bn of operating ARR on 26 August without a megawatt ' +
+          'figure. Horizon 1 itself is accepted, but billing on it has not been separately disclosed.'
       }),
       metric({
         metric: 'energisedCriticalItMw', valueMw: 50, confidence: 'confirmed', valueStatus: 'minimum',
@@ -70,10 +79,24 @@ export const COMPANIES = [
     ],
     targets: [
       metric({
+        metric: 'energisedCriticalItMw', valueMw: 300, confidence: 'confirmed', valueStatus: 'target',
+        powerBasis: 'critical-it', asOf: '2026-12-31', verifiedAt: R,
+        sourceIds: ['iren-fy26-results'],
+        notes: 'Targeted cumulative delivery of approximately 0.3 GW (IT) by the end of 2026. Excluded from every current-capacity total.'
+      }),
+      metric({
+        metric: 'energisedCriticalItMw', valueMw: 800, confidence: 'confirmed', valueStatus: 'target',
+        powerBasis: 'critical-it', asOf: '2027-12-31', verifiedAt: R,
+        sourceIds: ['iren-fy26-results'],
+        notes: 'Targeted cumulative delivery of approximately 0.8 GW (IT) by the end of 2027.'
+      })
+    ],
+    historical: [
+      metric({
         metric: 'constructionMw', valueMw: 480, confidence: 'confirmed', valueStatus: 'target',
         powerBasis: 'gross-utility', asOf: '2026-12-31', verifiedAt: V,
         sourceIds: ['iren-q3-fy26-results'],
-        notes: '2026 gross AI Cloud capacity target across multiple sites. Excluded from every current-capacity total.'
+        notes: 'May 2026 target of 480 MW gross AI Cloud capacity for 2026. Superseded by the FY26 results, which restate the target as 0.3 GW of critical IT.'
       })
     ]
   },
@@ -270,8 +293,8 @@ export const COMPANIES = [
     measures: [
       metric({
         metric: 'customerContractedMw', valueMw: 1410, confidence: 'confirmed', valueStatus: 'actual',
-        powerBasis: 'critical-it', asOf: '2026-05-31', verifiedAt: V,
-        sourceIds: ['apld-10k-20260531'], isExhaustive: true,
+        powerBasis: 'critical-it', asOf: '2026-08-31', verifiedAt: R,
+        sourceIds: ['apld-q1-fy27-results', 'apld-10k-20260531'], isExhaustive: true,
         notes:
           'Contracted critical IT across five campuses, with approximately $36.2bn of contracted ' +
           'revenue over the initial base terms. Replaces the stale 600 MW record.'
@@ -283,25 +306,32 @@ export const COMPANIES = [
         notes: 'Approximately 2.15 GW of gross grid-connected utility power. Gross basis — not comparable with the 1,410 MW critical IT figure.'
       }),
       metric({
-        metric: 'energisedCriticalItMw', valueMw: 100, confidence: 'confirmed', valueStatus: 'actual',
-        powerBasis: 'critical-it', asOf: '2026-05-31', verifiedAt: V,
-        sourceIds: ['apld-10k-20260531'], isExhaustive: true,
-        notes: 'Approximately 100 MW operational and revenue-generating.'
-      }),
-      metric({
-        metric: 'revenueLiveMw', valueMw: 100, confidence: 'confirmed', valueStatus: 'actual',
-        powerBasis: 'critical-it', asOf: '2026-05-31', verifiedAt: V,
-        sourceIds: ['apld-10k-20260531'], isExhaustive: true,
-        notes: 'Explicitly described as operational and revenue-generating.'
-      }),
-      metric({
-        metric: 'constructionMw', valueMw: 1500, confidence: 'confirmed', valueStatus: 'actual',
-        powerBasis: 'critical-it', asOf: '2026-05-31', verifiedAt: V,
-        sourceIds: ['apld-10k-20260531'], isExhaustive: false,
+        metric: 'energisedCriticalItMw', valueMw: 250, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-10-01', verifiedAt: R,
+        sourceIds: ['apld-q1-fy27-results'], isExhaustive: true,
         notes:
-          'Approximately 1.5 GW operating OR under construction across the five campuses — the ' +
-          'company reports the two together, so this is not a pure construction figure and includes ' +
-          'the 100 MW already operational.'
+          '250 MW of fully operational critical IT at Polaris Forge 1: the 100 MW first building, plus ' +
+          "Building 2's two 75 MW phases, Ready for Service on 1 July and 1 October 2026. Up from 100 MW " +
+          'at 31 May.'
+      }),
+      metric({
+        metric: 'revenueLiveMw', valueMw: 100, confidence: 'confirmed', valueStatus: 'minimum',
+        powerBasis: 'critical-it', asOf: '2026-05-31', verifiedAt: R,
+        sourceIds: ['apld-10k-20260531', 'apld-q1-fy27-results'], isExhaustive: false,
+        notes:
+          'The 100 MW first building was explicitly described as operational and revenue-generating. ' +
+          "Building 2's 150 MW is Ready for Service, and the quarter carried $65.8m of base rent, but " +
+          'the company has not said rent has commenced on Building 2 specifically, so this stays a ' +
+          'minimum rather than being raised to 250 MW.'
+      }),
+      metric({
+        metric: 'constructionMw', valueMw: 1260, confidence: 'confirmed', valueStatus: 'actual',
+        powerBasis: 'critical-it', asOf: '2026-08-31', verifiedAt: R,
+        sourceIds: ['apld-10q-20260831', 'apld-delta-forge-2'], isExhaustive: true,
+        notes:
+          'The buildings the 10-Q lists as under construction: Polaris Forge 1 Building 3 (150 MW), ' +
+          'Polaris Forge 2 (300 MW), Polaris Forge 3 (300 MW) and Delta Forge 1 (300 MW), plus Delta ' +
+          'Forge 2 (210 MW). Replaces the earlier ~1.5 GW, which counted operating and construction together.'
       }),
       metric({ metric: 'customerAcceptedMw', valueMw: null })
     ]

@@ -12,6 +12,8 @@
 import { gate, schedule, phase } from './schema.js';
 
 const V = '2026-08-15';
+/* October refresh: re-read against every filing made since the August audit. */
+const R = '2026-10-25';
 
 const PROJECT_RECORDS = [
   /* ---------------- IREN ---------------- */
@@ -63,11 +65,20 @@ const PROJECT_RECORDS = [
         gate: 'customerAccepted', label: '2026', announcedAt: '2026-03-31',
         sourceIds: ['iren-q3-fy26-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
         notes: '"Horizon 1-4 on track for delivery by year-end."'
+      }),
+      schedule({
+        gate: 'customerAccepted', label: 'Q4 2026', announcedAt: '2026-08-27',
+        sourceIds: ['iren-10k-fy26'], confidence: 'confirmed', verifiedAt: R,
+        notes: 'Targeted for delivery in phases in calendar Q4 2026. Grace periods under the Microsoft ' +
+          'agreement run from mid-Q4 2026 to the beginning of Q2 2027.'
       })
     ],
     gates: [
       gate({ id: 'customerContracted', status: 'complete', confidence: 'confirmed', sourceIds: ['iren-8k-microsoft'], verifiedAt: V }),
-      gate({ id: 'constructionStarted', status: 'inProgress', confidence: 'reported', sourceIds: ['iren-q3-fy26-results'], verifiedAt: V }),
+      gate({ id: 'constructionStarted', status: 'complete', confidence: 'confirmed', sourceIds: ['iren-fy26-results'], verifiedAt: R,
+        notes: 'Horizons 3-4 in late-stage construction at the FY26 results.' }),
+      gate({ id: 'criticalItEnergised', status: 'inProgress', confidence: 'confirmed', sourceIds: ['iren-fy26-results'], verifiedAt: R,
+        notes: 'Horizon 2 commissioning under way at the FY26 results (27 August 2026).' }),
       gate({ id: 'customerAccepted', status: 'notStarted' })
     ]
   },
@@ -233,6 +244,8 @@ const PROJECT_RECORDS = [
     ],
     gates: [
       gate({ id: 'customerContracted', status: 'complete', effectiveAt: '2026-08-04', confidence: 'confirmed', sourceIds: ['wulf-anthropic-lease'], verifiedAt: V }),
+      gate({ id: 'regulatoryApproval', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-muskie-1gw'], verifiedAt: R,
+        notes: 'The Kentucky Public Service Commission approved the Justified electric service agreement in August 2026.' }),
       gate({ id: 'constructionStarted', status: 'notDisclosed' }),
       gate({ id: 'criticalItEnergised', status: 'notStarted', notes: 'Initial capacity expected H2 2027.' }),
       gate({ id: 'customerAccepted', status: 'notStarted' }),
@@ -241,22 +254,29 @@ const PROJECT_RECORDS = [
   },
   {
     id: 'wulf-muskie', companyId: 'terawulf', name: 'Muskie (Kentucky)', country: 'US', flag: '🇺🇸',
-    capacityMw: 1000, powerBasis: 'gross-utility', valueStatus: 'potential', confidence: 'confirmed',
-    sourceIds: ['wulf-kentucky-maryland'],
+    capacityMw: 1000, powerBasis: 'gross-utility', valueStatus: 'actual', confidence: 'confirmed',
+    sourceIds: ['wulf-muskie-1gw'], asOf: '2026-10-05',
     note:
-      'Up to 1 GW of contracted electric service via Kentucky Power Company. This is power ' +
-      'availability at the utility, not customer-contracted critical IT, and is excluded from ' +
-      'contracted-capacity totals.',
+      '1 GW of contracted electric service with Kentucky Power, raised from 500 MW on 5 October 2026. ' +
+      'This is power at the utility, not customer-contracted critical IT, and is excluded from ' +
+      'contracted-capacity totals. No customer has been announced.',
     schedules: [
       schedule({
         gate: 'criticalItEnergised', label: 'Q4 2028', announcedAt: '2026-08-11',
         sourceIds: ['wulf-q2-2026-results'], confidence: 'confirmed', verifiedAt: '2026-08-15',
         notes: '"Initial service expected in the fourth quarter of 2028".'
+      }),
+      schedule({
+        gate: 'utilityEnergised', label: '2029', announcedAt: '2026-10-05', scope: 'Second 500 MW phase',
+        sourceIds: ['wulf-muskie-1gw'], confidence: 'confirmed', verifiedAt: R,
+        notes: 'Second 500 MW phase advanced from 2030 to 2029, subject to Kentucky PSC approval and ' +
+          'Kentucky Power\'s construction schedule. The first 500 MW phase remains targeted to begin ramping in 2028.'
       })
     ],
     gates: [
       gate({ id: 'siteControl', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-kentucky-maryland'], verifiedAt: V }),
-      gate({ id: 'utilityAgreement', status: 'complete', confidence: 'confirmed', sourceIds: ['wulf-kentucky-maryland'], verifiedAt: V, notes: 'Up to 1 GW contracted electric service.' }),
+      gate({ id: 'utilityAgreement', status: 'complete', effectiveAt: '2026-10-05', confidence: 'confirmed', sourceIds: ['wulf-muskie-1gw'], verifiedAt: R, notes: 'Amended and restated electric service agreement: 1 GW, up from 500 MW.' }),
+      gate({ id: 'regulatoryApproval', status: 'inProgress', confidence: 'confirmed', sourceIds: ['wulf-muskie-1gw'], verifiedAt: R, notes: 'The amended agreement is subject to Kentucky Public Service Commission approval.' }),
       gate({ id: 'constructionStarted', status: 'notStarted' })
     ]
   },
@@ -403,7 +423,14 @@ const PROJECT_RECORDS = [
     id: 'apld-polaris-1', companyId: 'applied-digital', name: 'Polaris Forge 1', country: 'US', flag: '🇺🇸',
     capacityMw: 400, powerBasis: 'critical-it', valueStatus: 'actual', confidence: 'confirmed',
     sourceIds: ['apld-10k-20260531'], asOf: '2026-05-31',
-    note: '400 MW leased to CoreWeave, approximately $11bn over a 15-year initial term.',
+    note: '400 MW leased to CoreWeave, approximately $11bn over a 15-year initial term. 250 MW live as of 1 October 2026.',
+    schedules: [
+      schedule({
+        gate: 'criticalItEnergised', label: '2027', announcedAt: '2026-10-07', scope: 'Building 3',
+        sourceIds: ['apld-10q-20260831'], confidence: 'confirmed', verifiedAt: R,
+        notes: 'Building 3 (150 MW): "We anticipate reaching full ready for service in calendar year 2027."'
+      })
+    ],
     gates: [
       gate({ id: 'customerContracted', status: 'complete', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V }),
       gate({ id: 'constructionStarted', status: 'complete', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V }),
@@ -417,12 +444,14 @@ const PROJECT_RECORDS = [
          figure the filing gives. What changed is that it now states whose it is,
          and says plainly that this site's own share is not disclosed. Inferring
          that share would be arithmetic dressed as a disclosure. */
+      /* October refresh: the Q1 FY27 release gives this site its own figure, so
+         the portfolio-wide caveat above is no longer needed. */
       gate({
-        id: 'criticalItEnergised', status: 'inProgress', confidence: 'confirmed',
-        sourceIds: ['apld-10k-20260531'], verifiedAt: V,
-        notes: 'Applied Digital reports approximately 100 MW operational across its whole ' +
-          'portfolio of five campuses. The filing does not break that down by site, so how much ' +
-          'of it is here is not disclosed.'
+        id: 'criticalItEnergised', status: 'inProgress', effectiveAt: '2026-10-01', confidence: 'confirmed',
+        sourceIds: ['apld-q1-fy27-results'], verifiedAt: R,
+        notes: '250 MW of the campus\'s 400 MW is fully operational: Building 1 (100 MW) and both ' +
+          '75 MW phases of Building 2, the second Ready for Service on 1 October 2026. Building 3 ' +
+          '(150 MW) is under construction, with full ready for service guided for 2027.'
       }),
       gate({ id: 'revenueCommenced', status: 'complete', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V })
     ]
@@ -431,7 +460,15 @@ const PROJECT_RECORDS = [
     id: 'apld-polaris-2', companyId: 'applied-digital', name: 'Polaris Forge 2', country: 'US', flag: '🇺🇸',
     capacityMw: 200, powerBasis: 'critical-it', valueStatus: 'actual', confidence: 'confirmed',
     sourceIds: ['apld-10k-20260531'], asOf: '2026-05-31',
-    note: '200 MW leased to an investment-grade hyperscaler, approximately $5bn over a 15-year initial term.',
+    note: '200 MW leased to an investment-grade hyperscaler, approximately $5bn over a 15-year initial ' +
+      'term. The 10-Q describes two buildings with an aggregate 300 MW under construction.',
+    schedules: [
+      schedule({
+        gate: 'criticalItEnergised', label: 'H2 2026', announcedAt: '2026-10-07',
+        sourceIds: ['apld-10q-20260831'], confidence: 'confirmed', verifiedAt: R,
+        notes: 'Initial ready for service H2 2026, full capacity early 2027.'
+      })
+    ],
     gates: [
       gate({ id: 'customerContracted', status: 'complete', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V }),
       gate({ id: 'constructionStarted', status: 'inProgress', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V })
@@ -442,9 +479,16 @@ const PROJECT_RECORDS = [
     capacityMw: 300, powerBasis: 'critical-it', valueStatus: 'actual', confidence: 'confirmed',
     sourceIds: ['apld-10k-20260531'], asOf: '2026-05-31',
     note: '300 MW leased to a high investment-grade hyperscaler, approximately $7.5bn over a 15-year initial term.',
+    schedules: [
+      schedule({
+        gate: 'criticalItEnergised', label: 'H2 2027', announcedAt: '2026-10-07',
+        sourceIds: ['apld-10q-20260831'], confidence: 'confirmed', verifiedAt: R,
+        notes: 'Initial ready for service H2 2027, full capacity H2 2028.'
+      })
+    ],
     gates: [
       gate({ id: 'customerContracted', status: 'complete', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V }),
-      gate({ id: 'constructionStarted', status: 'inProgress', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V })
+      gate({ id: 'constructionStarted', status: 'inProgress', confidence: 'confirmed', sourceIds: ['apld-10q-20260831'], verifiedAt: R })
     ]
   },
   {
@@ -452,9 +496,16 @@ const PROJECT_RECORDS = [
     capacityMw: 300, powerBasis: 'critical-it', valueStatus: 'actual', confidence: 'confirmed',
     sourceIds: ['apld-10k-20260531'], asOf: '2026-05-31',
     note: '300 MW leased to a high investment-grade hyperscaler, approximately $7.5bn over a 15-year initial term.',
+    schedules: [
+      schedule({
+        gate: 'criticalItEnergised', label: 'H1 2027', announcedAt: '2026-10-07',
+        sourceIds: ['apld-10q-20260831'], confidence: 'confirmed', verifiedAt: R,
+        notes: 'Initial ready for service H1 2027, full capacity early 2028.'
+      })
+    ],
     gates: [
       gate({ id: 'customerContracted', status: 'complete', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V }),
-      gate({ id: 'constructionStarted', status: 'inProgress', confidence: 'confirmed', sourceIds: ['apld-10k-20260531'], verifiedAt: V })
+      gate({ id: 'constructionStarted', status: 'inProgress', confidence: 'confirmed', sourceIds: ['apld-10q-20260831'], verifiedAt: R })
     ]
   },
   {

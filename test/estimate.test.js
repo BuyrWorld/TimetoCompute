@@ -80,11 +80,19 @@ test('critical IT is derived from gross by the stated divisor', () => {
 });
 
 test('billing is estimated from acceptance and says acceptance is not billing', () => {
-  const iren = byTicker('IREN');
+  // No tracked company is accepted-but-not-billing any more (IREN's 10-K now
+  // discloses billing), so the rule is exercised on IREN with billing removed.
+  const real = byTicker('IREN');
+  const iren = { ...real, measures: real.measures.map(m =>
+    m.metric === 'revenueLiveMw' ? { ...m, valueMw: null, confidence: 'unknown' } : m) };
   const e = estimateBilling(iren);
   assert.ok(e);
   assert.equal(e.valueMw, getMeasure(iren, 'customerAcceptedMw').valueMw);
   assert.match(RULES[e.rule].assumption, /not separately confirmed/i);
+});
+
+test('a disclosed billing figure is never replaced by an estimate', () => {
+  assert.equal(estimateBilling(byTicker('IREN')), null);
 });
 
 test('a site target is never converted into a comparable operating figure', () => {
