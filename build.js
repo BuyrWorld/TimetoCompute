@@ -35,6 +35,8 @@ import { allSites, companyPath, path as projectPath, siteStatus } from './src/li
 import { chainExplorerData } from './src/chainx.js';
 import { movesSnapshot } from './src/lib/moves-snapshot.js';
 import { allFeeds } from './src/feeds.js';
+import { modelsPageBody, modelsPageData } from './src/modelspage.js';
+import { ecbRates } from './src/lib/fx.js';
 import { companyHero, chainPosition, tabBar, overviewPanel, sitesPanel, newsPanel } from './src/companyhero.js';
 import { CHAIN_COMPANIES } from './data/chain.js';
 import { newsHubBody, newsHubData } from './src/newshub.js';
@@ -125,7 +127,7 @@ console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
 const NAV = [
   { id: 'today', label: 'Chain', href: '/', search: 'supply chain map home today' },
   { id: 'news', label: 'News', href: '/news/', also: ['ainews'], search: 'AI news stories neoclouds' },
-  { id: 'models', label: 'Models', href: '/news/#models', search: 'AI models GPT Claude Gemini Muse Grok DeepSeek Mistral Qwen' },
+  { id: 'models', label: 'Models', href: '/models/', search: 'AI models GPT Claude Gemini Muse Grok DeepSeek Mistral Qwen prices subscriptions' },
   { id: 'catalysts', label: 'Catalysts', href: '/catalysts/', search: 'earnings dates calendar results catalysts' },
   { id: 'companies', label: 'Companies', href: '/companies/' }
 ];
@@ -994,6 +996,19 @@ function aiNewsPage({ canonical = '/news/', active = 'ainews' } = {}) {
  */
 function newsPage() {
   return aiNewsPage({ canonical: '/news/', active: 'news' });
+}
+
+function modelsPage() {
+  return page({
+    title: 'AI models: release dates, prices and subscriptions by country | T2C',
+    description: 'Every current AI model from OpenAI, Anthropic, Google, Meta, Microsoft, xAI, DeepSeek, Mistral, Qwen and NVIDIA: ' +
+      'when it came out, what it does, API prices, subscription prices in your country, and who builds with it — each figure sourced.',
+    canonical: SITE + '/models/',
+    body: modelsPageBody({ fx: FX }),
+    inlineData: { T2C_MODELPAGE: modelsPageData(FX) },
+    extraScripts: ['/models.js'],
+    active: 'models'
+  });
 }
 
 function intelligencePage() {
@@ -1877,6 +1892,9 @@ const FRESHNESS = await checkFreshness({ log: m => console.log(m) }).catch(e => 
   return null;
 });
 
+/* Exchange rates for the models page's currency switch (src/lib/fx.js). */
+const FX = await ecbRates({ log: m => console.log(m) });
+
 /* Yesterday's share moves for the chain heat map (src/lib/moves-snapshot.js).
    The homepage is written next, so this comes first. Every chain ticker. */
 const MOVES = await movesSnapshot([...new Set(CHAIN_COMPANIES.map(c => c.ticker).filter(Boolean))],
@@ -1900,6 +1918,7 @@ bytes += write('sites/index.html', sitesPage());
 bytes += write('intelligence/index.html', intelligencePage());
 bytes += write('ai-news/index.html', aiNewsPage());
 bytes += write('news/index.html', newsPage());
+bytes += write('models/index.html', modelsPage());
 bytes += write('chain/index.html', chainPage());
 bytes += write('chain-mapping/index.html', chainMappingPage());
 bytes += write('explainers/index.html', explainersPage());
@@ -1980,6 +1999,7 @@ const urls = [
      because a stage is the destination a reader is more likely to want. */
   { loc: SITE + '/chain-mapping/', priority: '0.9', freq: 'weekly' },
   { loc: SITE + '/ai-news/', priority: '0.9', freq: 'daily' },
+  { loc: SITE + '/models/', priority: '0.9', freq: 'weekly' },
   ...explainerRoutes().map(({ explainer, href }) => ({
     loc: SITE + href,
     priority: explainer.kind === 'stage' ? '0.8' : '0.6',
@@ -2021,6 +2041,7 @@ fs.cpSync(path.join(ROOT, 'src', 'newshub-app.js'), path.join(OUT, 'newshub.js')
 fs.cpSync(path.join(ROOT, 'src', 'news-classify.js'), path.join(OUT, 'news-classify.js'));
 fs.cpSync(path.join(ROOT, 'src', 'company-app.js'), path.join(OUT, 'company.js'));
 fs.cpSync(path.join(ROOT, 'src', 'digest-app.js'), path.join(OUT, 'digest.js'));
+fs.cpSync(path.join(ROOT, 'src', 'models-app.js'), path.join(OUT, 'models.js'));
 fs.cpSync(path.join(ROOT, 'src', 'earnings-app.js'), path.join(OUT, 'earnings.js'));
 fs.cpSync(path.join(ROOT, 'src', 'sitenews-app.js'), path.join(OUT, 'site-news.js'));
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'chain-mapping'),

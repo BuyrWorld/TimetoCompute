@@ -13,7 +13,7 @@
  */
 import { CHAIN_STAGES } from '../data/chainstages.js';
 import { CHAIN_COMPANIES, CHAIN_COMPANY_BY_ID, CHAIN_LINKS } from '../data/chain.js';
-import { PROVIDERS, MODEL_KINDS, MODELS_ACCESSED } from '../data/models.js';
+import { PROVIDERS, MODEL_KINDS } from '../data/models.js';
 import { SOURCE_BY_ID } from '../data/sources.js';
 import { signals } from './lib/signals.js';
 import { headlineFor } from './lib/leadstory.js';
@@ -23,7 +23,7 @@ import { CX_COLUMNS } from './chainx.js';
 import { ART_BY_ID } from '../data/artpack.js';
 
 /** Which operators (neoclouds and AI-infra builders) a buyer has signed with. */
-function operatorsFor(chainId) {
+export function operatorsFor(chainId) {
   if (!chainId) return [];
   return CHAIN_LINKS
     .filter(l => l.to === chainId && CHAIN_COMPANY_BY_ID[l.from]?.stage === 'operators')
@@ -139,25 +139,9 @@ export function newsHubBody({ freshness = null } = {}) {
   <section class="nhmodels" id="models" aria-labelledby="nh-models">
     <div class="nhsechead">
       <h2 id="nh-models">The models the compute is for</h2>
-      <span class="nhmeta">Each provider's current lineup, as listed on ${esc(date(MODELS_ACCESSED))}</span>
+      <a class="hmmore press" href="/models/">Every model, with prices →</a>
     </div>
-    <div class="nhfilters" role="group" aria-label="Filter models by what they do">
-      <button type="button" class="nhchip press is-on" data-mkind="all" aria-pressed="true">All</button>
-      ${Object.entries(MODEL_KINDS).map(([k, v]) => `<button type="button" class="nhchip press" data-mkind="${esc(k)}" aria-pressed="false">${esc(v)}</button>`).join('')}
-    </div>
-    ${PROVIDERS.map(p => {
-      const ops = operatorsFor(p.chainId);
-      return `<div class="nhprov">
-      <div class="nhprovhead">
-        <h3>${esc(p.name)}</h3>
-        ${ops.length ? `<p class="nhprovops">Has signed for capacity from ${ops.map(o =>
-          `<b>${esc(o.name)}</b> <span>(${esc(o.what)})</span>`).join(', ')}</p>` : ''}
-      </div>
-      <div class="nhmodelgrid">${p.models.map(m => modelCard(p, m)).join('')}</div>
-    </div>`;
-    }).join('')}
-    <p class="nhdisc">Model descriptions are quoted from each provider's own documentation. No provider says
-      which model runs in which data centre, so T2C never links a model to a site.</p>
+    ${modelStrip(6)}
   </section>
 </div>`;
 }

@@ -16,10 +16,12 @@ const R = (id, o) => ({ id, accessedAt: AUDIT_CUTOFF, ...o });
 
 import { ANNUAL_REPORTS } from './annualreports.js';
 import { MODEL_SOURCES } from './models.js';
+import { MODELFACT_SOURCES } from './modelfacts.js';
 
 export const SOURCES = [
   ...ANNUAL_REPORTS,
   ...MODEL_SOURCES,
+  ...MODELFACT_SOURCES,
 
   /* ---------------- Company profiles, leadership and official links ----------------
      Each of these is an official company-controlled page. Socials were verified by

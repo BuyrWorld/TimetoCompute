@@ -307,14 +307,31 @@ const run = async () => {
   const stagePressed = await page.$eval('[data-filter="stage-1"]', el => el.getAttribute('aria-pressed'));
   check('a stage filter narrows the stories and says it is on', proc === 1 && stagePressed === 'true', `${proc} ${stagePressed}`);
 
-  await page.click('[data-mkind="image"]');
-  await new Promise(r => setTimeout(r, 150));
-  const models = await page.evaluate(() => ({
-    shown: [...document.querySelectorAll('.nhmodel')].filter(m => !m.hidden).map(m => m.dataset.kind),
-    provs: [...document.querySelectorAll('.nhprov')].filter(p => !p.hidden).length
-  }));
-  check('the model filter shows only that kind, and hides empty providers',
-    models.shown.length > 0 && models.shown.every(k => k === 'image') && models.provs < 10, JSON.stringify(models));
+  /* ---- models page: currency, filter, sort ---- */
+  await page.goto(base + '/models/', { waitUntil: 'networkidle0' });
+  await page.evaluate(() => { try { localStorage.removeItem('t2c-country'); } catch (e) {} });
+  await page.select('#mpCountry', 'us');
+  const usd = await page.evaluate(() => ({
+    api: document.querySelector('#m-claude-opus-5-5 .mpusd').textContent,
+    store: document.querySelector('[data-store="claude|Claude Pro - Monthly"]').textContent.trim() }));
+  await page.select('#mpCountry', 'jp');
+  const jpy = await page.evaluate(() => ({
+    api: document.querySelector('#m-claude-opus-5-5 .mpusd').textContent,
+    store: document.querySelector('[data-store="claude|Claude Pro - Monthly"]').textContent.trim(),
+    fx: !document.getElementById('mpFx').hidden }));
+  check('the models page prices in US dollars, and in yen when Japan is picked', /^\$4$/.test(usd.api) && usd.store === '$20.00' &&
+    /^≈ /.test(jpy.api) && /[¥￥]/.test(jpy.api) && jpy.store === '¥3,000' && jpy.fx, JSON.stringify({ usd, jpy }));
+  await page.reload({ waitUntil: 'networkidle0' });
+  const kept = await page.$eval('#mpCountry', s => s.value);
+  check('the chosen country is remembered', kept === 'jp', kept);
+  await page.select('#mpCountry', 'us');
+  await page.click('[data-mpkind="image"]');
+  const shown = await page.$$eval('.mpcard', els => els.filter(e => !e.hidden).map(e => e.dataset.kind));
+  check('the model filter shows only that kind', shown.length > 0 && shown.every(k => k === 'image'), shown.join(','));
+  await page.click('[data-mpkind="all"]');
+  await page.select('#mpSort', 'cheap');
+  const costs = await page.$$eval('.mpcard', els => els.map(e => e.dataset.cost).filter(c => c !== '').map(Number));
+  check('sorting by cost puts the cheapest model first', costs.every((c, i) => !i || costs[i - 1] <= c), costs.slice(0, 6).join(','));
 
   /* ---- sites directory filters and restores ---- */
   await page.goto(base + '/sites/', { waitUntil: 'networkidle0' });

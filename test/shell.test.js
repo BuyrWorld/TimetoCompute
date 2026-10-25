@@ -25,7 +25,7 @@ const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites
   'catalysts/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/news/', '/news/#models', '/catalysts/', '/companies/'];
+const NAV_HREFS = ['/', '/news/', '/models/', '/catalysts/', '/companies/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
 const SECONDARY = ['/sites/', '/chain-mapping/', '/explainers/', '/track/', '/intelligence/', '/research/', '/methodology/'];

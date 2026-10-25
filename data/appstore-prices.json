@@ -1,0 +1,2102 @@
+{
+ "accessedAt": "2026-10-25",
+ "source": "Apple App Store listing, In-App Purchases",
+ "apps": {
+  "chatgpt": {
+   "id": 6448311069,
+   "url": "https://apps.apple.com/us/app/id6448311069",
+   "countries": {
+    "us": [
+     {
+      "name": "ChatGPT Plus",
+      "price": "$19.99"
+     },
+     {
+      "name": "ChatGPT Go",
+      "price": "$8.00"
+     },
+     {
+      "name": "ChatGPT Pro 100",
+      "price": "$100.00"
+     },
+     {
+      "name": "100 Credits",
+      "price": "$4.00"
+     },
+     {
+      "name": "ChatGPT Pro 200",
+      "price": "$200.00"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "$200.00"
+     },
+     {
+      "name": "ChatGPT Pro 500",
+      "price": "$500.00"
+     },
+     {
+      "name": "500 Credits",
+      "price": "$20.00"
+     },
+     {
+      "name": "1000 Credits",
+      "price": "$40.00"
+     }
+    ],
+    "gb": [
+     {
+      "name": "ChatGPT Plus",
+      "price": "£19.99"
+     },
+     {
+      "name": "ChatGPT Go",
+      "price": "£6.99"
+     },
+     {
+      "name": "ChatGPT Pro 100",
+      "price": "£88.90"
+     },
+     {
+      "name": "ChatGPT Pro 200",
+      "price": "£200.00"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "£200.00"
+     },
+     {
+      "name": "ChatGPT Pro 500",
+      "price": "£444.99"
+     }
+    ],
+    "de": [
+     {
+      "name": "ChatGPT Plus",
+      "price": "22,99 €"
+     },
+     {
+      "name": "ChatGPT Go",
+      "price": "7,99 €"
+     },
+     {
+      "name": "ChatGPT Pro 100",
+      "price": "102,99 €"
+     },
+     {
+      "name": "ChatGPT Pro 200",
+      "price": "229,00 €"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "229,00 €"
+     },
+     {
+      "name": "ChatGPT Pro 500",
+      "price": "509,99 €"
+     }
+    ],
+    "fr": [
+     {
+      "name": "ChatGPT Plus",
+      "price": "22,99 €"
+     },
+     {
+      "name": "ChatGPT Go",
+      "price": "7,99 €"
+     },
+     {
+      "name": "ChatGPT Pro 100",
+      "price": "102,99 €"
+     },
+     {
+      "name": "ChatGPT Pro 200",
+      "price": "229,00 €"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "229,00 €"
+     },
+     {
+      "name": "ChatGPT Pro 500",
+      "price": "509,99 €"
+     }
+    ],
+    "ca": [
+     {
+      "name": "ChatGPT Plus",
+      "price": "$24.99"
+     },
+     {
+      "name": "ChatGPT Go",
+      "price": "$12.99"
+     },
+     {
+      "name": "ChatGPT Pro 100",
+      "price": "$152.99"
+     },
+     {
+      "name": "ChatGPT Pro 200",
+      "price": "$249.00"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "$249.00"
+     },
+     {
+      "name": "ChatGPT Pro 500",
+      "price": "$759.99"
+     }
+    ],
+    "au": [
+     {
+      "name": "ChatGPT Plus",
+      "price": "$29.99"
+     },
+     {
+      "name": "ChatGPT Go",
+      "price": "$13.00"
+     },
+     {
+      "name": "ChatGPT Pro 100",
+      "price": "$154.99"
+     },
+     {
+      "name": "ChatGPT Pro 200",
+      "price": "$300.00"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "$300.00"
+     },
+     {
+      "name": "ChatGPT Pro 500",
+      "price": "$769.99"
+     }
+    ],
+    "in": [
+     {
+      "name": "ChatGPT Go",
+      "price": "₹ 399"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "₹ 1,999"
+     },
+     {
+      "name": "ChatGPT Pro 100",
+      "price": "₹ 10,699"
+     },
+     {
+      "name": "ChatGPT Pro 200",
+      "price": "₹ 19,900"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "₹ 19,900"
+     },
+     {
+      "name": "ChatGPT Pro 500",
+      "price": "₹ 52,900"
+     }
+    ],
+    "jp": [
+     {
+      "name": "ChatGPT Plus",
+      "price": "¥3,000"
+     },
+     {
+      "name": "ChatGPT Go",
+      "price": "¥1,400"
+     },
+     {
+      "name": "ChatGPT Pro 100",
+      "price": "¥16,800"
+     },
+     {
+      "name": "ChatGPT Pro 200",
+      "price": "¥30,000"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "¥30,000"
+     },
+     {
+      "name": "ChatGPT Pro 500",
+      "price": "¥84,000"
+     }
+    ],
+    "br": [
+     {
+      "name": "ChatGPT Plus",
+      "price": "R$ 99,90"
+     },
+     {
+      "name": "ChatGPT Go",
+      "price": "R$ 39,90"
+     },
+     {
+      "name": "ChatGPT Pro 100",
+      "price": "R$ 524,90"
+     },
+     {
+      "name": "ChatGPT Pro 200",
+      "price": "R$ 999,90"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "R$ 999,90"
+     },
+     {
+      "name": "ChatGPT Pro 500",
+      "price": "R$ 2.599,90"
+     }
+    ],
+    "sg": [
+     {
+      "name": "ChatGPT Plus",
+      "price": "S$ 29.98"
+     },
+     {
+      "name": "ChatGPT Go",
+      "price": "S$ 10.98"
+     },
+     {
+      "name": "ChatGPT Pro 100",
+      "price": "S$ 137.98"
+     },
+     {
+      "name": "ChatGPT Pro 200",
+      "price": "S$ 299.98"
+     },
+     {
+      "name": "ChatGPT Plus",
+      "price": "S$ 299.98"
+     },
+     {
+      "name": "ChatGPT Pro 500",
+      "price": "S$ 689.98"
+     }
+    ]
+   }
+  },
+  "claude": {
+   "id": 6473753684,
+   "url": "https://apps.apple.com/us/app/id6473753684",
+   "countries": {
+    "us": [
+     {
+      "name": "Claude Pro - Monthly",
+      "price": "$20.00"
+     },
+     {
+      "name": "Claude Max 5x - Monthly",
+      "price": "$124.99"
+     },
+     {
+      "name": "Claude Max 20x - Monthly",
+      "price": "$249.99"
+     },
+     {
+      "name": "Claude Pro - Annual",
+      "price": "$214.99"
+     },
+     {
+      "name": "Usage Credits (20)",
+      "price": "$20.00"
+     },
+     {
+      "name": "Usage Credits (50)",
+      "price": "$45.00"
+     },
+     {
+      "name": "Usage Credits (250)",
+      "price": "$200.00"
+     },
+     {
+      "name": "Usage Credits (500)",
+      "price": "$350.00"
+     },
+     {
+      "name": "Usage Credits (100)",
+      "price": "$90.00"
+     },
+     {
+      "name": "Usage Credits (1000)",
+      "price": "$700.00"
+     }
+    ],
+    "gb": [
+     {
+      "name": "Claude Pro - Monthly",
+      "price": "£20.00"
+     },
+     {
+      "name": "Claude Max 5x - Monthly",
+      "price": "£119.99"
+     },
+     {
+      "name": "Claude Pro - Annual",
+      "price": "£199.99"
+     },
+     {
+      "name": "Claude Max 20x - Monthly",
+      "price": "£249.99"
+     },
+     {
+      "name": "Usage Credits (20)",
+      "price": "£20.00"
+     },
+     {
+      "name": "Usage Credits (50)",
+      "price": "£45.00"
+     },
+     {
+      "name": "Usage Credits (250)",
+      "price": "£200.00"
+     },
+     {
+      "name": "Usage Credits (500)",
+      "price": "£349.00"
+     },
+     {
+      "name": "Usage Credits (100)",
+      "price": "£90.00"
+     },
+     {
+      "name": "Usage Credits (1000)",
+      "price": "£700.00"
+     }
+    ],
+    "de": [
+     {
+      "name": "Claude Pro - Monthly",
+      "price": "22,00 €"
+     },
+     {
+      "name": "Claude Max 5x - Monthly",
+      "price": "149,99 €"
+     },
+     {
+      "name": "Claude Pro - Annual",
+      "price": "249,99 €"
+     },
+     {
+      "name": "Claude Max 20x - Monthly",
+      "price": "299,99 €"
+     },
+     {
+      "name": "Usage Credits (50)",
+      "price": "49,00 €"
+     },
+     {
+      "name": "Usage Credits (20)",
+      "price": "22,00 €"
+     },
+     {
+      "name": "Usage Credits (250)",
+      "price": "229,00 €"
+     },
+     {
+      "name": "Usage Credits (500)",
+      "price": "400,00 €"
+     },
+     {
+      "name": "Usage Credits (100)",
+      "price": "100,00 €"
+     },
+     {
+      "name": "Usage Credits (1000)",
+      "price": "800,00 €"
+     }
+    ],
+    "fr": [
+     {
+      "name": "Claude Pro - Monthly",
+      "price": "22,00 €"
+     },
+     {
+      "name": "Claude Max 5x - Monthly",
+      "price": "149,99 €"
+     },
+     {
+      "name": "Claude Pro - Annual",
+      "price": "249,99 €"
+     },
+     {
+      "name": "Claude Max 20x - Monthly",
+      "price": "299,99 €"
+     },
+     {
+      "name": "Usage Credits (20)",
+      "price": "22,00 €"
+     },
+     {
+      "name": "Usage Credits (50)",
+      "price": "49,00 €"
+     },
+     {
+      "name": "Usage Credits (500)",
+      "price": "400,00 €"
+     },
+     {
+      "name": "Usage Credits (100)",
+      "price": "100,00 €"
+     },
+     {
+      "name": "Usage Credits (1000)",
+      "price": "800,00 €"
+     },
+     {
+      "name": "Usage Credits (250)",
+      "price": "229,00 €"
+     }
+    ],
+    "ca": [
+     {
+      "name": "Claude Pro - Monthly",
+      "price": "$28.00"
+     },
+     {
+      "name": "Claude Max 5x - Monthly",
+      "price": "$179.99"
+     },
+     {
+      "name": "Claude Pro - Annual",
+      "price": "$299.99"
+     },
+     {
+      "name": "Claude Max 20x - Monthly",
+      "price": "$349.99"
+     },
+     {
+      "name": "Usage Credits (20)",
+      "price": "$25.00"
+     },
+     {
+      "name": "Usage Credits (50)",
+      "price": "$59.00"
+     },
+     {
+      "name": "Usage Credits (250)",
+      "price": "$249.00"
+     },
+     {
+      "name": "Usage Credits (500)",
+      "price": "$500.00"
+     },
+     {
+      "name": "Usage Credits (100)",
+      "price": "$119.00"
+     },
+     {
+      "name": "Usage Credits (1000)",
+      "price": "$1,000.00"
+     }
+    ],
+    "au": [
+     {
+      "name": "Claude Pro - Monthly",
+      "price": "$30.00"
+     },
+     {
+      "name": "Claude Max 5x - Monthly",
+      "price": "$199.99"
+     },
+     {
+      "name": "Claude Pro - Annual",
+      "price": "$349.99"
+     },
+     {
+      "name": "Claude Max 20x - Monthly",
+      "price": "$399.99"
+     },
+     {
+      "name": "Usage Credits (20)",
+      "price": "$30.00"
+     },
+     {
+      "name": "Usage Credits (50)",
+      "price": "$69.00"
+     },
+     {
+      "name": "Usage Credits (250)",
+      "price": "$300.00"
+     },
+     {
+      "name": "Usage Credits (500)",
+      "price": "$600.00"
+     },
+     {
+      "name": "Usage Credits (100)",
+      "price": "$150.00"
+     },
+     {
+      "name": "Usage Credits (1000)",
+      "price": "$1,000.00"
+     }
+    ],
+    "in": [
+     {
+      "name": "Claude Pro - Monthly",
+      "price": "₹ 1,999"
+     },
+     {
+      "name": "Claude Pro - Annual",
+      "price": "₹ 19,900"
+     },
+     {
+      "name": "Claude Max 5x - Monthly",
+      "price": "₹ 12,900"
+     },
+     {
+      "name": "Claude Max 20x - Monthly",
+      "price": "₹ 24,900"
+     },
+     {
+      "name": "Usage Credits (20)",
+      "price": "₹ 1,999"
+     },
+     {
+      "name": "Usage Credits (50)",
+      "price": "₹ 4,999"
+     },
+     {
+      "name": "Usage Credits (250)",
+      "price": "₹ 19,900"
+     },
+     {
+      "name": "Usage Credits (1000)",
+      "price": "₹ 69,900"
+     },
+     {
+      "name": "Usage Credits (100)",
+      "price": "₹ 9,900"
+     },
+     {
+      "name": "Usage Credits (500)",
+      "price": "₹ 34,900"
+     }
+    ],
+    "jp": [
+     {
+      "name": "Claude Pro - Monthly",
+      "price": "¥3,000"
+     },
+     {
+      "name": "Claude Max 5x - Monthly",
+      "price": "¥20,000"
+     },
+     {
+      "name": "Claude Pro - Annual",
+      "price": "¥35,000"
+     },
+     {
+      "name": "Claude Max 20x - Monthly",
+      "price": "¥40,000"
+     }
+    ],
+    "br": [
+     {
+      "name": "Claude Pro - Monthly",
+      "price": "R$ 129,90"
+     },
+     {
+      "name": "Claude Max 5x - Monthly",
+      "price": "R$ 799,90"
+     },
+     {
+      "name": "Claude Max 20x - Monthly",
+      "price": "R$ 1.499,90"
+     },
+     {
+      "name": "Claude Pro - Annual",
+      "price": "R$ 1.299,90"
+     },
+     {
+      "name": "Usage Credits (20)",
+      "price": "R$ 129,90"
+     },
+     {
+      "name": "Usage Credits (50)",
+      "price": "R$ 299,90"
+     },
+     {
+      "name": "Usage Credits (250)",
+      "price": "R$ 1.299,90"
+     },
+     {
+      "name": "Usage Credits (500)",
+      "price": "R$ 2.299,90"
+     },
+     {
+      "name": "Usage Credits (100)",
+      "price": "R$ 599,90"
+     },
+     {
+      "name": "Usage Credits (1000)",
+      "price": "R$ 4.999,90"
+     }
+    ],
+    "sg": [
+     {
+      "name": "Claude Pro - Monthly",
+      "price": "S$ 29.98"
+     },
+     {
+      "name": "Claude Max 5x - Monthly",
+      "price": "S$ 179.98"
+     },
+     {
+      "name": "Claude Pro - Annual",
+      "price": "S$ 299.98"
+     },
+     {
+      "name": "Claude Max 20x - Monthly",
+      "price": "S$ 349.98"
+     },
+     {
+      "name": "Usage Credits (20)",
+      "price": "S$ 29.98"
+     },
+     {
+      "name": "Usage Credits (50)",
+      "price": "S$ 59.98"
+     },
+     {
+      "name": "Usage Credits (500)",
+      "price": "S$ 499.98"
+     },
+     {
+      "name": "Usage Credits (100)",
+      "price": "S$ 129.98"
+     },
+     {
+      "name": "Usage Credits (1000)",
+      "price": "S$ 999.98"
+     },
+     {
+      "name": "Usage Credits (250)",
+      "price": "S$ 299.98"
+     }
+    ]
+   }
+  },
+  "gemini": {
+   "id": 6477489729,
+   "url": "https://apps.apple.com/us/app/id6477489729",
+   "countries": {
+    "us": [
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$19.99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "$4.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$19.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$19.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$19.99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "$4.99"
+     },
+     {
+      "name": "Google AI Ultra (30 TB)",
+      "price": "$199.99"
+     },
+     {
+      "name": "100 GB",
+      "price": "$1.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$19.99"
+     },
+     {
+      "name": "Google AI Ultra (30 TB)",
+      "price": "$199.99"
+     }
+    ],
+    "gb": [
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "£18.99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "£4.49"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "£18.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "£18.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "£18.99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "£4.49"
+     },
+     {
+      "name": "Google AI Ultra (30 TB)",
+      "price": "£189.99"
+     },
+     {
+      "name": "100 GB",
+      "price": "£1.79"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "£18.99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "£4.49"
+     }
+    ],
+    "de": [
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "21,99 €"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "4,99 €"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "4,99 €"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "4,99 €"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "21,99 €"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "21,99 €"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "21,99 €"
+     },
+     {
+      "name": "Google AI Plus (2 TB)",
+      "price": "9,99 €"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "4,99 €"
+     },
+     {
+      "name": "Google AI Ultra (30 TB)",
+      "price": "219,99 €"
+     }
+    ],
+    "fr": [
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "21,99 €"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "4,99 €"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "4,99 €"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "4,99 €"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "21,99 €"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "21,99 €"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "21,99 €"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "21,99 €"
+     },
+     {
+      "name": "Google AI Plus (2 TB)",
+      "price": "9,99 €"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "4,99 €"
+     }
+    ],
+    "ca": [
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$26.99"
+     },
+     {
+      "name": "Google AI Plus (200GB)",
+      "price": "$6.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$26.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$26.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$26.99"
+     },
+     {
+      "name": "Google AI Plus (200GB)",
+      "price": "$6.99"
+     },
+     {
+      "name": "100 GB",
+      "price": "$2.79"
+     },
+     {
+      "name": "Google AI Ultra (30 TB)",
+      "price": "$279.99"
+     },
+     {
+      "name": "Google AI Plus (200GB)",
+      "price": "$69.99"
+     },
+     {
+      "name": "Google AI Plus (200GB)",
+      "price": "$6.99"
+     }
+    ],
+    "au": [
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$32.99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "$7.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$32.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$32.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$32.99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "$7.99"
+     },
+     {
+      "name": "100 GB",
+      "price": "$2.99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "$7.99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "$32.99"
+     },
+     {
+      "name": "Google AI Ultra (30 TB)",
+      "price": "$329.99"
+     }
+    ],
+    "in": [
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "₹ 1,950"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "₹ 399"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "₹ 1,950"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "₹ 399"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "₹ 1,950"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "₹ 1,950"
+     },
+     {
+      "name": "30 GB",
+      "price": "₹ 59"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "₹ 399"
+     },
+     {
+      "name": "100 GB",
+      "price": "₹ 149"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "₹ 4,000"
+     }
+    ],
+    "jp": [
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "¥2,900"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "¥720"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "¥2,900"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "¥2,900"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "¥2,900"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "¥720"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "¥720"
+     },
+     {
+      "name": "100 GB",
+      "price": "¥290"
+     },
+     {
+      "name": "Google AI Ultra (30 TB)",
+      "price": "¥32,000"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "¥7,200"
+     }
+    ],
+    "br": [
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "R$ 96,90"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "R$ 24,99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "R$ 24,99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "R$ 24,99"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "R$ 96,90"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "R$ 96,90"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "R$ 96,90"
+     },
+     {
+      "name": "Google AI Plus (2 TB)",
+      "price": "R$ 49,99"
+     },
+     {
+      "name": "100 GB",
+      "price": "R$ 9,99"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "R$ 24,99"
+     }
+    ],
+    "sg": [
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "S$ 28.90"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "S$ 6.98"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "S$ 28.90"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "S$ 28.90"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "S$ 6.98"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "S$ 28.90"
+     },
+     {
+      "name": "Google AI Ultra (30 TB)",
+      "price": "S$ 289.98"
+     },
+     {
+      "name": "Google AI Plus (400 GB)",
+      "price": "S$ 69.98"
+     },
+     {
+      "name": "100 GB",
+      "price": "S$ 2.98"
+     },
+     {
+      "name": "Google AI Pro (5 TB)",
+      "price": "S$ 289.98"
+     }
+    ]
+   }
+  },
+  "grok": {
+   "id": 6670324846,
+   "url": "https://apps.apple.com/us/app/id6670324846",
+   "countries": {
+    "us": [
+     {
+      "name": "SuperGrok",
+      "price": "$30.00"
+     },
+     {
+      "name": "Extra Usage Credits 5 USD",
+      "price": "$5.00"
+     },
+     {
+      "name": "Extra Usage Credits 20 USD",
+      "price": "$20.00"
+     },
+     {
+      "name": "SuperGrok Lite",
+      "price": "$10.00"
+     },
+     {
+      "name": "SuperGrok Heavy",
+      "price": "$300.00"
+     },
+     {
+      "name": "Extra Usage Credits 50 USD",
+      "price": "$50.00"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "$100.00"
+     },
+     {
+      "name": "Extra Usage Credits 100 USD",
+      "price": "$100.00"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "$30.00"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "$300.00"
+     }
+    ],
+    "gb": [
+     {
+      "name": "SuperGrok",
+      "price": "£30.00"
+     },
+     {
+      "name": "Extra Usage Credits 5 USD",
+      "price": "£5.00"
+     },
+     {
+      "name": "Extra Usage Credits 20 USD",
+      "price": "£20.00"
+     },
+     {
+      "name": "SuperGrok Lite",
+      "price": "£10.00"
+     },
+     {
+      "name": "Extra Usage Credits 50 USD",
+      "price": "£50.00"
+     },
+     {
+      "name": "SuperGrok Heavy",
+      "price": "£300.00"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "£100.00"
+     },
+     {
+      "name": "Extra Usage Credits 100 USD",
+      "price": "£100.00"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "£30.00"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "£300.00"
+     }
+    ],
+    "de": [
+     {
+      "name": "SuperGrok",
+      "price": "35,00 €"
+     },
+     {
+      "name": "Extra Usage Credits 5 USD",
+      "price": "6,00 €"
+     },
+     {
+      "name": "Extra Usage Credits 20 USD",
+      "price": "22,00 €"
+     },
+     {
+      "name": "SuperGrok Lite",
+      "price": "10,00 €"
+     },
+     {
+      "name": "Extra Usage Credits 50 USD",
+      "price": "60,00 €"
+     },
+     {
+      "name": "SuperGrok Heavy",
+      "price": "349,00 €"
+     },
+     {
+      "name": "Extra Usage Credits 100 USD",
+      "price": "100,00 €"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "100,00 €"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "35,00 €"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "349,00 €"
+     }
+    ],
+    "fr": [
+     {
+      "name": "SuperGrok",
+      "price": "35,00 €"
+     },
+     {
+      "name": "Extra Usage Credits 5 USD",
+      "price": "6,00 €"
+     },
+     {
+      "name": "Extra Usage Credits 20 USD",
+      "price": "22,00 €"
+     },
+     {
+      "name": "SuperGrok Lite",
+      "price": "10,00 €"
+     },
+     {
+      "name": "Extra Usage Credits 50 USD",
+      "price": "60,00 €"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "100,00 €"
+     },
+     {
+      "name": "SuperGrok Heavy",
+      "price": "349,00 €"
+     },
+     {
+      "name": "Extra Usage Credits 100 USD",
+      "price": "100,00 €"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "35,00 €"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "349,00 €"
+     }
+    ],
+    "ca": [
+     {
+      "name": "SuperGrok",
+      "price": "$40.00"
+     },
+     {
+      "name": "Extra Usage Credits 5 USD",
+      "price": "$7.00"
+     },
+     {
+      "name": "Extra Usage Credits 20 USD",
+      "price": "$25.00"
+     },
+     {
+      "name": "SuperGrok Lite",
+      "price": "$14.00"
+     },
+     {
+      "name": "Extra Usage Credits 50 USD",
+      "price": "$70.00"
+     },
+     {
+      "name": "SuperGrok Heavy",
+      "price": "$400.00"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "$129.00"
+     },
+     {
+      "name": "Extra Usage Credits 100 USD",
+      "price": "$129.00"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "$40.00"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "$400.00"
+     }
+    ],
+    "au": [
+     {
+      "name": "SuperGrok",
+      "price": "$50.00"
+     },
+     {
+      "name": "Extra Usage Credits 5 USD",
+      "price": "$8.00"
+     },
+     {
+      "name": "Extra Usage Credits 20 USD",
+      "price": "$30.00"
+     },
+     {
+      "name": "SuperGrok Lite",
+      "price": "$15.00"
+     },
+     {
+      "name": "Extra Usage Credits 50 USD",
+      "price": "$80.00"
+     },
+     {
+      "name": "SuperGrok Heavy",
+      "price": "$500.00"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "$150.00"
+     },
+     {
+      "name": "Extra Usage Credits 100 USD",
+      "price": "$150.00"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "$50.00"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "$500.00"
+     }
+    ],
+    "in": [
+     {
+      "name": "SuperGrok",
+      "price": "₹ 2,900"
+     },
+     {
+      "name": "Extra Usage Credits 5 USD",
+      "price": "₹ 499"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "₹ 2,900"
+     },
+     {
+      "name": "Extra Usage Credits 20 USD",
+      "price": "₹ 1,999"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "₹ 29,000"
+     },
+     {
+      "name": "Extra Usage Credits 50 USD",
+      "price": "₹ 4,999"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "₹ 9,900"
+     },
+     {
+      "name": "Extra Usage Credits 100 USD",
+      "price": "₹ 9,900"
+     },
+     {
+      "name": "SuperGrok Heavy",
+      "price": "₹ 29,900"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "₹ 99,900"
+     }
+    ],
+    "jp": [
+     {
+      "name": "Extra Usage Credits 5 USD",
+      "price": "¥800"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "¥5,000"
+     },
+     {
+      "name": "Extra Usage Credits 20 USD",
+      "price": "¥3,000"
+     },
+     {
+      "name": "SuperGrok Lite",
+      "price": "¥1,500"
+     },
+     {
+      "name": "Extra Usage Credits 50 USD",
+      "price": "¥8,000"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "¥15,000"
+     },
+     {
+      "name": "SuperGrok Heavy",
+      "price": "¥50,000"
+     },
+     {
+      "name": "Extra Usage Credits 100 USD",
+      "price": "¥15,000"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "¥5,000"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "¥50,000"
+     }
+    ],
+    "br": [
+     {
+      "name": "SuperGrok",
+      "price": "R$ 149,90"
+     },
+     {
+      "name": "Extra Usage Credits 5 USD",
+      "price": "R$ 29,90"
+     },
+     {
+      "name": "SuperGrok Lite",
+      "price": "R$ 59,90"
+     },
+     {
+      "name": "Extra Usage Credits 20 USD",
+      "price": "R$ 129,90"
+     },
+     {
+      "name": "Extra Usage Credits 50 USD",
+      "price": "R$ 299,90"
+     },
+     {
+      "name": "SuperGrok Heavy",
+      "price": "R$ 1.999,90"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "R$ 149,90"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "R$ 599,90"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "R$ 1.499,90"
+     },
+     {
+      "name": "Extra Usage Credits 100 USD",
+      "price": "R$ 599,90"
+     }
+    ],
+    "sg": [
+     {
+      "name": "SuperGrok",
+      "price": "S$ 39.98"
+     },
+     {
+      "name": "Extra Usage Credits 5 USD",
+      "price": "S$ 6.98"
+     },
+     {
+      "name": "Extra Usage Credits 20 USD",
+      "price": "S$ 29.98"
+     },
+     {
+      "name": "Extra Usage Credits 50 USD",
+      "price": "S$ 69.98"
+     },
+     {
+      "name": "SuperGrok Lite",
+      "price": "S$ 14.98"
+     },
+     {
+      "name": "Extra Usage Credits 100 USD",
+      "price": "S$ 149.98"
+     },
+     {
+      "name": "SuperGrok Heavy",
+      "price": "S$ 399.98"
+     },
+     {
+      "name": "SuperGrok Plus",
+      "price": "S$ 149.98"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "S$ 399.98"
+     },
+     {
+      "name": "SuperGrok",
+      "price": "S$ 39.98"
+     }
+    ]
+   }
+  },
+  "mistral": {
+   "id": 6740410176,
+   "url": "https://apps.apple.com/us/app/id6740410176",
+   "countries": {
+    "us": [
+     {
+      "name": "Vibe Pro",
+      "price": "$14.99"
+     },
+     {
+      "name": "Vibe Pro",
+      "price": "$149.99"
+     }
+    ],
+    "gb": [
+     {
+      "name": "Vibe Pro",
+      "price": "£14.99"
+     },
+     {
+      "name": "Vibe Pro",
+      "price": "£149.99"
+     }
+    ],
+    "de": [
+     {
+      "name": "Vibe Pro",
+      "price": "17,99 €"
+     },
+     {
+      "name": "Vibe Pro",
+      "price": "172,99 €"
+     }
+    ],
+    "fr": [
+     {
+      "name": "Vibe Pro",
+      "price": "17,99 €"
+     },
+     {
+      "name": "Vibe Pro",
+      "price": "172,99 €"
+     }
+    ],
+    "ca": [
+     {
+      "name": "Vibe Pro",
+      "price": "$19.99"
+     },
+     {
+      "name": "Vibe Pro",
+      "price": "$199.99"
+     }
+    ],
+    "au": [
+     {
+      "name": "Vibe Pro",
+      "price": "$22.99"
+     },
+     {
+      "name": "Vibe Pro",
+      "price": "$229.99"
+     }
+    ],
+    "in": [
+     {
+      "name": "Vibe Pro",
+      "price": "₹ 1,499"
+     },
+     {
+      "name": "Vibe Pro",
+      "price": "₹ 14,900"
+     }
+    ],
+    "jp": [
+     {
+      "name": "Vibe Pro",
+      "price": "¥2,500"
+     },
+     {
+      "name": "Vibe Pro",
+      "price": "¥25,000"
+     }
+    ],
+    "br": [
+     {
+      "name": "Vibe Pro",
+      "price": "R$ 79,90"
+     },
+     {
+      "name": "Vibe Pro",
+      "price": "R$ 799,90"
+     }
+    ],
+    "sg": [
+     {
+      "name": "Vibe Pro",
+      "price": "S$ 19.98"
+     },
+     {
+      "name": "Vibe Pro",
+      "price": "S$ 199.98"
+     }
+    ]
+   }
+  },
+  "copilot": {
+   "id": 541164041,
+   "url": "https://apps.apple.com/us/app/id541164041",
+   "countries": {
+    "us": [
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "$9.99"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "$12.99"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "$19.99"
+     },
+     {
+      "name": "Microsoft 365 Basic",
+      "price": "$1.99"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "$19.99"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "$12.99"
+     },
+     {
+      "name": " Microsoft 365 Personal",
+      "price": "$99.99"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "$9.99"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "$9.99"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "$19.99"
+     }
+    ],
+    "gb": [
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "£8.49"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "£10.49"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "£18.99"
+     },
+     {
+      "name": "Microsoft 365 Basic",
+      "price": "£1.99"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "£18.99"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "£10.49"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "£8.49"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "£8.49"
+     },
+     {
+      "name": " Microsoft 365 Personal",
+      "price": "£84.99"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "£104.99"
+     }
+    ],
+    "de": [
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "10,00 €"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "13,00 €"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "22,00 €"
+     },
+     {
+      "name": "Microsoft 365 Basic",
+      "price": "1,99 €"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "22,00 €"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "13,00 €"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "10,00 €"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "10,00 €"
+     },
+     {
+      "name": " Microsoft 365 Personal",
+      "price": "99,00 €"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "129,00 €"
+     }
+    ],
+    "fr": [
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "10,00 €"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "13,00 €"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "22,00 €"
+     },
+     {
+      "name": "Microsoft 365 Basic",
+      "price": "1,99 €"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "22,00 €"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "13,00 €"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "10,00 €"
+     },
+     {
+      "name": " Microsoft 365 Personal",
+      "price": "99,00 €"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "10,00 €"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "7,49 €"
+     }
+    ],
+    "ca": [
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "$11.49"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "$14.49"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "$26.99"
+     },
+     {
+      "name": "Microsoft 365 Basic",
+      "price": "$1.99"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "$26.99"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "$14.49"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "$11.49"
+     },
+     {
+      "name": " Microsoft 365 Personal",
+      "price": "$114.99"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "$11.49"
+     },
+     {
+      "name": "Microsoft 365 Premium Annual",
+      "price": "$269.99"
+     }
+    ],
+    "au": [
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "$16.00"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "$18.00"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "$11.49"
+     },
+     {
+      "name": "Microsoft 365 Basic",
+      "price": "$2.99"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "$179.00"
+     },
+     {
+      "name": " Microsoft 365 Personal",
+      "price": "$159.00"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "$33.00"
+     },
+     {
+      "name": "Microsoft 365 Premium Annual",
+      "price": "$329.00"
+     },
+     {
+      "name": "Microsoft 365 Premium Annual",
+      "price": "$329.00"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "$33.00"
+     }
+    ],
+    "in": [
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "₹ 689"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "₹ 819"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "₹ 1,999"
+     },
+     {
+      "name": "Microsoft 365 Basic",
+      "price": "₹ 149"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "₹ 1,999"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "₹ 819"
+     },
+     {
+      "name": " Microsoft 365 Personal",
+      "price": "₹ 6,899"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "₹ 1,999"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "₹ 8,199"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "₹ 689"
+     }
+    ],
+    "jp": [
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "¥2,100"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "¥2,100"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "¥2,700"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "¥3,200"
+     },
+     {
+      "name": "Microsoft 365 Basic",
+      "price": "¥260"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "¥3,200"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "¥2,100"
+     },
+     {
+      "name": " Microsoft 365 Personal",
+      "price": "¥21,000"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "¥2,100"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "¥2,700"
+     }
+    ],
+    "br": [
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "R$ 50,90"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "R$ 60,00"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "R$ 109,90"
+     },
+     {
+      "name": "Microsoft 365 Basic",
+      "price": "R$ 9,90"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "R$ 109,90"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "R$ 60,00"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "R$ 599,00"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "R$ 59,90"
+     },
+     {
+      "name": " Microsoft 365 Personal",
+      "price": "R$ 509,00"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "R$ 50,90"
+     }
+    ],
+    "sg": [
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "S$ 15.48"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "S$ 18.98"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "S$ 28.98"
+     },
+     {
+      "name": "Microsoft 365 Basic",
+      "price": "S$ 2.98"
+     },
+     {
+      "name": " Microsoft 365 Personal",
+      "price": "S$ 154.98"
+     },
+     {
+      "name": "Microsoft 365 Premium Monthly",
+      "price": "S$ 28.98"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "S$ 18.98"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "S$ 189.00"
+     },
+     {
+      "name": "Microsoft 365 Personal",
+      "price": "S$ 15.48"
+     },
+     {
+      "name": "Microsoft 365 Family",
+      "price": "S$ 189.00"
+     }
+    ]
+   }
+  },
+  "metaai": {
+   "id": 1558240027,
+   "url": "https://apps.apple.com/us/app/id1558240027",
+   "countries": {
+    "us": [],
+    "gb": [],
+    "de": [],
+    "fr": [],
+    "ca": [],
+    "au": [],
+    "in": [],
+    "jp": [],
+    "br": [],
+    "sg": []
+   }
+  },
+  "deepseek": {
+   "id": 6737597349,
+   "url": "https://apps.apple.com/us/app/id6737597349",
+   "countries": {
+    "us": [],
+    "gb": [],
+    "de": [],
+    "fr": [],
+    "ca": [],
+    "au": [],
+    "in": [],
+    "jp": [],
+    "br": [],
+    "sg": []
+   }
+  }
+ }
+}

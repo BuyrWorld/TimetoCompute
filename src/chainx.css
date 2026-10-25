@@ -495,3 +495,92 @@ html:not(.has-cotabs) .cotabs { display: none; }
 .cx { margin-top: 0; }
 /* On a phone the move replaces the ticker, so chips stay two to a row. */
 @media (max-width: 719px) { .cx.is-heat .cxco[data-move] .cxtick { display: none; } }
+
+/* ================= models page ================= */
+.mp { padding-top: 20px; }
+.mphead { max-width: 860px; margin-bottom: 26px; }
+.mph { margin: 6px 0 10px; font-size: clamp(30px, 4.2vw, 52px); line-height: 1.04; letter-spacing: -0.02em; }
+.mplede { margin: 0; font-size: clamp(15px, 1.4vw, 18px); line-height: 1.5; color: var(--soft); max-width: 68ch; }
+.mpbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 18px; }
+.mpcur { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
+.mpcur select, .mpsort select { font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--brand);
+  border-radius: 8px; padding: 7px 10px; }
+.mpsort select { border-color: var(--line-2); font-size: 13px; }
+.mpcur select:focus-visible, .mpsort select:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.mpsort { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
+.mpfx { margin: 0; font-size: 12.5px; color: var(--dim); max-width: 60ch; }
+.mpfx[hidden] { display: none; }
+.mpfx a { color: var(--soft); }
+.mpsec { margin: 0 0 44px; }
+.mpintro { margin: 0 0 14px; font-size: 14px; line-height: 1.55; color: var(--soft); max-width: 78ch; }
+.mpnew { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.mpnew li { display: inline-flex; align-items: baseline; gap: 8px; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); font-size: 13.5px; }
+.mpnew a { color: var(--ink); text-decoration: none; }
+.mpnew a:hover b { color: var(--brand); }
+.mpnew li > span:last-child { color: var(--dim); font-size: 12.5px; }
+
+.mpgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 14px; }
+.mpcard { display: flex; flex-direction: column; gap: 7px; padding: 15px; border-radius: 12px; border: 1px solid var(--line-2);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 4%, var(--surface)), var(--surface)); scroll-margin-top: 90px; }
+.mpcard[hidden] { display: none; }
+.mpcard:target { border-color: var(--brand); }
+.mptop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mpwhen { font-size: 12px; color: var(--soft); white-space: nowrap; }
+.mpwhen.is-none { color: var(--dim); }
+.mpprov { margin: 2px 0 0; font-size: 12px; font-weight: 700; color: var(--dim); }
+.mpname { margin: 0; font-size: 18px; }
+.mpfacts { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--soft); }
+.mpfacts b { color: var(--ink); }
+.mpprice { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
+.mpprice.is-none { font-size: 13px; font-weight: 500; color: var(--dim); }
+.mpunit { font-size: 12px; font-weight: 500; color: var(--dim); }
+.mpusd.is-conv { color: var(--soft); }
+.mppricemeta { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 11.5px; color: var(--dim); }
+.mpbasis { font-weight: 700; padding: 1px 6px; border-radius: 4px; border: 1px solid currentColor; }
+.mpbasis-provider { color: var(--ok, var(--brand)); }
+.mpbasis-listing { color: var(--warn); }
+.mpsrcs { margin: auto 0 0; padding-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+
+.mpplans { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 16px; }
+.mpplanprov { border: 1px solid var(--line-2); border-radius: 12px; padding: 14px; background: var(--surface); min-width: 0; }
+.mpplanprov h3 { margin: 0 0 8px; font-size: 17px; }
+.mptable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.mptable th, .mptable td { text-align: left; vertical-align: top; padding: 7px 8px 7px 0; border-top: 1px solid var(--line-2); }
+.mptable thead th { border-top: 0; font-size: 11.5px; color: var(--dim); font-weight: 600; }
+.mptable tbody th { font-weight: 700; white-space: nowrap; }
+.mpstore { font-weight: 700; white-space: nowrap; }
+.mptable td:last-child { color: var(--soft); }
+
+.mpbuilt { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.mpbuiltprov { border: 1px solid var(--line-2); border-radius: 12px; padding: 14px; background: var(--surface); }
+.mpbuiltprov h3 { margin: 0 0 8px; font-size: 16px; }
+.mpbuiltprov ul, .mpcompute { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.mpbuiltprov li { font-size: 13.5px; line-height: 1.4; }
+.mpbuiltprov li span { color: var(--soft); }
+.mpcompute li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; font-size: 14px; padding: 10px 0; border-top: 1px solid var(--line-2); }
+.mpcompute li span { color: var(--t2c-cyan, #4fd1e8); font-weight: 600; }
+.mpcompute small { color: var(--dim); font-weight: 500; }
+
+/* Phone: the plan tables become stacked rows so nothing scrolls sideways. */
+@media (max-width: 560px) {
+  .mptable thead { display: none; }
+  .mptable tr { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; padding: 9px 0; border-top: 1px solid var(--line-2); }
+  .mptable th, .mptable td { border: 0; padding: 0; }
+  .mptable td:nth-of-type(2) { text-align: right; }
+  .mptable td:nth-of-type(2)::before { content: 'Web '; color: var(--dim); font-size: 11.5px; }
+  .mptable td:last-child { grid-column: 1 / -1; font-size: 12.5px; }
+}
+/* The site-wide table style is for numeric ledgers; these are reading tables. */
+.mptable { min-width: 0; }
+.mptable th, .mptable td { font-family: inherit; font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 500; letter-spacing: 0;
+  text-transform: none; text-align: left; white-space: normal; background: none; color: var(--ink); border-bottom: 0; }
+.mptable thead th { font-size: 11.5px; color: var(--dim); font-weight: 600; }
+.mptable tbody th { font-weight: 700; }
+.mpitem { display: block; font-size: 11px; font-weight: 500; color: var(--dim); }
+.mpcur, .mpsort { white-space: nowrap; }
+@media (max-width: 560px) {
+  .mptable tr { grid-template-columns: minmax(0, 1fr) auto; }
+  .mptable td:nth-of-type(1) { text-align: right; }
+  .mptable td:nth-of-type(2) { grid-column: 1 / -1; text-align: left; }
+}
+.mpbuilt { align-items: start; margin-bottom: 10px; }

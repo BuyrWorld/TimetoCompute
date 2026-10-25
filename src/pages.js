@@ -140,7 +140,7 @@ export function todayBody({ moves = null } = {}) {
   <section class="hmsec" aria-labelledby="models-h">
     <div class="hmsechead">
       <h2 id="models-h">The newest models</h2>
-      <a class="hmmore press" href="/news/#models">Every model →</a>
+      <a class="hmmore press" href="/models/">Every model, with prices →</a>
     </div>
     ${modelStrip(5)}
   </section>
