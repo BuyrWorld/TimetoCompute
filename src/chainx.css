@@ -387,3 +387,26 @@ html:not(.has-cotabs) .cotabs { display: none; }
 .dghead { font-weight: 600; margin: 0 0 8px; }
 .dgpoints { margin: 0 0 8px; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
 .dgpoints blockquote { margin: 3px 0 0; padding-left: 9px; border-left: 2px solid var(--line-2); color: var(--dim); font-size: 12.5px; overflow-wrap: anywhere; }
+
+/* ---- daily heat map: one session's share move, off by default ----
+   Direction is carried by the sign in text as well as the colour. */
+.cxheatbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.cxheatbtn { all: unset; cursor: pointer; padding: 5px 11px; border-radius: 7px; border: 1px solid var(--line-2);
+  background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; }
+.cxheatbtn:hover { border-color: var(--brand); }
+.cxheatbtn[aria-pressed="true"] { border-color: var(--brand); color: var(--brand); }
+.cxheatbtn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.cxheatkey { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
+.cxheatkey[hidden] { display: none; }
+.cxkeyramp { width: 72px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--down), var(--surface-2) 50%, var(--up)); }
+.cxmove, .cxcolmove { display: none; }
+.cxmove { order: 3; font-family: var(--m-mono, 'IBM Plex Mono', monospace); font-size: 10.5px; font-weight: 600; }
+.cx.is-heat .cxmove { display: inline; }
+.cx.is-heat .cxcolmove { display: block; margin: 6px 0 0; padding: 2px 8px; border-radius: 6px; font-size: 12px; color: var(--soft); }
+.cx.is-heat [data-move="gain"] { background: color-mix(in srgb, var(--up) calc(var(--heat) * 34% + 6%), var(--surface-2)); }
+.cx.is-heat [data-move="loss"] { background: color-mix(in srgb, var(--down) calc(var(--heat) * 34% + 6%), var(--surface-2)); }
+.cx.is-heat [data-move="gain"] .cxmove { color: var(--up); }
+.cx.is-heat [data-move="loss"] .cxmove { color: var(--down); }
+.cx.is-heat .cxco[data-move] .cxmove { color: var(--ink); }
+.cx.is-heat .cxco.is-picked { background: var(--brand); }
+.cx.is-heat .cxco.is-picked .cxmove { color: var(--bg); }

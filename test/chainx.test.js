@@ -15,6 +15,8 @@ import { SOURCE_BY_ID } from '../data/sources.js';
 import { allSites, siteStatus } from '../src/lib/sites.js';
 import { siteAliases } from '../src/pages.js';
 import vm from 'node:vm';
+import { medianMove } from '../src/lib/moves-snapshot.js';
+import { chainExplorer as renderChain } from '../src/chainx.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const read = rel => fs.readFileSync(path.join(ROOT, 'dist', rel), 'utf8');
@@ -229,4 +231,25 @@ test('the company page is a fraction of its old height in markup', () => {
   assert.match(html, /class="cofacts"/);
   assert.equal((html.match(/class="cofact"/g) || []).length + (html.match(/class="cofact" id=/g) || []).length >= 5, true);
   assert.match(html, /id="record" role="tabpanel"/, 'the full record lost its tab');
+});
+
+/* ---- daily heat map ---- */
+
+test('a stage\'s typical move is the median of its quoted companies', () => {
+  assert.equal(medianMove([3, -1, 2]), 2);
+  assert.equal(medianMove([1, 2, 3, 4]), 2.5);
+  assert.equal(medianMove([null, NaN]), null);
+});
+
+test('the heat map is offered only when there are moves, each carried in text as well as colour', () => {
+  assert.ok(!renderChain().includes('id="cxHeat"'), 'a heat toggle without any moves');
+  const html = renderChain({ moves: { session: '2026-10-23', moves: { NVDA: { dp: 2.345 }, AMD: { dp: -7.5 }, TSM: { dp: 0.01 } } } });
+  assert.match(html, /id="cxHeat" aria-pressed="false"/);
+  assert.match(html, /data-co="nvidia" data-move="gain" style="--heat:0\.39"/);
+  assert.match(html, /data-co="amd" data-move="loss" style="--heat:1\.00"/, 'a big move should saturate, not overflow');
+  assert.match(html, /data-co="tsmc" data-move="flat"/);
+  assert.match(html, /<span class="cxmove">\+2\.3%<\/span>/);
+  assert.match(html, /<span class="cxmove">−7\.5%<\/span>/);
+  assert.match(html, /NVIDIA\.[^"]*Shares up 2\.3% on/, 'the move is missing from the accessible name');
+  assert.match(html, /say nothing about delivery/);
 });

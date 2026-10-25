@@ -33,6 +33,7 @@ import {
 } from './src/pages.js';
 import { allSites, companyPath, path as projectPath, siteStatus } from './src/lib/sites.js';
 import { chainExplorerData } from './src/chainx.js';
+import { movesSnapshot } from './src/lib/moves-snapshot.js';
 import { companyHero, chainPosition, tabBar, overviewPanel, sitesPanel, newsPanel } from './src/companyhero.js';
 import { CHAIN_COMPANIES } from './data/chain.js';
 import { newsHubBody, newsHubData } from './src/newshub.js';
@@ -788,7 +789,7 @@ function todayPage() {
       'Who mines, makes, powers, builds and buys AI compute — every supplier and customer link quoted ' +
       'from a company filing, with the latest news for each.',
     canonical: SITE + '/',
-    body: todayBody(),
+    body: todayBody({ moves: MOVES }),
     inlineData: { T2C_CHAIN: chainExplorerData(), T2C_NEWS: newsHubData() },
     active: 'today',
     extraScripts: ['/chainx.js', '/news-classify.js', '/newshub.js'],
@@ -1871,6 +1872,11 @@ const FRESHNESS = await checkFreshness({ log: m => console.log(m) }).catch(e => 
   console.log(`  freshness: skipped (${e.message})`);
   return null;
 });
+
+/* Yesterday's share moves for the chain heat map (src/lib/moves-snapshot.js).
+   The homepage is written next, so this comes first. Every chain ticker. */
+const MOVES = await movesSnapshot([...new Set(CHAIN_COMPANIES.map(c => c.ticker).filter(Boolean))],
+  { log: m => console.log(m) }).catch(e => { console.log(`  share moves: skipped (${e.message})`); return null; });
 
 let bytes = 0;
 bytes += write('index.html', todayPage());

@@ -10,7 +10,8 @@
 import { CHAIN_STAGES } from '../data/chainstages.js';
 import { CHAIN_COMPANIES, CHAIN_LINKS, LINK_KINDS, USE_CAVEAT, EXTRA_STAGES } from '../data/chain.js';
 import { SOURCE_BY_ID } from '../data/sources.js';
-import { esc } from './lib/format.js';
+import { esc, date } from './lib/format.js';
+import { medianMove } from './lib/moves-snapshot.js';
 import { cutout, opticsStyle, HEX_FRAME as FRAME } from './chain-ui.js';
 
 /** Everything the client needs, and nothing else: companies, links, the cited documents. */
@@ -76,7 +77,12 @@ export function stageInfo(id) {
   return { label: col && col.stages.length === 1 ? col.label : (base.label || col?.label || id), plain: base.plain || col?.plain || '' };
 }
 
-export function chainExplorer() {
+const pct = v => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1)}%`;
+/** Heat attributes for one quoted ticker: direction, and strength saturating at a 6% day. */
+const heat = dp => dp == null ? '' : ` data-move="${dp > 0.05 ? 'gain' : dp < -0.05 ? 'loss' : 'flat'}" style="--heat:${Math.min(1, Math.abs(dp) / 6).toFixed(2)}"`;
+
+export function chainExplorer({ moves = null } = {}) {
+  const dpOf = c => moves?.moves?.[c.ticker]?.dp ?? null;
   const byStage = id => CHAIN_COMPANIES.filter(c => c.stage === id);
   const degree = id => CHAIN_LINKS.filter(l => l.from === id || l.to === id).length;
   /* Tracked companies first (they have full pages), then the best-connected,
@@ -90,6 +96,11 @@ export function chainExplorer() {
   <div class="cxhead">
     <h2 class="cxh" id="cx-h">The AI supply chain</h2>
     <p class="cxhint" id="cxHint">Tap any company to light up who supplies it and who it sells to.</p>
+    ${moves ? `<div class="cxheatbar">
+      <button type="button" class="cxheatbtn press" id="cxHeat" aria-pressed="false">Colour by share move</button>
+      <span class="cxheatkey" id="cxHeatKey" hidden><span class="cxkeyloss">fell</span><span class="cxkeyramp" aria-hidden="true"></span><span class="cxkeygain">rose</span>
+        <span class="nhmeta">on ${esc(date(moves.session))}, close to close</span></span>
+    </div>` : ''}
   </div>
   <div class="cxnav" aria-hidden="false">
     <button type="button" class="cxarrow press" id="cxPrev" aria-label="Scroll the chain back">←</button>
@@ -102,6 +113,7 @@ export function chainExplorer() {
       const plain = col.plain;
       const cos = order(col.stages.flatMap(byStage));
       const extra = Math.max(0, cos.length - SHOWN);
+      const med = moves ? medianMove(cos.map(dpOf)) : null;
       return `<div class="cxcol cn-node${extra ? ' is-collapsed' : ''}" role="listitem" data-stage="${esc(col.stages.join(' '))}"
         style="--i:${i};${opticsStyle(col.art)}">
       <div class="cxstage">
@@ -112,11 +124,13 @@ export function chainExplorer() {
         <span class="cxn">${i + 1}</span>
         <h3 class="cxlabel">${esc(label)}</h3>
         <p class="cxplain">${esc(plain)}</p>
+        ${med != null ? `<p class="cxcolmove"${heat(med)}>Typical move <b>${pct(med)}</b></p>` : ''}
       </div>
       <ul class="cxlist">
-        ${cos.map((c, j) => `<li${j >= SHOWN ? ' class="is-extra"' : ''}><button type="button" class="cxco press${c.href ? ' is-tracked' : ''}" data-co="${esc(c.id)}"
-            aria-label="${esc(`${c.name}. ${c.makes} ${degree(c.id)} disclosed links. Open details.`)}">
+        ${cos.map((c, j) => `<li${j >= SHOWN ? ' class="is-extra"' : ''}><button type="button" class="cxco press${c.href ? ' is-tracked' : ''}" data-co="${esc(c.id)}"${heat(dpOf(c))}
+            aria-label="${esc(`${c.name}. ${c.makes} ${degree(c.id)} disclosed links.${dpOf(c) != null ? ` Shares ${pct(dpOf(c)).replace('−', 'down ').replace('+', 'up ')} on ${date(moves.session)}.` : ''} Open details.`)}">
           <span class="cxname">${esc(c.name)}</span>
+          ${dpOf(c) != null ? `<span class="cxmove">${pct(dpOf(c))}</span>` : ''}
           ${c.ticker ? `<span class="cxtick">${esc(c.ticker)}</span>`
             : c.kind ? `<span class="cxtick cxkind">${esc(KIND[c.kind] || '')}</span>` : ''}
         </button></li>`).join('')}
@@ -126,7 +140,8 @@ export function chainExplorer() {
     }).join('')}
   </div>
   <p class="cxnote">Every line between two companies quotes the filing that discloses it. Companies in
-    neighbouring stages are not linked unless a document says so. ${esc(USE_CAVEAT)}</p>
+    neighbouring stages are not linked unless a document says so. ${esc(USE_CAVEAT)}${moves
+      ? ` Share moves are one day's price change at the close of ${esc(date(moves.session))} and say nothing about delivery.` : ''}</p>
 </section>
 
 <dialog class="cxdrawer" id="cxDrawer" aria-labelledby="cxdName">

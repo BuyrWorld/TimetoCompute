@@ -90,7 +90,7 @@ const section =(id, title, meta, body, { plain = false } = {}) => `
  * makes AI, from the ground up, and who pays for it? Then what changed this
  * week, then the models the compute is for.
  */
-export function todayBody() {
+export function todayBody({ moves = null } = {}) {
   const story = leadStory();
   const touched = story.available ? touches(chainIdFor(story.signal.companyId)) : [];
 
@@ -125,7 +125,7 @@ export function todayBody() {
     </div>
   </section>
 
-  ${chainExplorer()}
+  ${chainExplorer({ moves })}
 
   <section class="hmsec" aria-labelledby="week-h">
     <div class="hmsechead">

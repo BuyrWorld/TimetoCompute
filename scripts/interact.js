@@ -344,6 +344,23 @@ const run = async () => {
   const ring = await page.evaluate(() => !document.getElementById('record').hidden);
   check('the Reality Score ring opens the record that explains it', ring);
 
+  /* ---- homepage heat map (only in a build with share moves: T2C_MOVES_FIXTURE or FINNHUB_KEY) ---- */
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  if (await page.$('#cxHeat')) {
+    await page.evaluate(() => { try { localStorage.removeItem('t2c-heat'); } catch (e) {} });
+    await page.reload({ waitUntil: 'networkidle0' });
+    const off = await page.evaluate(() => !document.querySelector('.cx').classList.contains('is-heat'));
+    await page.click('#cxHeat');
+    const on = await page.evaluate(() => ({ heat: document.querySelector('.cx').classList.contains('is-heat'),
+      key: !document.getElementById('cxHeatKey').hidden,
+      shown: [...document.querySelectorAll('.cxmove')].filter(e => e.offsetParent).length }));
+    check('the heat map starts off and colours the chain when asked', off && on.heat && on.key && on.shown > 0, JSON.stringify(on));
+    await page.reload({ waitUntil: 'networkidle0' });
+    const kept = await page.evaluate(() => document.querySelector('.cx').classList.contains('is-heat'));
+    await page.click('#cxHeat');
+    check('the heat map choice survives a reload', kept);
+  }
+
   /* ---- company page: plain-English digest of an unreviewed filing ---- */
   await page.goto(base + '/companies/iren/', { waitUntil: 'networkidle0' });
   if (await page.$('#overview [data-digest]')) {

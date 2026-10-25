@@ -201,4 +201,21 @@
       setTimeout(function () { btn0.classList.remove('is-flash'); }, 1600);
     }
   }
+  /* Heat map: colours each quoted company by its last session's share move.
+     A lens over the chain, off until asked for; the choice is remembered. */
+  var heatBtn = document.getElementById('cxHeat');
+  var heatKey = document.getElementById('cxHeatKey');
+  function setHeat(on) {
+    root.classList.toggle('is-heat', on);
+    heatBtn.setAttribute('aria-pressed', String(on));
+    heatBtn.textContent = on ? 'Hide share moves' : 'Colour by share move';
+    if (heatKey) heatKey.hidden = !on;
+    try { localStorage.setItem('t2c-heat', on ? '1' : '0'); } catch (e) {}
+  }
+  if (heatBtn) {
+    heatBtn.addEventListener('click', function () { setHeat(!root.classList.contains('is-heat')); });
+    var saved = null;
+    try { saved = localStorage.getItem('t2c-heat'); } catch (e) {}
+    if (saved === '1') setHeat(true);
+  }
 })();
