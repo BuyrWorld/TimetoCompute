@@ -410,3 +410,7 @@ html:not(.has-cotabs) .cotabs { display: none; }
 .cx.is-heat .cxco[data-move] .cxmove { color: var(--ink); }
 .cx.is-heat .cxco.is-picked { background: var(--brand); }
 .cx.is-heat .cxco.is-picked .cxmove { color: var(--bg); }
+.cofeed { margin: 10px 0 0 6px; display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line-2);
+  font-size: 13px; font-weight: 600; color: var(--soft); text-decoration: none; }
+.cofeed:hover { border-color: var(--brand); color: var(--brand); }
+.cofeed:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }

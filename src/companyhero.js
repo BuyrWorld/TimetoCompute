@@ -55,6 +55,7 @@ export function companyHero(c, v, { score, earnings, sites }) {
       <p class="colede">${esc((CHAIN_COMPANY_BY_ID[id] || {}).makes || c.summary || '')}</p>
       <button class="cowatch press watchbtn" type="button" data-watch="${esc(c.ticker)}" aria-pressed="false"
         aria-label="Watch ${esc(c.name)}"><span class="watchglyph" aria-hidden="true">☆</span> <span class="watchtext">Watch</span></button>
+      <a class="cofeed press" href="/companies/${esc(c.slug)}/feed.xml" title="New filings, record changes and corrections for ${esc(c.name)}, in any feed reader">Follow by RSS</a>
     </div>
     ${scoreRing(score)}
   </div>

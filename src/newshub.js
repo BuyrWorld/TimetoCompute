@@ -132,6 +132,7 @@ export function newsHubBody({ freshness = null } = {}) {
         </li>`).join('')}
       </ul>
       <a class="hmmore press" href="/intelligence/">The full ledger →</a>
+      <a class="cofeed press" href="/feed.xml">Follow the record by RSS</a>
     </aside>
   </div>
 

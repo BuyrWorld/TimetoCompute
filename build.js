@@ -34,6 +34,7 @@ import {
 import { allSites, companyPath, path as projectPath, siteStatus } from './src/lib/sites.js';
 import { chainExplorerData } from './src/chainx.js';
 import { movesSnapshot } from './src/lib/moves-snapshot.js';
+import { allFeeds } from './src/feeds.js';
 import { companyHero, chainPosition, tabBar, overviewPanel, sitesPanel, newsPanel } from './src/companyhero.js';
 import { CHAIN_COMPANIES } from './data/chain.js';
 import { newsHubBody, newsHubData } from './src/newshub.js';
@@ -173,12 +174,14 @@ const HASH_ROUTES = {
   reconciliation: '/research/#reconciliation'
 };
 
-function head({ title, description, canonical, structured = null }) {
+function head({ title, description, canonical, structured = null, feed = null }) {
   return `<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
+<link rel="alternate" type="application/rss+xml" title="T2C: the record" href="${esc(SITE)}/feed.xml" />
+${feed ? `<link rel="alternate" type="application/rss+xml" title="${esc(feed.title)}" href="${esc(SITE)}${esc(feed.href)}" />` : ''}
 <meta name="robots" content="index,follow" />
 <meta name="t2c-build" content="${BUILD_STAMP}" />
 <meta property="og:type" content="website" />
@@ -399,11 +402,11 @@ function paletteIndex() {
   return rows;
 }
 
-function page({ title, description, canonical, body, active = 'today', structured = null, extraScripts = [], inlineData = null }) {
+function page({ title, description, canonical, body, active = 'today', structured = null, extraScripts = [], inlineData = null, feed = null }) {
   return `<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-${head({ title, description, canonical, structured })}
+${head({ title, description, canonical, structured, feed })}
 </head>
 <body class="route-${active}">
 ${appHeader(active)}
@@ -1454,6 +1457,7 @@ function companyPage(c) {
     canonical: `${SITE}/companies/${c.slug}/`,
     body,
     inlineData: { T2C_NEWS: newsHubData() },
+    feed: { title: `${c.name} on T2C`, href: `/companies/${c.slug}/feed.xml` },
     extraScripts: ['/news-classify.js', '/newshub.js', '/company.js', '/digest.js'],
     active: 'companies',
     structured: [organizationLd(PROFILE_BY_ID[c.id]), {
@@ -1987,6 +1991,8 @@ const urls = [
 ];
 
 if (FRESHNESS) bytes += write('freshness.json', JSON.stringify(FRESHNESS, null, 2));
+/* RSS: the whole record and one feed per tracked company (src/feeds.js). */
+for (const [file, body] of allFeeds({ site: SITE, freshness: FRESHNESS })) bytes += write(file, body);
 bytes += write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 bytes += write('sitemap.xml',
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
