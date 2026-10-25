@@ -34,18 +34,31 @@ html[data-theme="light"] .appbar { background: rgba(255, 255, 255, 0.92); }
 .brand img { height: 30px; width: auto; display: block; }
 
 .mainnav { display: flex; gap: 2px; margin-right: auto; }
-.sector-line { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; max-width: 18em; margin: 12px 0 4px; }
-.sector details { margin-top: 16px; }
-.sector details summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.sector-line { font-size: 3rem; font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; margin: 8px 0 12px; }
+.vgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.vtile, .vcard { border: 1px solid var(--line); background: #111214; }
+.vhit { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 96px; padding: 14px; background: transparent; color: inherit; border: 0; text-align: left; cursor: pointer; }
+.vhit b { font-size: 1.7rem; letter-spacing: -0.04em; line-height: 1; }
+.vmark { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.vmark[data-tone="ok"] { color: var(--ok); }
+.vmark[data-tone="bad"] { color: var(--bad); }
+.vcard summary { list-style: none; cursor: pointer; }
+.vcard summary::-webkit-details-marker { display: none; }
+.vmetric { display: block; font-size: 2.6rem; font-weight: 800; letter-spacing: -0.05em; line-height: 1; padding: 10px 12px 0; }
+.vmetric small { font-size: 0.85rem; margin-left: 4px; font-weight: 700; }
+.vname { display: block; padding: 4px 12px 8px; }
+.vchips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
+.vchip { display: flex; flex-direction: column; justify-content: center; min-width: 72px; min-height: 44px; padding: 4px 8px; border: 1px solid var(--line); }
+.vchip b { font-size: 0.85rem; }
+.vchip span { font-size: 0.68rem; opacity: 0.72; }
+.vchip[data-tone="ok"] b { color: var(--ok); }
+.vchip[data-tone="warn"] b { color: var(--warn); }
+.vcard .ed-img { width: 100%; height: 132px; object-fit: cover; display: block; }
+.vmore { padding: 0 12px 12px; }
+.vhow summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
 .winrow { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
 .winrow .press { min-height: 44px; padding: 0 14px; border: 1px solid var(--line); background: transparent; color: inherit; }
 .winrow .press[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
-.namenames { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.namenames a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid var(--line); text-decoration: none; }
-.tapelist { list-style: none; margin: 0; padding: 0; }
-.sector-line { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; max-width: 18em; margin: 12px 0 4px; }
-.sector details { margin-top: 16px; }
-.sector details summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
 .navlink {
   display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px;
   font-size: 14.5px; font-weight: 700; color: var(--dim); text-decoration: none;

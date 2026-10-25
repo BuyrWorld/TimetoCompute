@@ -35,7 +35,8 @@ test("the sector reading is a word count, and the long list starts closed", () =
   assert.match(home, /Sector now/);
   assert.match(home, /Not a forecast and not advice/);
   assert.match(track, /data-sector/);
-  assert.equal(track.includes("The rest of the list"), false);
+  assert.match(track, /class="vcard"/);
+  assert.match(track, /50<small>MW/);
   assert.equal(track.includes("<script>"), false);
 });
 

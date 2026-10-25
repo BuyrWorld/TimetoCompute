@@ -24,7 +24,6 @@
     var rows = inWindow(root);
     var line = root.querySelector("[data-sector-line]");
     var count = root.querySelector("[data-sector-count]");
-    var list = root.querySelector("[data-sector-list]");
     var pos = 0;
     var neg = 0;
     var scored = 0;
@@ -35,39 +34,61 @@
     });
     var when = { hour: "hour", day: "day", week: "week" }[root.getAttribute("data-window") || "day"];
     var neither = rows.length - scored;
-    if (!rows.length) line.textContent = "Nothing in this window.";
-    else if (pos > neg) line.textContent = "The wire leans upbeat this " + when + " — " + pos + " upbeat, " + neg + " downbeat, " + neither + " neither. A reading of headlines, not advice.";
-    else if (neg > pos) line.textContent = "The wire leans downbeat this " + when + " — " + pos + " upbeat, " + neg + " downbeat, " + neither + " neither. A reading of headlines, not advice.";
-    else line.textContent = "The wire does not lean this " + when + " — " + pos + " upbeat, " + neg + " downbeat, " + neither + " neither. A reading of headlines, not advice.";
-    count.textContent = "Each headline is counted once, from a fixed word list. This is not a forecast.";
+    if (!rows.length) line.textContent = "Quiet";
+    else if (pos > neg) line.textContent = "Upbeat";
+    else if (neg > pos) line.textContent = "Downbeat";
+    else line.textContent = "Even";
+    count.textContent = rows.length
+      ? (pos + " upbeat, " + neg + " downbeat, " + neither + " neither, this " + when + ". A reading of headlines, not advice. Not a forecast and not advice.")
+      : "Nothing in this window. Not a forecast and not advice.";
 
-    list.replaceChildren();
     names.forEach(function (ticker) {
-      var hit = rows.find(function (item) {
+      var tile = root.querySelector('[data-ticker="' + ticker + '"]');
+      if (!tile) return;
+      var mark = tile.querySelector("[data-mark]");
+      var blurb = tile.querySelector("[data-line]");
+      var mine = rows.filter(function (item) {
         return (item.symbols || []).indexOf(ticker) !== -1 || (item.headline || "").indexOf(ticker) !== -1;
       });
-      var li = document.createElement("li");
-      var label = document.createElement("b");
-      label.textContent = ticker;
-      li.appendChild(label);
-      if (!hit) {
-        var quiet = document.createElement("span");
-        quiet.className = "d";
-        quiet.textContent = " Nothing in this window.";
-        li.appendChild(quiet);
-      } else {
+      var up = 0;
+      var down = 0;
+      mine.forEach(function (item) {
+        var n = lean(item.headline || "");
+        if (n > 0) up += 1;
+        else if (n < 0) down += 1;
+      });
+      var word = !mine.length ? "Flat" : up > down ? "Up" : down > up ? "Down" : "Flat";
+      mark.textContent = word;
+      mark.setAttribute("data-tone", word === "Up" ? "ok" : word === "Down" ? "bad" : "unknown");
+      if (!mine.length) blurb.textContent = "Nothing in this window.";
+      else {
+        blurb.textContent = "";
         var a = document.createElement("a");
-        a.href = hit.url;
+        a.href = mine[0].url;
         a.target = "_blank";
         a.rel = "noopener";
-        a.textContent = " " + hit.headline;
-        li.appendChild(a);
+        a.textContent = mine[0].headline;
+        blurb.appendChild(a);
       }
-      list.appendChild(li);
     });
   }
 
   roots.forEach(function (root) {
+    root.addEventListener("click", function (event) {
+      var hit = event.target.closest(".vhit");
+      if (!hit || !root.contains(hit)) return;
+      var open = hit.getAttribute("aria-expanded") === "true";
+      root.querySelectorAll(".vhit").forEach(function (button) {
+        button.setAttribute("aria-expanded", "false");
+        var more = button.parentElement.querySelector(".vmore");
+        if (more) more.hidden = true;
+      });
+      if (!open) {
+        hit.setAttribute("aria-expanded", "true");
+        var more = hit.parentElement.querySelector(".vmore");
+        if (more) more.hidden = false;
+      }
+    });
     root.querySelectorAll("[data-tape]").forEach(function (button) {
       button.addEventListener("click", function () {
         root.setAttribute("data-window", button.getAttribute("data-tape"));
