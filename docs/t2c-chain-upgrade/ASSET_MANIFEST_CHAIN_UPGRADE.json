@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "purpose": "Production-grade stage artwork for the TimeToCompute 12-stage chain upgrade",
+  "format_rules": {
+    "canvas": "1:1 transparent",
+    "frame": "kept separate; do not bake hex/stage frame into raster",
+    "responsive": [
+      "1280 PNG",
+      "768 WebP",
+      "384 WebP",
+      "192 WebP"
+    ],
+    "object_fit": "contain"
+  },
+  "assets": [
+    {
+      "id": "stage-servers-racks-networking",
+      "master": "assets/raster/stage-servers-racks-networking-master-1536x1024.png",
+      "responsive": {
+        "1280_png": "assets/responsive/stage-servers-racks-networking-1280.png",
+        "768_webp": "assets/responsive/stage-servers-racks-networking-768.webp",
+        "384_webp": "assets/responsive/stage-servers-racks-networking-384.webp",
+        "192_webp": "assets/responsive/stage-servers-racks-networking-192.webp"
+      },
+      "alpha": true,
+      "intended_stage": 5
+    },
+    {
+      "id": "stage-datacentre-owners",
+      "master": "assets/raster/stage-datacentre-owners-master-1536x1024.png",
+      "responsive": {
+        "1280_png": "assets/responsive/stage-datacentre-owners-1280.png",
+        "768_webp": "assets/responsive/stage-datacentre-owners-768.webp",
+        "384_webp": "assets/responsive/stage-datacentre-owners-384.webp",
+        "192_webp": "assets/responsive/stage-datacentre-owners-192.webp"
+      },
+      "alpha": true,
+      "intended_stage": 8
+    },
+    {
+      "id": "stage-models-platforms",
+      "master": "assets/raster/stage-models-platforms-master-1254.png",
+      "responsive": {
+        "1280_png": "assets/responsive/stage-models-platforms-1280.png",
+        "768_webp": "assets/responsive/stage-models-platforms-768.webp",
+        "384_webp": "assets/responsive/stage-models-platforms-384.webp",
+        "192_webp": "assets/responsive/stage-models-platforms-192.webp"
+      },
+      "alpha": true,
+      "intended_stage": 11
+    }
+  ]
+}

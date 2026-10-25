@@ -1,0 +1,836 @@
+{
+  "version": 1,
+  "stages": [
+    {
+      "id": "raw-materials",
+      "index": 1,
+      "title": "Raw materials",
+      "subtitle": "the mined and refined inputs everything else starts with",
+      "accent": "lime",
+      "entities": [
+        {
+          "id": "freeport-mcmoran",
+          "name": "Freeport-McMoRan",
+          "ticker": "FCX",
+          "entityType": "public-company",
+          "stageId": "raw-materials"
+        },
+        {
+          "id": "mp-materials",
+          "name": "MP Materials",
+          "ticker": "MP",
+          "entityType": "public-company",
+          "stageId": "raw-materials"
+        },
+        {
+          "id": "rio-tinto",
+          "name": "Rio Tinto",
+          "ticker": "RIO",
+          "entityType": "public-company",
+          "stageId": "raw-materials"
+        },
+        {
+          "id": "albemarle",
+          "name": "Albemarle",
+          "ticker": "ALB",
+          "entityType": "public-company",
+          "stageId": "raw-materials"
+        },
+        {
+          "id": "lynas",
+          "name": "Lynas Rare Earths",
+          "ticker": null,
+          "entityType": "public-company",
+          "stageId": "raw-materials"
+        }
+      ]
+    },
+    {
+      "id": "semiconductor-fabrication",
+      "index": 2,
+      "title": "Semiconductor equipment & fabrication",
+      "subtitle": "the fabs and tools that turn materials into advanced semiconductor components",
+      "accent": "lime",
+      "entities": [
+        {
+          "id": "tsmc",
+          "name": "TSMC",
+          "ticker": "TSM",
+          "entityType": "public-company",
+          "stageId": "semiconductor-fabrication"
+        },
+        {
+          "id": "asml",
+          "name": "ASML",
+          "ticker": "ASML",
+          "entityType": "public-company",
+          "stageId": "semiconductor-fabrication"
+        },
+        {
+          "id": "applied-materials",
+          "name": "Applied Materials",
+          "ticker": "AMAT",
+          "entityType": "public-company",
+          "stageId": "semiconductor-fabrication"
+        },
+        {
+          "id": "lam-research",
+          "name": "Lam Research",
+          "ticker": "LRCX",
+          "entityType": "public-company",
+          "stageId": "semiconductor-fabrication"
+        },
+        {
+          "id": "kla",
+          "name": "KLA",
+          "ticker": "KLAC",
+          "entityType": "public-company",
+          "stageId": "semiconductor-fabrication"
+        },
+        {
+          "id": "amkor",
+          "name": "Amkor",
+          "ticker": "AMKR",
+          "entityType": "public-company",
+          "stageId": "semiconductor-fabrication"
+        }
+      ]
+    },
+    {
+      "id": "photonics-interconnect",
+      "index": 3,
+      "title": "Photonics & interconnect",
+      "subtitle": "moving enormous amounts of data between chips, racks and facilities",
+      "accent": "cyan",
+      "entities": [
+        {
+          "id": "lumentum",
+          "name": "Lumentum",
+          "ticker": "LITE",
+          "entityType": "public-company",
+          "stageId": "photonics-interconnect"
+        },
+        {
+          "id": "coherent",
+          "name": "Coherent",
+          "ticker": "COHR",
+          "entityType": "public-company",
+          "stageId": "photonics-interconnect"
+        },
+        {
+          "id": "fabrinet",
+          "name": "Fabrinet",
+          "ticker": "FN",
+          "entityType": "public-company",
+          "stageId": "photonics-interconnect"
+        },
+        {
+          "id": "marvell",
+          "name": "Marvell",
+          "ticker": "MRVL",
+          "entityType": "public-company",
+          "stageId": "photonics-interconnect"
+        },
+        {
+          "id": "broadcom",
+          "name": "Broadcom",
+          "ticker": "AVGO",
+          "entityType": "public-company",
+          "stageId": "photonics-interconnect"
+        },
+        {
+          "id": "credo",
+          "name": "Credo",
+          "ticker": "CRDO",
+          "entityType": "public-company",
+          "stageId": "photonics-interconnect"
+        },
+        {
+          "id": "corning",
+          "name": "Corning",
+          "ticker": "GLW",
+          "entityType": "public-company",
+          "stageId": "photonics-interconnect"
+        },
+        {
+          "id": "ciena",
+          "name": "Ciena",
+          "ticker": "CIEN",
+          "entityType": "public-company",
+          "stageId": "photonics-interconnect"
+        }
+      ]
+    },
+    {
+      "id": "compute-silicon-memory",
+      "index": 4,
+      "title": "Compute silicon & memory",
+      "subtitle": "accelerators, CPUs and memory that perform AI workloads",
+      "accent": "lime",
+      "entities": [
+        {
+          "id": "nvidia",
+          "name": "NVIDIA",
+          "ticker": "NVDA",
+          "entityType": "public-company",
+          "stageId": "compute-silicon-memory"
+        },
+        {
+          "id": "amd",
+          "name": "AMD",
+          "ticker": "AMD",
+          "entityType": "public-company",
+          "stageId": "compute-silicon-memory"
+        },
+        {
+          "id": "micron",
+          "name": "Micron",
+          "ticker": "MU",
+          "entityType": "public-company",
+          "stageId": "compute-silicon-memory"
+        },
+        {
+          "id": "sk-hynix",
+          "name": "SK hynix",
+          "ticker": null,
+          "entityType": "public-company",
+          "stageId": "compute-silicon-memory"
+        },
+        {
+          "id": "samsung-electronics",
+          "name": "Samsung Electronics",
+          "ticker": null,
+          "entityType": "public-company",
+          "stageId": "compute-silicon-memory"
+        },
+        {
+          "id": "intel",
+          "name": "Intel",
+          "ticker": "INTC",
+          "entityType": "public-company",
+          "stageId": "compute-silicon-memory"
+        },
+        {
+          "id": "arm",
+          "name": "Arm",
+          "ticker": "ARM",
+          "entityType": "public-company",
+          "stageId": "compute-silicon-memory"
+        }
+      ]
+    },
+    {
+      "id": "servers-racks-networking",
+      "index": 5,
+      "title": "Servers, racks & networking",
+      "subtitle": "assembling chips into clusters and connecting them into one AI system",
+      "accent": "cyan",
+      "entities": [
+        {
+          "id": "supermicro",
+          "name": "Supermicro",
+          "ticker": "SMCI",
+          "entityType": "public-company",
+          "stageId": "servers-racks-networking"
+        },
+        {
+          "id": "dell",
+          "name": "Dell Technologies",
+          "ticker": "DELL",
+          "entityType": "public-company",
+          "stageId": "servers-racks-networking"
+        },
+        {
+          "id": "hpe",
+          "name": "Hewlett Packard Enterprise",
+          "ticker": "HPE",
+          "entityType": "public-company",
+          "stageId": "servers-racks-networking"
+        },
+        {
+          "id": "arista",
+          "name": "Arista Networks",
+          "ticker": "ANET",
+          "entityType": "public-company",
+          "stageId": "servers-racks-networking"
+        },
+        {
+          "id": "cisco",
+          "name": "Cisco",
+          "ticker": "CSCO",
+          "entityType": "public-company",
+          "stageId": "servers-racks-networking"
+        },
+        {
+          "id": "celestica",
+          "name": "Celestica",
+          "ticker": "CLS",
+          "entityType": "public-company",
+          "stageId": "servers-racks-networking"
+        },
+        {
+          "id": "nvidia-networking",
+          "name": "NVIDIA networking",
+          "ticker": "NVDA",
+          "entityType": "technology",
+          "stageId": "servers-racks-networking"
+        }
+      ]
+    },
+    {
+      "id": "power-cooling",
+      "index": 6,
+      "title": "Power & cooling",
+      "subtitle": "bringing electricity into the site and removing the heat",
+      "accent": "amber",
+      "entities": [
+        {
+          "id": "ge-vernova",
+          "name": "GE Vernova",
+          "ticker": "GEV",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "eaton",
+          "name": "Eaton",
+          "ticker": "ETN",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "constellation",
+          "name": "Constellation Energy",
+          "ticker": "CEG",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "bloom-energy",
+          "name": "Bloom Energy",
+          "ticker": "BE",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "vertiv",
+          "name": "Vertiv",
+          "ticker": "VRT",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "nvent",
+          "name": "nVent",
+          "ticker": "NVT",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "modine",
+          "name": "Modine",
+          "ticker": "MOD",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "schneider",
+          "name": "Schneider Electric",
+          "ticker": null,
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "abb",
+          "name": "ABB",
+          "ticker": "ABB",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "siemens-energy",
+          "name": "Siemens Energy",
+          "ticker": null,
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "trane",
+          "name": "Trane Technologies",
+          "ticker": "TT",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "cummins",
+          "name": "Cummins",
+          "ticker": "CMI",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        },
+        {
+          "id": "caterpillar",
+          "name": "Caterpillar",
+          "ticker": "CAT",
+          "entityType": "public-company",
+          "stageId": "power-cooling"
+        }
+      ]
+    },
+    {
+      "id": "facility-construction",
+      "index": 7,
+      "title": "Facility & construction",
+      "subtitle": "designing, building and commissioning the physical data-centre campus",
+      "accent": "lime",
+      "entities": [
+        {
+          "id": "quanta",
+          "name": "Quanta Services",
+          "ticker": "PWR",
+          "entityType": "public-company",
+          "stageId": "facility-construction"
+        },
+        {
+          "id": "emcor",
+          "name": "EMCOR",
+          "ticker": "EME",
+          "entityType": "public-company",
+          "stageId": "facility-construction"
+        },
+        {
+          "id": "comfort-systems",
+          "name": "Comfort Systems USA",
+          "ticker": "FIX",
+          "entityType": "public-company",
+          "stageId": "facility-construction"
+        },
+        {
+          "id": "bechtel",
+          "name": "Bechtel",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "facility-construction"
+        },
+        {
+          "id": "jacobs",
+          "name": "Jacobs",
+          "ticker": "J",
+          "entityType": "public-company",
+          "stageId": "facility-construction"
+        },
+        {
+          "id": "aecom",
+          "name": "AECOM",
+          "ticker": "ACM",
+          "entityType": "public-company",
+          "stageId": "facility-construction"
+        },
+        {
+          "id": "fluor",
+          "name": "Fluor",
+          "ticker": "FLR",
+          "entityType": "public-company",
+          "stageId": "facility-construction"
+        }
+      ]
+    },
+    {
+      "id": "datacentre-owners",
+      "index": 8,
+      "title": "Data-centre owners & developers",
+      "subtitle": "owning the land, buildings, substations and long-lived infrastructure",
+      "accent": "cyan",
+      "entities": [
+        {
+          "id": "digital-realty",
+          "name": "Digital Realty",
+          "ticker": "DLR",
+          "entityType": "public-company",
+          "stageId": "datacentre-owners"
+        },
+        {
+          "id": "equinix",
+          "name": "Equinix",
+          "ticker": "EQIX",
+          "entityType": "public-company",
+          "stageId": "datacentre-owners"
+        },
+        {
+          "id": "qts",
+          "name": "QTS",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "datacentre-owners"
+        },
+        {
+          "id": "vantage",
+          "name": "Vantage Data Centers",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "datacentre-owners"
+        },
+        {
+          "id": "cyrusone",
+          "name": "CyrusOne",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "datacentre-owners"
+        },
+        {
+          "id": "databank",
+          "name": "DataBank",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "datacentre-owners"
+        }
+      ]
+    },
+    {
+      "id": "compute-operators",
+      "index": 9,
+      "title": "GPU clouds & compute operators",
+      "subtitle": "turning physical infrastructure and accelerators into rentable compute",
+      "accent": "cyan",
+      "entities": [
+        {
+          "id": "iren",
+          "name": "IREN",
+          "ticker": "IREN",
+          "entityType": "public-company",
+          "stageId": "compute-operators"
+        },
+        {
+          "id": "coreweave",
+          "name": "CoreWeave",
+          "ticker": "CRWV",
+          "entityType": "public-company",
+          "stageId": "compute-operators"
+        },
+        {
+          "id": "nebius",
+          "name": "Nebius",
+          "ticker": "NBIS",
+          "entityType": "public-company",
+          "stageId": "compute-operators"
+        },
+        {
+          "id": "terawulf",
+          "name": "TeraWulf",
+          "ticker": "WULF",
+          "entityType": "public-company",
+          "stageId": "compute-operators"
+        },
+        {
+          "id": "applied-digital",
+          "name": "Applied Digital",
+          "ticker": "APLD",
+          "entityType": "public-company",
+          "stageId": "compute-operators"
+        },
+        {
+          "id": "crusoe",
+          "name": "Crusoe",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "compute-operators"
+        },
+        {
+          "id": "lambda",
+          "name": "Lambda",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "compute-operators"
+        },
+        {
+          "id": "fluidstack",
+          "name": "Fluidstack",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "compute-operators"
+        }
+      ]
+    },
+    {
+      "id": "compute-buyers",
+      "index": 10,
+      "title": "Compute buyers",
+      "subtitle": "the organisations contracting and consuming large blocks of AI capacity",
+      "accent": "lime",
+      "entities": [
+        {
+          "id": "microsoft",
+          "name": "Microsoft",
+          "ticker": "MSFT",
+          "entityType": "public-company",
+          "stageId": "compute-buyers"
+        },
+        {
+          "id": "meta",
+          "name": "Meta",
+          "ticker": "META",
+          "entityType": "public-company",
+          "stageId": "compute-buyers"
+        },
+        {
+          "id": "google",
+          "name": "Google",
+          "ticker": "GOOGL",
+          "entityType": "public-company",
+          "stageId": "compute-buyers"
+        },
+        {
+          "id": "amazon",
+          "name": "Amazon",
+          "ticker": "AMZN",
+          "entityType": "public-company",
+          "stageId": "compute-buyers"
+        },
+        {
+          "id": "oracle",
+          "name": "Oracle",
+          "ticker": "ORCL",
+          "entityType": "public-company",
+          "stageId": "compute-buyers"
+        },
+        {
+          "id": "openai",
+          "name": "OpenAI",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "compute-buyers"
+        },
+        {
+          "id": "anthropic",
+          "name": "Anthropic",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "compute-buyers"
+        },
+        {
+          "id": "xai",
+          "name": "xAI",
+          "ticker": null,
+          "entityType": "private-company",
+          "stageId": "compute-buyers"
+        }
+      ]
+    },
+    {
+      "id": "models-platforms",
+      "index": 11,
+      "title": "Models & AI platforms",
+      "subtitle": "the intelligence layer trained and served on the underlying compute",
+      "accent": "lime",
+      "entities": [
+        {
+          "id": "gpt",
+          "name": "GPT",
+          "ticker": null,
+          "entityType": "model",
+          "stageId": "models-platforms"
+        },
+        {
+          "id": "claude",
+          "name": "Claude",
+          "ticker": null,
+          "entityType": "model",
+          "stageId": "models-platforms"
+        },
+        {
+          "id": "gemini",
+          "name": "Gemini",
+          "ticker": null,
+          "entityType": "model",
+          "stageId": "models-platforms"
+        },
+        {
+          "id": "llama",
+          "name": "Llama",
+          "ticker": null,
+          "entityType": "model",
+          "stageId": "models-platforms"
+        },
+        {
+          "id": "grok",
+          "name": "Grok",
+          "ticker": null,
+          "entityType": "model",
+          "stageId": "models-platforms"
+        },
+        {
+          "id": "mistral",
+          "name": "Mistral",
+          "ticker": null,
+          "entityType": "model",
+          "stageId": "models-platforms"
+        },
+        {
+          "id": "deepseek",
+          "name": "DeepSeek",
+          "ticker": null,
+          "entityType": "model",
+          "stageId": "models-platforms"
+        }
+      ]
+    },
+    {
+      "id": "applications",
+      "index": 12,
+      "title": "End applications",
+      "subtitle": "where compute becomes software, automation and real-world economic value",
+      "accent": "lime",
+      "entities": [
+        {
+          "id": "chatgpt",
+          "name": "ChatGPT",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "ms-copilot",
+          "name": "Microsoft Copilot",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "github-copilot",
+          "name": "GitHub Copilot",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "claude-app",
+          "name": "Claude",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "gemini-app",
+          "name": "Gemini",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "perplexity",
+          "name": "Perplexity",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "cursor",
+          "name": "Cursor",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "agentforce",
+          "name": "Salesforce Agentforce",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "firefly",
+          "name": "Adobe Firefly",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "autonomous-systems",
+          "name": "Autonomous systems",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "robotics",
+          "name": "Robotics",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "drug-discovery",
+          "name": "Drug discovery",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        },
+        {
+          "id": "industrial-ai",
+          "name": "Industrial AI",
+          "ticker": null,
+          "entityType": "application",
+          "stageId": "applications"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "openai-gpt",
+      "sourceId": "openai",
+      "targetId": "gpt",
+      "relationship": "serves",
+      "confidence": "verified"
+    },
+    {
+      "id": "anthropic-claude",
+      "sourceId": "anthropic",
+      "targetId": "claude",
+      "relationship": "serves",
+      "confidence": "verified"
+    },
+    {
+      "id": "google-gemini",
+      "sourceId": "google",
+      "targetId": "gemini",
+      "relationship": "serves",
+      "confidence": "verified"
+    },
+    {
+      "id": "meta-llama",
+      "sourceId": "meta",
+      "targetId": "llama",
+      "relationship": "serves",
+      "confidence": "verified"
+    },
+    {
+      "id": "xai-grok",
+      "sourceId": "xai",
+      "targetId": "grok",
+      "relationship": "serves",
+      "confidence": "verified"
+    },
+    {
+      "id": "gpt-chatgpt",
+      "sourceId": "gpt",
+      "targetId": "chatgpt",
+      "relationship": "serves",
+      "confidence": "verified"
+    },
+    {
+      "id": "claude-claude-app",
+      "sourceId": "claude",
+      "targetId": "claude-app",
+      "relationship": "serves",
+      "confidence": "verified"
+    },
+    {
+      "id": "gemini-gemini-app",
+      "sourceId": "gemini",
+      "targetId": "gemini-app",
+      "relationship": "serves",
+      "confidence": "verified"
+    }
+  ]
+}

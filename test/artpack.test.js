@@ -36,11 +36,11 @@ test('every declared derivative exists on disk', () => {
   }
 });
 
-test('the pack is fully declared: 9 stages, 6 photonics parts, 1 editorial image', () => {
-  assert.equal(STAGE_ART.length, 9);
+test('the pack is fully declared: 12 stages, 6 photonics parts, 1 editorial image', () => {
+  assert.equal(STAGE_ART.length, 12);
   assert.equal(PHOTONICS_ART.length, 6);
   assert.equal(EDITORIAL_ART.length, 1);
-  assert.equal(ART.length, 16);
+  assert.equal(ART.length, 19);
 });
 
 /* ---- reference mockups may never ship ---- */

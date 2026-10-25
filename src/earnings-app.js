@@ -59,7 +59,7 @@
     /* Operators (and NVIDIA) first: the neoclouds and AI-infrastructure
        builders are what the site is about, and in a busy season eight supplier
        dates would otherwise push every one of them below the fold. */
-    var isOp = function (e) { var r = byT[e.ticker] || {}; return r.stage === 'Operators' || r.lead; };
+    var isOp = function (e) { var r = byT[e.ticker] || {}; return r.op || r.lead; };
     var ops = firsts.filter(isOp);
     var rest = firsts.filter(function (e) { return !isOp(e); });
     var top = rest.slice(0, 8);

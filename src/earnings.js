@@ -39,6 +39,8 @@ export function earningsData() {
     const art = col > -1 ? `${ART_BY_ID[CX_COLUMNS[col].art].base}-192.webp` : null;
     rows.set(c.ticker, {
       t: c.ticker, n: c.name, h: c.href || null, art, frame: col > -1 ? CX_COLUMNS[col].frame : 'lime',
+      // An explicit flag, not a label match: the column was renamed once and the calendar lost IREN.
+      op: c.stage === 'operators',
       stage: col > -1 ? (CX_COLUMNS[col].label || CHAIN_STAGES.find(s => s.id === c.stage).label) : '',
       ops: operatorsTouched(c.id)
     });
@@ -46,11 +48,11 @@ export function earningsData() {
   // Tracked operators not on the map (Keel, Cipher) still report.
   for (const c of COMPANIES) {
     if (!rows.has(c.ticker)) rows.set(c.ticker, { t: c.ticker, n: c.name, h: `/companies/${c.slug}/`,
-      art: `${ART_BY_ID['server-rack'].base}-192.webp`, frame: 'cyan', stage: 'Operators', ops: [] });
+      art: `${ART_BY_ID['server-rack'].base}-192.webp`, frame: 'cyan', stage: 'Operators', op: true, ops: [] });
   }
   for (const t of ['CIFR']) {
     if (!rows.has(t)) rows.set(t, { t, n: 'Cipher Digital', h: '/companies/cipher/',
-      art: `${ART_BY_ID['server-rack'].base}-192.webp`, frame: 'cyan', stage: 'Operators', ops: [] });
+      art: `${ART_BY_ID['server-rack'].base}-192.webp`, frame: 'cyan', stage: 'Operators', op: true, ops: [] });
   }
   /* NVIDIA leads with the operators: its results set the pace for the GPU
      supply every neocloud is buying from, so it belongs in the top group. */

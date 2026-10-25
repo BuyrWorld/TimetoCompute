@@ -155,7 +155,7 @@ const run = async () => {
   check('the homepage has exactly one h1 and it is the proposition',
     h1s.length === 1 && /ground to the app/.test(h1s[0]), JSON.stringify(h1s));
   const cols = await page.$$eval('.cxcol', els => els.length);
-  check('the chain shows nine illustrated columns', cols === 9, `${cols}`);
+  check('the chain shows twelve illustrated columns', cols === 12, `${cols}`);
 
   await page.click('[data-co="nvidia"]');
   await new Promise(r => setTimeout(r, 250));
@@ -187,6 +187,33 @@ const run = async () => {
   await new Promise(r => setTimeout(r, 150));
   const cleared = await page.$$eval('.cxco.is-picked', els => els.length);
   check('tapping the picked company again clears the trace', cleared === 0, `${cleared}`);
+
+  /* ---- twelve stages: deep link, +N more, arrows ---- */
+  await page.goto(base + '/?entity=arista', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 300));
+  const deepLink = await page.evaluate(() => ({
+    picked: (document.querySelector('.cxco.is-picked') || {}).dataset?.co || null,
+    up: [...document.querySelectorAll('.cxco.is-up')].map(b => b.dataset.co)
+  }));
+  check('a deep link opens the chain traced from that company', deepLink.picked === 'arista', JSON.stringify(deepLink));
+  check('the deep-linked trace shows its disclosed supplier', deepLink.up.includes('broadcom'), deepLink.up.join(','));
+  await page.keyboard.press('Escape');
+  await page.goto(base + '/', { waitUntil: 'networkidle0' });
+  const more = await page.evaluate(() => {
+    const col = document.querySelector('.cxcol.is-collapsed');
+    const hiddenBefore = [...col.querySelectorAll('.is-extra')].filter(li => getComputedStyle(li).display === 'none').length;
+    col.querySelector('.cxmore').click();
+    const hiddenAfter = [...col.querySelectorAll('.is-extra')].filter(li => getComputedStyle(li).display === 'none').length;
+    return { hiddenBefore, hiddenAfter, expanded: col.querySelector('.cxmore').getAttribute('aria-expanded') };
+  });
+  check('"+N more" reveals the rest of a column and says so', more.hiddenBefore > 0 && more.hiddenAfter === 0 && more.expanded === 'true', JSON.stringify(more));
+  const scrolled = await page.evaluate(async () => {
+    const t = document.getElementById('cxTrack'); const before = t.scrollLeft;
+    document.getElementById('cxNext').click();
+    await new Promise(r => setTimeout(r, 700));
+    return t.scrollLeft > before;
+  });
+  check('the forward arrow scrolls the twelve-stage chain', scrolled);
 
   /* ---- a site page: status, news, what comes next ---- */
   await page.goto(base + '/sites/apld-polaris-1/', { waitUntil: 'networkidle0' });

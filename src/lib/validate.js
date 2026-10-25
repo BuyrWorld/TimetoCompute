@@ -13,7 +13,7 @@ import { CUSTOMERS, CUSTOMER_KINDS, CUSTOMER_BY_NAME, isUndisclosedCustomer } fr
 import { ART, ART_BY_ID } from '../../data/artpack.js';
 import { EXPLAINERS, EXPLAINER_BY_SLUG, EXPLAINER_BY_STAGE } from '../../data/explainers.js';
 import { PHOTONICS_SUPPLIERS, SUPPLIER_ROLES, EVIDENCE_GRADES } from '../../data/suppliers.js';
-import { CHAIN_COMPANIES, CHAIN_COMPANY_BY_ID, CHAIN_LINKS, LINK_KINDS } from '../../data/chain.js';
+import { CHAIN_COMPANIES, CHAIN_COMPANY_BY_ID, CHAIN_LINKS, LINK_KINDS, EXTRA_STAGES } from '../../data/chain.js';
 import { CHAIN_STAGE_BY_ID } from '../../data/chainstages.js';
 import { PROVIDERS, MODEL_KINDS } from '../../data/models.js';
 import { allRecords, getMeasure, isKnown, aggregate, headlineKpis } from './compute.js';
@@ -51,7 +51,7 @@ export function runChecks() {
   for (const c of CHAIN_COMPANIES) {
     if (chainIds.has(c.id)) fail(`Duplicate chain company ${c.id}`);
     chainIds.add(c.id);
-    if (!CHAIN_STAGE_BY_ID[c.stage]) fail(`Chain company ${c.id}: unknown stage ${c.stage}`);
+    if (!CHAIN_STAGE_BY_ID[c.stage] && !EXTRA_STAGES[c.stage]) fail(`Chain company ${c.id}: unknown stage ${c.stage}`);
     if (!c.makes) fail(`Chain company ${c.id} says nothing about what it makes`);
     if (!SOURCE_BY_ID[c.sourceId]) fail(`Chain company ${c.id} cites missing source ${c.sourceId}`);
     if (c.owner && !CHAIN_COMPANY_BY_ID[c.owner]) fail(`Chain product ${c.id} has unknown owner ${c.owner}`);

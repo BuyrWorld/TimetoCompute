@@ -45,13 +45,31 @@ test('the chain runs unbroken from a chipmaker to an end product', () => {
   }
 });
 
-test('no product is ever linked to a site or an operator', () => {
-  // What a buyer builds is never attributed to whose halls it runs in.
+test('no product or model is ever linked to a site or an operator', () => {
+  // What a buyer builds is never attributed to whose halls it runs in: products
+  // are reached only from their owner or from a model they are disclosed to use.
   for (const l of CHAIN_LINKS) {
     const to = CHAIN_COMPANY_BY_ID[l.to];
-    if (to.stage !== 'applications') continue;
-    assert.equal(CHAIN_COMPANY_BY_ID[l.from].stage, 'buyers', `${l.id} ties a product to a non-buyer`);
+    if (to.stage === 'applications') {
+      assert.ok(['buyers', 'models'].includes(CHAIN_COMPANY_BY_ID[l.from].stage), `${l.id} ties a product to an infrastructure company`);
+    }
+    if (to.stage === 'models') {
+      assert.equal(CHAIN_COMPANY_BY_ID[l.from].stage, 'buyers', `${l.id} ties a model to a non-owner`);
+    }
   }
+});
+
+test('the twelve-stage chain carries the three new stages and their artwork', () => {
+  const html = read('index.html');
+  for (const art of ['stage-servers-racks-networking', 'stage-datacentre-owners', 'stage-models-platforms']) {
+    assert.ok(html.includes(art), `${art} is not on the homepage`);
+  }
+  for (const [id, stage] of [['arista', 'servers'], ['digital-realty', 'owners'], ['model-claude', 'models']]) {
+    assert.equal(CHAIN_COMPANY_BY_ID[id].stage, stage, `${id} is not in ${stage}`);
+  }
+  // Private companies, models and apps carry a label instead of a ticker.
+  assert.match(html, /cxkind">PRIVATE</);
+  assert.match(html, /cxkind">MODEL</);
 });
 
 /* ---- homepage ---- */
@@ -61,10 +79,10 @@ test('the homepage is the supply chain, with every company as a button', () => {
   const h1s = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)];
   assert.equal(h1s.length, 1);
   assert.match(h1s[0][1], /Follow AI from the ground to the app/);
-  // Nine visual columns over ten stages: power and cooling share one.
-  const cols = [...html.matchAll(/class="cxcol cn-node"/g)].length;
-  assert.equal(cols, 9, 'a stage column is missing');
-  assert.ok((html.match(/class="cn-art cxart"/g) || []).length === 9, 'a column lost its hexagon art');
+  // Twelve visual columns: power and cooling share one.
+  const cols = [...html.matchAll(/class="cxcol cn-node[^"]*"/g)].length;
+  assert.equal(cols, 12, 'a stage column is missing');
+  assert.ok((html.match(/class="cn-art cxart"/g) || []).length === 12, 'a column lost its hexagon art');
   for (const c of CHAIN_COMPANIES) {
     assert.ok(html.includes(`data-co="${c.id}"`), `${c.name} has no button`);
   }

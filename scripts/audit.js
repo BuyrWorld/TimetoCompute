@@ -136,9 +136,9 @@ for (const [pageName, html] of [['home', home], ['research', research], ['compan
 /* ---- the homepage is the supply chain ---- */
 if (!/Follow AI from the ground to the app/.test(home)) fail('the homepage lost its proposition headline');
 // Nine visual columns over ten stages: power and cooling share one.
-const cols = (home.match(/class="cxcol cn-node"/g) || []).length;
-if (cols !== 9) fail(`homepage chain has ${cols} columns; expected 9`);
-const covered = new Set([...home.matchAll(/class="cxcol cn-node"[^>]*data-stage="([^"]+)"/g)].flatMap(m => m[1].split(' ')));
+const cols = (home.match(/class="cxcol cn-node[^"]*"/g) || []).length;
+if (cols !== 12) fail(`homepage chain has ${cols} columns; expected 12`);
+const covered = new Set([...home.matchAll(/class="cxcol cn-node[^"]*"[^>]*data-stage="([^"]+)"/g)].flatMap(m => m[1].split(' ')));
 for (const st of STAGES_ALL) if (!covered.has(st.id)) fail(`homepage chain has no column for ${st.label}`);
 for (const c of CHAIN_COMPANIES) {
   if (!home.includes(`data-co="${c.id}"`)) fail(`homepage has no button for ${c.name}`);

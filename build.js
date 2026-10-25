@@ -33,6 +33,7 @@ import {
 } from './src/pages.js';
 import { allSites, companyPath, path as projectPath, siteStatus } from './src/lib/sites.js';
 import { chainExplorerData } from './src/chainx.js';
+import { CHAIN_COMPANIES } from './data/chain.js';
 import { newsHubBody, newsHubData } from './src/newshub.js';
 import { earningsData } from './src/earnings.js';
 import { earningsSnapshot } from './src/lib/earnings-snapshot.js';
@@ -386,6 +387,11 @@ function paletteIndex() {
   }
   for (const s of allSites()) {
     rows.push({ k: 'Site', n: `${s.name} — ${s.ticker || s.companyName}`, h: `/sites/${s.slug}/` });
+  }
+  /* Every company, model and app on the chain map: searching "Arista" or
+     "Claude" opens the homepage chain already traced from it. */
+  for (const c of CHAIN_COMPANIES) {
+    rows.push({ k: 'Chain', n: c.ticker ? `${c.name} (${c.ticker})` : c.name, h: `/?entity=${c.id}` });
   }
   PALETTE_CACHE = rows;
   return rows;

@@ -1,0 +1,10 @@
+Read `CLAUDE_CODE_PROMPT.md` in full and execute it against the current TimeToCompute repository.
+
+Important:
+- preserve the existing T2C design system
+- implement, do not merely propose
+- reuse existing company/market/news/catalyst/search data
+- do not invent commercial dependency relationships
+- use `data/chain-seed.json` as a starting taxonomy, not as a reason to duplicate existing repo data
+- inspect the existing Chain implementation before changing architecture
+- run the production build/typecheck/lint after completing the work

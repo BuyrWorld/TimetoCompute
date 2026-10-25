@@ -33,6 +33,7 @@
   }
 
   function clearTrace() {
+    try { if (/[?&]entity=/.test(location.search)) history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
     root.classList.remove('is-tracing');
     root.querySelectorAll('.cxco').forEach(function (b) {
       b.classList.remove('is-picked', 'is-up', 'is-down');
@@ -52,6 +53,7 @@
       else if (down.indexOf(c) > -1) b.classList.add('is-down');
     });
     var co = byId[id];
+    try { history.replaceState(null, '', location.pathname + '?entity=' + encodeURIComponent(id) + location.hash); } catch (e) {}
     if (hint) {
       hint.textContent = !up.length && !down.length
         ? co.name + ': no supplier or customer is named in a filing yet.'
@@ -80,7 +82,8 @@
     var sells = D.links.filter(function (l) { return l.from === id; });
     body.innerHTML =
       '<p class="cxdstage">' + stage.n + ' · ' + esc(stage.label) + '</p>' +
-      '<h2 class="cxdname" id="cxdName">' + esc(c.name) + (c.ticker ? ' <span class="cxtick">' + esc(c.ticker) + '</span>' : '') + '</h2>' +
+      '<h2 class="cxdname" id="cxdName">' + esc(c.name) + (c.ticker ? ' <span class="cxtick">' + esc(c.ticker) + '</span>'
+        : c.kind ? ' <span class="cxtick cxkind">' + esc({ private: 'PRIVATE', 'non-us': 'NON-US', model: 'MODEL', app: 'APP' }[c.kind] || '') + '</span>' : '') + '</h2>' +
       '<p class="cxdmakes">' + esc(c.makes) + '</p>' +
       (c.excerpt ? '<blockquote>' + esc(c.excerpt) + '</blockquote>' : '') + srcLink(c.src) +
       (c.href ? '<p><a class="cxdmore press" href="' + esc(c.href) + '">Sites, capacity and record →</a></p>' : '') +
@@ -118,6 +121,14 @@
   }
 
   root.addEventListener('click', function (e) {
+    var m = e.target.closest('.cxmore');
+    if (m) {
+      var col = m.closest('.cxcol');
+      var expanded = col.classList.toggle('is-collapsed') === false;
+      m.setAttribute('aria-expanded', String(expanded));
+      m.textContent = expanded ? 'Show fewer' : m.getAttribute('data-label') || m.textContent;
+      return;
+    }
     var b = e.target.closest('.cxco');
     if (!b) return;
     var id = b.getAttribute('data-co');
@@ -146,4 +157,48 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !drawer.open) clearTrace();
   });
+
+  root.querySelectorAll('.cxmore').forEach(function (m) { m.setAttribute('data-label', m.textContent); });
+
+  /* Twelve columns do not fit on one screen: arrows, a progress rail, and
+     native horizontal scrolling (trackpad, shift+wheel, swipe) all work. */
+  var track = document.getElementById('cxTrack');
+  var rail = document.getElementById('cxRail');
+  var prev = document.getElementById('cxPrev'), nxt = document.getElementById('cxNext');
+  function step(dir) {
+    var col = track.querySelector('.cxcol');
+    track.scrollBy({ left: dir * (col ? col.getBoundingClientRect().width + 10 : 200) * 3, behavior: 'smooth' });
+  }
+  function sync() {
+    var max = track.scrollWidth - track.clientWidth;
+    var scrollable = max > 4;
+    track.parentNode.querySelector('.cxnav').hidden = !scrollable;
+    if (!scrollable) return;
+    var f = track.clientWidth / track.scrollWidth;
+    rail.style.width = (f * 100) + '%';
+    rail.style.marginLeft = ((track.scrollLeft / track.scrollWidth) * 100) + '%';
+    prev.disabled = track.scrollLeft < 4;
+    nxt.disabled = track.scrollLeft > max - 4;
+  }
+  if (track) {
+    prev.addEventListener('click', function () { step(-1); });
+    nxt.addEventListener('click', function () { step(1); });
+    track.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    sync();
+  }
+
+  /* Deep link: /?entity=iren opens the chain already traced from IREN. */
+  var want = (location.search.match(/[?&]entity=([^&]+)/) || [])[1];
+  if (want && byId[decodeURIComponent(want)]) {
+    var id0 = decodeURIComponent(want);
+    trace(id0);
+    var btn0 = root.querySelector('[data-co="' + id0 + '"]');
+    if (btn0) {
+      root.scrollIntoView({ block: 'start' });
+      btn0.scrollIntoView({ block: 'nearest', inline: 'center' });
+      btn0.classList.add('is-flash');
+      setTimeout(function () { btn0.classList.remove('is-flash'); }, 1600);
+    }
+  }
 })();

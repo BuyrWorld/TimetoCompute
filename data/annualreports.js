@@ -9,6 +9,11 @@ const AR = (id, o) => ({
   id, sourceType: 'sec-filing', isPrimary: true, accessedAt: '2026-10-25', effectiveAt: o.publishedAt, ...o
 });
 
+/** A company's own website, for the private companies and products with no SEC filing. Read 25 October 2026. */
+const W = (id, o) => ({
+  id, sourceType: 'company-profile', isPrimary: true, accessedAt: '2026-10-25', publishedAt: '2026-10-25', effectiveAt: '2026-10-25', ...o
+});
+
 export const ANNUAL_REPORTS = [
   AR('ar-amat', {
     title: 'Applied Materials annual report (Form 10-K)',
@@ -180,4 +185,134 @@ export const ANNUAL_REPORTS = [
     url: 'https://www.sec.gov/Archives/edgar/data/1083301/000108330126000031/wulf-20251231.htm',
     publisher: 'TeraWulf (SEC EDGAR)', publishedAt: '2026-02-27'
   }),
+
+  /* ---- October 2026 chain upgrade: twelve stages ---- */
+  AR('ar-rio', {
+    title: 'Rio Tinto annual report (Form 20-F)',
+    url: 'https://www.sec.gov/Archives/edgar/data/863064/000162828026009531/rio-20251231.htm',
+    publisher: 'Rio Tinto (SEC EDGAR)', publishedAt: '2026-02-19'
+  }),
+  AR('ar-alb', {
+    title: 'Albemarle annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/915913/000091591326000018/alb-20251231.htm',
+    publisher: 'Albemarle (SEC EDGAR)', publishedAt: '2026-02-11'
+  }),
+  AR('ar-lrcx', {
+    title: 'Lam Research annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/707549/000070754926000037/lrcx-20260628.htm',
+    publisher: 'Lam Research (SEC EDGAR)', publishedAt: '2026-08-07'
+  }),
+  AR('ar-klac', {
+    title: 'KLA annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/319201/000031920126000027/klac-20260630.htm',
+    publisher: 'KLA (SEC EDGAR)', publishedAt: '2026-08-06'
+  }),
+  AR('ar-crdo', {
+    title: 'Credo Technology annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1807794/000162828026043303/crdo-20260502.htm',
+    publisher: 'Credo Technology (SEC EDGAR)', publishedAt: '2026-06-15'
+  }),
+  AR('ar-glw', {
+    title: 'Corning annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/24741/000002474126000124/glw-20251231.htm',
+    publisher: 'Corning (SEC EDGAR)', publishedAt: '2026-02-12'
+  }),
+  AR('ar-cien', {
+    title: 'Ciena annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/936395/000162828025056698/cien-20251101.htm',
+    publisher: 'Ciena (SEC EDGAR)', publishedAt: '2025-12-12'
+  }),
+  AR('ar-intc', {
+    title: 'Intel annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/50863/000005086326000011/intc-20251227.htm',
+    publisher: 'Intel (SEC EDGAR)', publishedAt: '2026-01-23'
+  }),
+  AR('ar-arm', {
+    title: 'Arm Holdings annual report (Form 20-F)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1973239/000197323926000097/arm-20260331.htm',
+    publisher: 'Arm Holdings (SEC EDGAR)', publishedAt: '2026-05-26'
+  }),
+  AR('ar-hpe', {
+    title: 'Hewlett Packard Enterprise annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1645590/000164559025000130/hpe-20251031.htm',
+    publisher: 'Hewlett Packard Enterprise (SEC EDGAR)', publishedAt: '2025-12-18'
+  }),
+  AR('ar-anet', {
+    title: 'Arista Networks annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1596532/000159653226000013/anet-20251231.htm',
+    publisher: 'Arista Networks (SEC EDGAR)', publishedAt: '2026-02-17'
+  }),
+  AR('ar-csco', {
+    title: 'Cisco Systems annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/858877/000085887726000132/csco-20260725.htm',
+    publisher: 'Cisco Systems (SEC EDGAR)', publishedAt: '2026-09-02'
+  }),
+  AR('ar-cls', {
+    title: 'Celestica annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1030894/000103089426000011/cls-20251231.htm',
+    publisher: 'Celestica (SEC EDGAR)', publishedAt: '2026-02-27'
+  }),
+  AR('ar-tt', {
+    title: 'Trane Technologies annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1466258/000162828026005731/tt-20251231.htm',
+    publisher: 'Trane Technologies (SEC EDGAR)', publishedAt: '2026-02-05'
+  }),
+  AR('ar-cmi', {
+    title: 'Cummins annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/26172/000002617226000009/cmi-20251231.htm',
+    publisher: 'Cummins (SEC EDGAR)', publishedAt: '2026-02-10'
+  }),
+  AR('ar-cat', {
+    title: 'Caterpillar annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/18230/000001823026000008/cat-20251231.htm',
+    publisher: 'Caterpillar (SEC EDGAR)', publishedAt: '2026-02-13'
+  }),
+  AR('ar-j', {
+    title: 'Jacobs Solutions annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/52988/000162828025053316/jec-20250926.htm',
+    publisher: 'Jacobs Solutions (SEC EDGAR)', publishedAt: '2025-11-20'
+  }),
+  AR('ar-acm', {
+    title: 'AECOM annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/868857/000086885725000013/acm-20250930.htm',
+    publisher: 'AECOM (SEC EDGAR)', publishedAt: '2025-11-19'
+  }),
+  AR('ar-flr', {
+    title: 'Fluor annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1124198/000112419826000007/flr-20251231.htm',
+    publisher: 'Fluor (SEC EDGAR)', publishedAt: '2026-02-17'
+  }),
+  AR('ar-dlr', {
+    title: 'Digital Realty annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1297996/000110465926015365/dlr-20251231x10k.htm',
+    publisher: 'Digital Realty (SEC EDGAR)', publishedAt: '2026-02-13'
+  }),
+  AR('ar-eqix', {
+    title: 'Equinix annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1101239/000110123926000032/eqix-20251231.htm',
+    publisher: 'Equinix (SEC EDGAR)', publishedAt: '2026-02-11'
+  }),
+  AR('ar-orcl', {
+    title: 'Oracle annual report (Form 10-K)',
+    url: 'https://www.sec.gov/Archives/edgar/data/1341439/000119312526277521/orcl-20260531.htm',
+    publisher: 'Oracle (SEC EDGAR)', publishedAt: '2026-06-22'
+  }),
+  W('web-crusoe', { title: 'Crusoe | The AI factory company', url: 'https://www.crusoe.ai/', publisher: 'Crusoe' }),
+  W('web-lambda', { title: 'AI compute in the cloud | Lambda', url: 'https://lambda.ai/', publisher: 'Lambda' }),
+  W('web-fluidstack', { title: 'Fluidstack', url: 'https://www.fluidstack.io/', publisher: 'Fluidstack' }),
+  W('web-xai', { title: 'Grok API documentation', url: 'https://docs.x.ai/docs/overview', publisher: 'xAI' }),
+  W('web-qts', { title: 'QTS Data Centers', url: 'https://qtsdatacenters.com/', publisher: 'QTS Data Centers' }),
+  W('web-vantage', { title: 'Vantage Data Centers', url: 'https://vantage-dc.com/', publisher: 'Vantage Data Centers' }),
+  W('web-cyrusone', { title: 'About CyrusOne', url: 'https://www.cyrusone.com/about-us', publisher: 'CyrusOne' }),
+  W('web-databank', { title: 'DataBank data center solutions', url: 'https://www.databank.com/', publisher: 'DataBank' }),
+  W('web-bechtel', { title: 'Bechtel: Engineering, Construction, Procurement & Project Management', url: 'https://www.bechtel.com/', publisher: 'Bechtel' }),
+  W('web-abb', { title: 'ABB Group', url: 'https://global.abb/group/en', publisher: 'ABB' }),
+  W('web-schneider', { title: 'Schneider Electric Global', url: 'https://www.se.com/ww/en/', publisher: 'Schneider Electric' }),
+  W('web-siemens-energy', { title: 'Siemens Energy', url: 'https://www.siemens-energy.com/global/en/home.html', publisher: 'Siemens Energy' }),
+  W('web-perplexity', { title: 'Perplexity', url: 'https://www.perplexity.ai/', publisher: 'Perplexity' }),
+  W('web-cursor', { title: 'Cursor — AI coding agent', url: 'https://cursor.com/', publisher: 'Anysphere (Cursor)' }),
+  W('web-agentforce', { title: 'Agentforce: The AI Agent Platform', url: 'https://www.salesforce.com/agentforce/', publisher: 'Salesforce' }),
+  W('web-firefly', { title: 'Adobe Firefly', url: 'https://www.adobe.com/products/firefly.html', publisher: 'Adobe' }),
+  W('web-github-copilot', { title: 'GitHub Copilot', url: 'https://github.com/features/copilot', publisher: 'GitHub (Microsoft)' }),
+  W('web-ms-copilot', { title: 'Microsoft Copilot', url: 'https://copilot.microsoft.com/', publisher: 'Microsoft' }),
 ];

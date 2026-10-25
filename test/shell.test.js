@@ -157,7 +157,7 @@ test('the palette can only offer destinations that were built', () => {
   const cfg = JSON.parse(read('index.html').match(/id="t2c-config">([^<]+)</)[1]);
   assert.ok(Array.isArray(cfg.palette) && cfg.palette.length > 0, 'the palette index is empty');
   for (const row of cfg.palette) {
-    const route = row.h.split('#')[0];
+    const route = row.h.split(/[?#]/)[0];
     const file = route === '/' ? 'index.html' : route.replace(/^\//, '') + 'index.html';
     assert.ok(exists(file), `the palette offers ${row.h}, which was not built`);
     assert.ok(row.n && row.k, `a palette row has no name or kind: ${JSON.stringify(row)}`);

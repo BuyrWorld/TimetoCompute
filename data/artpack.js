@@ -87,6 +87,27 @@ export const STAGE_ART = [
     alt: 'Power and cooling plant for a data centre',
     optics: { scale: 0.9, x: '0%', y: '0%' }
   }),
+  /* October 2026 chain upgrade: the three new stages (servers and networking,
+     data-centre owners, models and platforms). Same pack rules: transparent
+     1:1 cutout, frame kept separate, 192/384/768 WebP plus a 1280 PNG. */
+  A('servers-racks-networking', {
+    base: '/assets/t2c/responsive/stage-servers-racks-networking', widths: [192, 384, 768],
+    fallbackWidth: 1280, intrinsic: [1280, 1280], maxCssWidth: 180,
+    alt: 'Server racks joined by network cabling',
+    optics: { scale: 0.92, x: '0%', y: '0%' }
+  }),
+  A('datacentre-owners', {
+    base: '/assets/t2c/responsive/stage-datacentre-owners', widths: [192, 384, 768],
+    fallbackWidth: 1280, intrinsic: [1280, 1280], maxCssWidth: 180,
+    alt: 'Data-centre campus with its substation',
+    optics: { scale: 0.96, x: '0%', y: '0%' }
+  }),
+  A('models-platforms', {
+    base: '/assets/t2c/responsive/stage-models-platforms', widths: [192, 384, 768],
+    fallbackWidth: 1280, intrinsic: [1280, 1280], maxCssWidth: 180,
+    alt: 'Layered AI model platform',
+    optics: { scale: 0.9, x: '0%', y: '0%' }
+  }),
   A('server-rack', {
     base: '/assets/t2c/responsive/stage-server-rack', widths: [192, 384, 768],
     fallbackWidth: 1280, intrinsic: [1280, 1280], maxCssWidth: 180,

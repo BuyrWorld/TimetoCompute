@@ -8,7 +8,7 @@
  * disclosed suppliers and customers lights up, upstream and downstream.
  */
 import { CHAIN_STAGES } from '../data/chainstages.js';
-import { CHAIN_COMPANIES, CHAIN_LINKS, LINK_KINDS, USE_CAVEAT } from '../data/chain.js';
+import { CHAIN_COMPANIES, CHAIN_LINKS, LINK_KINDS, USE_CAVEAT, EXTRA_STAGES } from '../data/chain.js';
 import { SOURCE_BY_ID } from '../data/sources.js';
 import { esc } from './lib/format.js';
 import { cutout, opticsStyle, HEX_FRAME as FRAME } from './chain-ui.js';
@@ -22,10 +22,12 @@ export function chainExplorerData() {
     if (s) sources[id] = { t: s.title, u: s.url, p: s.publisher, d: s.publishedAt };
   }
   return {
-    stages: CHAIN_STAGES.map(s => ({ id: s.id, n: s.n, label: s.label, plain: s.plain })),
+    // Numbered by visual column, so the drawer says "5 · Servers…" to match the map.
+    stages: [...new Set(CX_COLUMNS.flatMap(c => c.stages))].map(id => ({
+      id, n: CX_COLUMNS.findIndex(c => c.stages.includes(id)) + 1, label: stageInfo(id).label, plain: stageInfo(id).plain })),
     companies: CHAIN_COMPANIES.map(c => ({
       id: c.id, name: c.name, ticker: c.ticker, stage: c.stage, makes: c.makes,
-      excerpt: c.excerpt || null, src: c.sourceId, href: c.href || null
+      excerpt: c.excerpt || null, src: c.sourceId, href: c.href || null, kind: c.kind || null
     })),
     links: CHAIN_LINKS.map(l => ({ from: l.from, to: l.to, kind: l.kind, what: l.what, excerpt: l.excerpt, src: l.sourceId })),
     kinds: Object.fromEntries(Object.entries(LINK_KINDS).map(([k, v]) => [k, v.label])),
@@ -41,35 +43,66 @@ export function chainExplorerData() {
  * before the October simplification, kept because readers preferred it.
  */
 export const CX_COLUMNS = [
-  { stages: ['materials'], art: 'materials', frame: 'lime' },
-  { stages: ['processes'], art: 'wafer', frame: 'lime' },
-  { stages: ['photonics'], art: 'photonics', frame: 'cyan' },
-  { stages: ['compute'], art: 'chips-hbm', frame: 'lime' },
+  { stages: ['materials'], art: 'materials', frame: 'lime', label: 'Raw materials',
+    plain: 'the mined and refined inputs everything else starts with' },
+  { stages: ['processes'], art: 'wafer', frame: 'lime', label: 'Semiconductor equipment and fabrication',
+    plain: 'the fabs and tools that turn materials into advanced chips' },
+  { stages: ['photonics'], art: 'photonics', frame: 'cyan', label: 'Photonics and interconnect',
+    plain: 'moving enormous amounts of data between chips, racks and facilities' },
+  { stages: ['compute'], art: 'chips-hbm', frame: 'lime', label: 'Compute silicon and memory',
+    plain: 'accelerators, CPUs and memory that perform AI workloads' },
+  { stages: ['servers'], art: 'servers-racks-networking', frame: 'cyan', label: 'Servers, racks and networking',
+    plain: 'assembling chips into clusters and connecting them into one AI system' },
   { stages: ['power', 'cooling'], art: 'power-cooling', frame: 'amber', label: 'Power and cooling',
-    plain: 'getting electricity in and taking the heat back out' },
-  { stages: ['facility'], art: 'ai-factory', frame: 'lime' },
-  { stages: ['operators'], art: 'server-rack', frame: 'cyan' },
-  { stages: ['buyers'], art: 'accepted', frame: 'lime' },
-  { stages: ['applications'], art: 'revenue', frame: 'lime' }
+    plain: 'bringing electricity into the site and removing the heat' },
+  { stages: ['facility'], art: 'ai-factory', frame: 'lime', label: 'Facility and construction',
+    plain: 'designing, building and commissioning the physical campus' },
+  { stages: ['owners'], art: 'datacentre-owners', frame: 'amber', label: 'Data-centre owners and developers',
+    plain: 'owning the land, buildings, substations and long-lived infrastructure' },
+  { stages: ['operators'], art: 'server-rack', frame: 'cyan', label: 'GPU clouds and compute operators',
+    plain: 'turning physical infrastructure and accelerators into rentable compute' },
+  { stages: ['buyers'], art: 'accepted', frame: 'lime', label: 'Compute buyers',
+    plain: 'the organisations contracting and consuming large blocks of AI capacity' },
+  { stages: ['models'], art: 'models-platforms', frame: 'cyan', label: 'Models and AI platforms',
+    plain: 'the intelligence layer trained and served on the underlying compute' },
+  { stages: ['applications'], art: 'revenue', frame: 'lime', label: 'End applications',
+    plain: 'where compute becomes software, automation and real economic value' }
 ];
+
+/** Label and plain line for any explorer stage id, homepage-only ones included. */
+export function stageInfo(id) {
+  const col = CX_COLUMNS.find(c => c.stages.includes(id));
+  const base = CHAIN_STAGES.find(s => s.id === id) || EXTRA_STAGES[id] || {};
+  return { label: col && col.stages.length === 1 ? col.label : (base.label || col?.label || id), plain: base.plain || col?.plain || '' };
+}
 
 export function chainExplorer() {
   const byStage = id => CHAIN_COMPANIES.filter(c => c.stage === id);
   const degree = id => CHAIN_LINKS.filter(l => l.from === id || l.to === id).length;
-  const stage = id => CHAIN_STAGES.find(s => s.id === id);
+  /* Tracked companies first (they have full pages), then the best-connected,
+     so the six names a column shows before "+N more" are the useful ones. */
+  const order = cos => cos.map((c, i) => ({ c, i })).sort((a, b) =>
+    (b.c.href ? 1 : 0) - (a.c.href ? 1 : 0) || degree(b.c.id) - degree(a.c.id) || a.i - b.i).map(x => x.c);
+  const SHOWN = 6;
+  const KIND = { private: 'PRIVATE', 'non-us': 'NON-US', model: 'MODEL', app: 'APP' };
 
   return `<section class="cx" aria-labelledby="cx-h">
   <div class="cxhead">
     <h2 class="cxh" id="cx-h">The AI supply chain</h2>
     <p class="cxhint" id="cxHint">Tap any company to light up who supplies it and who it sells to.</p>
   </div>
-  <div class="cxtrack cn-track" role="list" style="--cn-count:${CX_COLUMNS.length}">
+  <div class="cxnav" aria-hidden="false">
+    <button type="button" class="cxarrow press" id="cxPrev" aria-label="Scroll the chain back">←</button>
+    <div class="cxrail" role="presentation"><span id="cxRail"></span></div>
+    <button type="button" class="cxarrow press" id="cxNext" aria-label="Scroll the chain forward">→</button>
+  </div>
+  <div class="cxtrack cn-track" id="cxTrack" role="list" style="--cn-count:${CX_COLUMNS.length}">
     ${CX_COLUMNS.map((col, i) => {
-      const first = stage(col.stages[0]);
-      const label = col.label || first.label;
-      const plain = col.plain || first.plain;
-      const cos = col.stages.flatMap(byStage);
-      return `<div class="cxcol cn-node" role="listitem" data-stage="${esc(col.stages.join(' '))}"
+      const label = col.label;
+      const plain = col.plain;
+      const cos = order(col.stages.flatMap(byStage));
+      const extra = Math.max(0, cos.length - SHOWN);
+      return `<div class="cxcol cn-node${extra ? ' is-collapsed' : ''}" role="listitem" data-stage="${esc(col.stages.join(' '))}"
         style="--i:${i};${opticsStyle(col.art)}">
       <div class="cxstage">
         <span class="cn-art cxart" data-frame="${esc(col.frame)}">
@@ -81,12 +114,14 @@ export function chainExplorer() {
         <p class="cxplain">${esc(plain)}</p>
       </div>
       <ul class="cxlist">
-        ${cos.map(c => `<li><button type="button" class="cxco press" data-co="${esc(c.id)}"
+        ${cos.map((c, j) => `<li${j >= SHOWN ? ' class="is-extra"' : ''}><button type="button" class="cxco press${c.href ? ' is-tracked' : ''}" data-co="${esc(c.id)}"
             aria-label="${esc(`${c.name}. ${c.makes} ${degree(c.id)} disclosed links. Open details.`)}">
           <span class="cxname">${esc(c.name)}</span>
-          ${c.ticker ? `<span class="cxtick">${esc(c.ticker)}</span>` : ''}
+          ${c.ticker ? `<span class="cxtick">${esc(c.ticker)}</span>`
+            : c.kind ? `<span class="cxtick cxkind">${esc(KIND[c.kind] || '')}</span>` : ''}
         </button></li>`).join('')}
       </ul>
+      ${extra ? `<button type="button" class="cxmore press" aria-expanded="false">+ ${extra} more</button>` : ''}
     </div>`;
     }).join('')}
   </div>

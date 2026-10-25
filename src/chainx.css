@@ -10,7 +10,7 @@
    right) and its connector line; only the layout is overridden here. */
 .cx .cxtrack {
   --cn-gap: 10px; --cn-node: 116px;
-  display: grid; grid-template-columns: repeat(9, minmax(132px, 1fr)); gap: var(--cn-gap);
+  display: grid; grid-template-columns: repeat(12, minmax(150px, 1fr)); gap: var(--cn-gap);
   min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity;
   padding: 4px 2px 12px;
 }
@@ -80,7 +80,7 @@
 
 @media (prefers-reduced-motion: reduce) { .cxco { transition: none; } .cxco.is-picked { transform: none; } }
 @media (max-width: 640px) {
-  .cx .cxtrack { grid-template-columns: repeat(9, 72%); }
+  .cx .cxtrack { grid-template-columns: repeat(12, 72%); }
   .cxdrawer { width: 100%; }
 }
 
@@ -264,3 +264,25 @@
 .nhfresh p { margin: 0 0 6px; }
 .nhfresh ul { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .nhfresh a { color: var(--ink); }
+
+/* ---- 12-stage navigation ---- */
+.cxnav { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+.cxnav[hidden] { display: none; }
+.cxarrow { all: unset; cursor: pointer; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px;
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font-size: 16px; }
+.cxarrow:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.cxarrow:disabled { opacity: .35; cursor: default; }
+.cxarrow:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.cxrail { flex: 1; height: 4px; border-radius: 4px; background: var(--line-2); overflow: hidden; }
+.cxrail span { display: block; height: 100%; background: var(--brand); border-radius: 4px; transition: margin-left .12s linear; }
+.cx .cxtrack { scroll-behavior: smooth; }
+.cxcol.is-collapsed .is-extra { display: none; }
+.cx.is-tracing .cxcol.is-collapsed .is-extra:has(.is-picked, .is-up, .is-down) { display: list-item; }
+.cxmore { all: unset; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--dim); padding: 4px 2px; }
+.cxmore:hover { color: var(--brand); }
+.cxmore:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.cxkind { letter-spacing: .06em; font-size: 9px; }
+.cxco.is-tracked .cxname::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--brand); margin-left: 6px; vertical-align: middle; }
+.cxco.is-flash { box-shadow: 0 0 0 3px var(--brand); }
+@media (prefers-reduced-motion: reduce) { .cx .cxtrack { scroll-behavior: auto; } .cxrail span { transition: none; } }
