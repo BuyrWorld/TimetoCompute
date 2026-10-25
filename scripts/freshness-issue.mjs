@@ -66,7 +66,7 @@ const body = [
   ...rows.sort((a, b) => b.filed.localeCompare(a.filed))
     .map(r => `| ${r.filed} | ${r.company} (${r.ticker}) | ${r.form} | ${r.description} | [EDGAR](${r.url}) |`),
   '',
-  'To clear an entry: read the filing, update `data/companies.js`, `projects.js`, `events.js` and `sources.js`, then move the company\'s date in `data/review.js` forward. This issue closes itself once nothing is outstanding.',
+  'To clear an entry: run `SEC_UA="T2C research you@example.com" npm run review -- <ticker>` for the sentences that can change the record, then update `data/companies.js`, `projects.js`, `events.js` and `sources.js`, then move the company\'s date in `data/review.js` forward. This issue closes itself once nothing is outstanding.',
   '',
   `_Checked ${report.checkedAt}._`
 ].join('\n');
