@@ -13,7 +13,8 @@ export default async function handler(req, res) {
     .split(',')
     .map(s => s.trim())
     .filter(s => /^[A-Z.\-]{1,8}$/.test(s))
-    .slice(0, 15);
+    // The news hub asks for every listed company on the supply-chain map.
+    .slice(0, 45);
 
   const iso = d => d.toISOString().slice(0, 10);
   const to = new Date();
@@ -57,7 +58,7 @@ export default async function handler(req, res) {
     if (r.ok) {
       const arr = await r.json();
       if (Array.isArray(arr)) {
-        const KEYWORDS = /\b(ai|data cent|datacent|gpu|nvidia|neocloud|hyperscal|megawatt|compute|inference|openai|anthropic)\b/i;
+        const KEYWORDS = /\b(ai|data cent|datacent|gpu|nvidia|neocloud|hyperscal|megawatt|compute|inference|openai|anthropic|claude|gemini|gpt|grok|deepseek|mistral|qwen|llama|muse)\b/i;
         for (const a of arr.slice(0, 60)) {
           if (!a.url || !a.headline || byUrl.has(a.url)) continue;
           if (!KEYWORDS.test(a.headline + ' ' + (a.summary || ''))) continue;

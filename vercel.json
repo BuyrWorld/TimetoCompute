@@ -60,6 +60,16 @@
       "source": "/compare",
       "destination": "/companies/",
       "permanent": true
+    },
+    {
+      "source": "/time-machine/",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/time-machine",
+      "destination": "/",
+      "permanent": true
     }
   ]
 }

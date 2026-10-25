@@ -78,6 +78,20 @@ export const STAGE_ART = [
     fallbackWidth: 1280, intrinsic: [1280, 1280], maxCssWidth: 180,
     alt: 'Revenue recognition growth symbol',
     optics: { scale: 0.84, x: '3.2%', y: '1.5%' }   // measured: mass sat left and high
+  }),
+  /* Shipped in the pack but unused until the October supply-chain homepage,
+     which gives power-and-cooling and the operators' racks their own column. */
+  A('power-cooling', {
+    base: '/assets/t2c/responsive/stage-power-cooling', widths: [192, 384, 768],
+    fallbackWidth: 1280, intrinsic: [1280, 1280], maxCssWidth: 180,
+    alt: 'Power and cooling plant for a data centre',
+    optics: { scale: 0.9, x: '0%', y: '0%' }
+  }),
+  A('server-rack', {
+    base: '/assets/t2c/responsive/stage-server-rack', widths: [192, 384, 768],
+    fallbackWidth: 1280, intrinsic: [1280, 1280], maxCssWidth: 180,
+    alt: 'AI server rack',
+    optics: { scale: 0.9, x: '0%', y: '0%' }
   })
 ];
 

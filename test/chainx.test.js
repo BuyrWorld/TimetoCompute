@@ -60,8 +60,10 @@ test('the homepage is the supply chain, with every company as a button', () => {
   const h1s = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)];
   assert.equal(h1s.length, 1);
   assert.match(h1s[0][1], /Follow AI from the ground to the app/);
-  const cols = [...html.matchAll(/class="cxcol"/g)].length;
-  assert.equal(cols, CHAIN_STAGES.length, 'a stage column is missing');
+  // Nine visual columns over ten stages: power and cooling share one.
+  const cols = [...html.matchAll(/class="cxcol cn-node"/g)].length;
+  assert.equal(cols, 9, 'a stage column is missing');
+  assert.ok((html.match(/class="cn-art cxart"/g) || []).length === 9, 'a column lost its hexagon art');
   for (const c of CHAIN_COMPANIES) {
     assert.ok(html.includes(`data-co="${c.id}"`), `${c.name} has no button`);
   }
@@ -79,10 +81,11 @@ test('the explorer ships its data and every cited document', () => {
   for (const l of data.links) assert.ok(data.sources[l.src], `${l.from}>${l.to} ships without its source`);
 });
 
-test('the header carries five destinations and no mode switch', () => {
+test('the header carries four destinations and no mode switch or game', () => {
   const html = read('index.html');
   const labels = [...html.matchAll(/class="navlink[^"]*"[^>]*>([^<]+)</g)].map(m => m[1]);
-  assert.deepEqual(labels, ['Chain', 'Sites', 'Companies', 'News', 'Play']);
+  assert.deepEqual(labels, ['Chain', 'News', 'Models', 'Companies']);
+  assert.ok(!html.includes('/time-machine/'), 'the retired game is still linked');
   assert.ok(!html.includes('class="modetoggle"'), 'the Standard/Focus switch is back in the header');
 });
 
@@ -126,4 +129,6 @@ test('retired tools redirect instead of 404ing', () => {
     assert.ok((v.redirects || []).some(r => r.source === src && r.destination === '/companies/'),
       `${src} does not redirect`);
   }
+  assert.ok((v.redirects || []).some(r => r.source === '/time-machine/' && r.destination === '/'),
+    '/time-machine/ does not redirect');
 });

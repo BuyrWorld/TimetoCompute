@@ -132,6 +132,17 @@
     if (e.target === drawer || e.target.closest('#cxdClose')) drawer.close();
   });
 
+  /* "Who it touches" chips elsewhere on the page trace into the map. */
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-trace]');
+    if (!t || !byId[t.getAttribute('data-trace')]) return;
+    var id = t.getAttribute('data-trace');
+    trace(id);
+    var btn = root.querySelector('[data-co="' + id + '"]');
+    if (btn && btn.scrollIntoView) btn.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+    open(id);
+  });
+
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !drawer.open) clearTrace();
   });

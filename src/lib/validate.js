@@ -15,6 +15,7 @@ import { EXPLAINERS, EXPLAINER_BY_SLUG, EXPLAINER_BY_STAGE } from '../../data/ex
 import { PHOTONICS_SUPPLIERS, SUPPLIER_ROLES, EVIDENCE_GRADES } from '../../data/suppliers.js';
 import { CHAIN_COMPANIES, CHAIN_COMPANY_BY_ID, CHAIN_LINKS, LINK_KINDS } from '../../data/chain.js';
 import { CHAIN_STAGE_BY_ID } from '../../data/chainstages.js';
+import { PROVIDERS, MODEL_KINDS } from '../../data/models.js';
 import { allRecords, getMeasure, isKnown, aggregate, headlineKpis } from './compute.js';
 import { MAX_TICKERS, normaliseSelection } from './compare.js';
 
@@ -31,6 +32,19 @@ export function runChecks() {
   const errors = [], warnings = [];
   const fail = m => errors.push(m);
   const warn = m => warnings.push(m);
+
+  /* ---------- current models ---------- */
+  for (const p of PROVIDERS) {
+    if (!SOURCE_BY_ID[p.sourceId]) fail(`Model provider ${p.id} cites missing source ${p.sourceId}`);
+    if (p.chainId && !CHAIN_COMPANY_BY_ID[p.chainId]) fail(`Model provider ${p.id} points at unknown chain company ${p.chainId}`);
+    for (const m of p.models) {
+      if (!MODEL_KINDS[m.kind]) fail(`${p.id}/${m.name}: unknown kind ${m.kind}`);
+      if (!m.quote && !m.note) fail(`${p.id}/${m.name} says nothing about what it does`);
+      if (m.quote && m.note) fail(`${p.id}/${m.name} has both a quote and a note — pick one`);
+      if (!(m.uses || []).length) fail(`${p.id}/${m.name} lists no uses`);
+      if (m.sourceId && !SOURCE_BY_ID[m.sourceId]) fail(`${p.id}/${m.name} cites missing source ${m.sourceId}`);
+    }
+  }
 
   /* ---------- supply-chain map ---------- */
   const chainIds = new Set();
@@ -479,7 +493,8 @@ export function runChecks() {
       ...CUSTOMERS.flatMap(c => (c.models || []).map(m => m.sourceId)),
       ...PHOTONICS_SUPPLIERS.flatMap(s => s.sourceIds || []),
       ...CHAIN_COMPANIES.map(c => c.sourceId),
-      ...CHAIN_LINKS.map(l => l.sourceId)
+      ...CHAIN_LINKS.map(l => l.sourceId),
+      ...PROVIDERS.flatMap(p => [p.sourceId, ...p.models.map(m => m.sourceId).filter(Boolean)])
     ];
     return !used.includes(s.id);
   });

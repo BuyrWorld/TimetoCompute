@@ -25,13 +25,13 @@ const ROUTES = ['index.html', 'chain/index.html', 'companies/index.html', 'sites
   'catalysts/index.html', 'research/index.html', 'methodology/index.html'];
 
 /** The primary destinations, in the order the shell presents them. */
-const NAV_HREFS = ['/', '/sites/', '/companies/', '/ai-news/', '/time-machine/'];
+const NAV_HREFS = ['/', '/news/', '/news/#models', '/companies/'];
 
 /** Demoted but never orphaned — reachable from the utility menu on every page. */
-const SECONDARY = ['/chain-mapping/', '/explainers/', '/catalysts/', '/track/', '/intelligence/', '/research/', '/methodology/'];
+const SECONDARY = ['/sites/', '/chain-mapping/', '/explainers/', '/catalysts/', '/track/', '/intelligence/', '/research/', '/methodology/'];
 
 /** Primary destinations must not also sit in the utility menu. */
-const NOT_SECONDARY = ['/time-machine/', '/sites/', '/companies/', '/ai-news/'];
+const NOT_SECONDARY = ['/news/', '/companies/'];
 
 /* ================= routes ================= */
 
@@ -157,7 +157,8 @@ test('the palette can only offer destinations that were built', () => {
   const cfg = JSON.parse(read('index.html').match(/id="t2c-config">([^<]+)</)[1]);
   assert.ok(Array.isArray(cfg.palette) && cfg.palette.length > 0, 'the palette index is empty');
   for (const row of cfg.palette) {
-    const file = row.h === '/' ? 'index.html' : row.h.replace(/^\//, '') + 'index.html';
+    const route = row.h.split('#')[0];
+    const file = route === '/' ? 'index.html' : route.replace(/^\//, '') + 'index.html';
     assert.ok(exists(file), `the palette offers ${row.h}, which was not built`);
     assert.ok(row.n && row.k, `a palette row has no name or kind: ${JSON.stringify(row)}`);
   }
@@ -445,9 +446,8 @@ test('every page offers a skip link as its first focusable element', () => {
 });
 
 test('the current route is marked for assistive technology, not colour alone', () => {
-  const cases = [['companies/index.html', '/companies/'], ['sites/index.html', '/sites/'],
-    ['ai-news/index.html', '/ai-news/'], ['news/index.html', '/ai-news/'],
-    ['companies/iren/index.html', '/companies/']];
+  const cases = [['companies/index.html', '/companies/'], ['news/index.html', '/news/'],
+    ['ai-news/index.html', '/news/'], ['companies/iren/index.html', '/companies/']];
   for (const [file, href] of cases) {
     const html = read(file);
     const link = html.match(new RegExp(`<a class="navlink[^"]*"[^>]*href="${href}"[^>]*>`));
@@ -532,7 +532,7 @@ test('the mobile bar carries four reachable destinations', () => {
     const html = read(r);
     assert.ok(html.includes('class="bottomnav"'), `${r} has no mobile navigation`);
     const hrefs = [...html.matchAll(/class="bnav[^"]*" href="([^"]+)"/g)].map(m => m[1]);
-    assert.deepEqual(hrefs, ['/', '/sites/', '/ai-news/'],
+    assert.deepEqual(hrefs, ['/', '/news/', '/companies/'],
       `${r} mobile navigation is wrong`);
     assert.ok(/id="palOpenMobile"/.test(html), `${r} mobile bar has no search`);
   }

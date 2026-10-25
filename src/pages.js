@@ -33,6 +33,8 @@ import {
 import { GROSS_TO_CRITICAL_IT } from './lib/estimate.js';
 import { leadStory, journeyRail, headlineFor } from './lib/leadstory.js';
 import { chainExplorer } from './chainx.js';
+import { touches, chainIdFor } from './lib/impact.js';
+import { modelStrip, newsTickers } from './newshub.js';
 import {
   deliveryLeaders, nextCatalyst, promiseReality, megaprojects, imageForSite, EXPLAINER_STEPS
 } from './lib/homepage.js';
@@ -85,65 +87,62 @@ const section =(id, title, meta, body, { plain = false } = {}) => `
  * reality panel and four audience lenses — and readers found it hard to know
  * where to look. Now it answers one question a newcomer actually has: who
  * makes AI, from the ground up, and who pays for it? Then what changed this
- * week, then where it is being built.
+ * week, then the models the compute is for.
  */
 export function todayBody() {
-  /* Routine filings (a revolver resized, notes priced) are on the news page;
-     the homepage shows what moved capacity, customers or targets. */
-  const week = signals({})
-    .filter(s => s.confidence === 'confirmed' && s.significance !== 'low')
-    .slice(0, 5);
-  const sites = allSites()
-    .filter(s => s.capacityMw)
-    .map(s => ({ s, st: siteStatus(s) }))
-    .sort((x, y) => (y.s.capacityMw || 0) - (x.s.capacityMw || 0))
-    .filter(x => x.st.id !== 'unreported')
-    .slice(0, 6);
+  const story = leadStory();
+  const touched = story.available ? touches(chainIdFor(story.signal.companyId)) : [];
 
   return `
 <div class="t2c-shell hm">
-  <section class="hmhero">
-    <p class="hmkicker">The physical race behind AI</p>
-    <h1 class="hmh">Follow AI from the ground to the app.</h1>
-    <p class="hmsub">Who mines it, makes it, powers it, builds it and buys it — every link quoted
-      from a company filing.</p>
+  <section class="fl-hero hmtop" aria-labelledby="fl-h1">
+    <div class="fl-herotop">
+      <div>
+        <p class="ed-eyebrow">The physical race behind AI</p>
+        <h1 class="fl-h1" id="fl-h1">Follow AI from the ground to the app<span class="dot">.</span></h1>
+        <p class="fl-lede">Who mines it, makes it, powers it, builds it and buys it — every link
+          quoted from a company filing, with the latest news and who it touches.</p>
+        <div class="fl-acts">
+          <a class="ed-cta primary press" href="#cx-h">Explore the chain <span aria-hidden="true">&rarr;</span></a>
+          <a class="ed-cta secondary press" href="/news/">Latest news <span aria-hidden="true">&rarr;</span></a>
+        </div>
+      </div>
+      ${story.available ? `<aside class="fl-reaction" aria-labelledby="fl-react-h">
+        <p class="fl-reactkicker" id="fl-react-h">Today's chain reaction</p>
+        <h2 class="fl-reacth">${esc(story.headline)}</h2>
+        <p class="fl-reactsent">${esc(story.consequence)}</p>
+        ${touched.length ? `<p class="hmtouch-h">Who it touches</p>
+        <ul class="hmtouch">${touched.slice(0, 5).map(t => `<li><button type="button" class="press hmtouchbtn" data-trace="${esc(t.id)}">${esc(t.name)}</button>
+          <span>${esc(t.role === 'customer' ? 'customer' : 'supplier')} · ${esc(t.what)}</span></li>`).join('')}</ul>` : ''}
+        <div class="fl-reactfoot">
+          <span class="ed-badge" data-evidence="${esc(story.confidence)}">
+            <span class="ed-icon" data-icon="verified-shield" aria-hidden="true"></span>
+            Primary source
+          </span>
+        </div>
+      </aside>` : ''}
+    </div>
   </section>
 
   ${chainExplorer()}
 
   <section class="hmsec" aria-labelledby="week-h">
     <div class="hmsechead">
-      <h2 id="week-h">What changed</h2>
+      <h2 id="week-h">Latest stories, and who they touch</h2>
       <a class="hmmore press" href="/news/">All news →</a>
     </div>
-    <ul class="hmweek">
-      ${week.map(sg => `<li>
-        <span class="hmwhen">${esc(date(sg.announcedAt))}</span>
-        <span class="hmwhat">${esc(headlineFor(sg))}</span>
-        ${sg.projectId ? `<a class="hmwhere press" href="/sites/${esc(sg.projectId)}/">Site →</a>` : ''}
-      </li>`).join('')}
-    </ul>
+    <ol class="nhstories" id="nhStories" data-limit="5" data-tickers="${esc(newsTickers().join(','))}">
+      <li class="nhempty">Loading the latest stories…</li>
+    </ol>
   </section>
 
-  <section class="hmsec" aria-labelledby="sites-h">
+  <section class="hmsec" aria-labelledby="models-h">
     <div class="hmsechead">
-      <h2 id="sites-h">Where it is being built</h2>
-      <a class="hmmore press" href="/sites/">All ${allSites().length} sites →</a>
+      <h2 id="models-h">The newest models</h2>
+      <a class="hmmore press" href="/news/#models">Every model →</a>
     </div>
-    <div class="hmsites">
-      ${sites.map(({ s, st }) => `<a class="hmsite press" href="/sites/${esc(s.slug)}/">
-        <span class="hmstatus hmstatus-${esc(st.id)}">${esc(st.label)}</span>
-        <span class="hmsname">${esc(s.name)}</span>
-        <span class="hmsmeta">${esc(s.ticker || s.companyName)} · ${esc(mw(s.capacityMw))}</span>
-      </a>`).join('')}
-    </div>
+    ${modelStrip(5)}
   </section>
-
-  <a class="hmplay press" href="/time-machine/">
-    <span class="hmplayk">Play</span>
-    <span>The AI Time Machine — 34 real turning points, fictional money. Could you have called them?</span>
-    <span aria-hidden="true">→</span>
-  </a>
 </div>`;
 }
 

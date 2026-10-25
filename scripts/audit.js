@@ -119,13 +119,13 @@ const sitesPg = fs.readFileSync(path.join(OUT, 'sites', 'index.html'), 'utf8');
 for (const [pageName, html] of [['home', home], ['research', research], ['companies', companiesPg], ['sites', sitesPg]]) {
   if (!/<nav class="mainnav" aria-label="Primary">/.test(html)) fail(`${pageName}: no primary navigation`);
   const links = [...html.matchAll(/class="navlink[^"]*"\s+href="([^"]+)"/g)].map(m => m[1]);
-  if (links.length !== 5) fail(`${pageName}: expected 5 primary nav links, found ${links.length}`);
+  if (links.length !== 4) fail(`${pageName}: expected 4 primary nav links, found ${links.length}`);
   for (const href of links) {
     const clean = href.split('#')[0];
     if (!routes.has(clean)) fail(`${pageName}: nav points at unbuilt route ${href}`);
   }
   // Demoting a route to the utility menu is fine; orphaning it is not.
-  for (const href of ['/chain-mapping/', '/explainers/', '/catalysts/', '/track/', '/intelligence/', '/research/', '/methodology/']) {
+  for (const href of ['/sites/', '/chain-mapping/', '/explainers/', '/catalysts/', '/track/', '/intelligence/', '/research/', '/methodology/']) {
     if (!html.includes(`href="${href}"`)) fail(`${pageName}: secondary route ${href} is unreachable`);
   }
   if (!(html.match(/aria-current="page"/g) || []).length) fail(`${pageName}: no nav item marked aria-current`);
@@ -135,8 +135,11 @@ for (const [pageName, html] of [['home', home], ['research', research], ['compan
 
 /* ---- the homepage is the supply chain ---- */
 if (!/Follow AI from the ground to the app/.test(home)) fail('the homepage lost its proposition headline');
-const cols = (home.match(/class="cxcol"/g) || []).length;
-if (cols !== STAGES_ALL.length) fail(`homepage chain has ${cols} stages; the model has ${STAGES_ALL.length}`);
+// Nine visual columns over ten stages: power and cooling share one.
+const cols = (home.match(/class="cxcol cn-node"/g) || []).length;
+if (cols !== 9) fail(`homepage chain has ${cols} columns; expected 9`);
+const covered = new Set([...home.matchAll(/class="cxcol cn-node"[^>]*data-stage="([^"]+)"/g)].flatMap(m => m[1].split(' ')));
+for (const st of STAGES_ALL) if (!covered.has(st.id)) fail(`homepage chain has no column for ${st.label}`);
 for (const c of CHAIN_COMPANIES) {
   if (!home.includes(`data-co="${c.id}"`)) fail(`homepage has no button for ${c.name}`);
 }

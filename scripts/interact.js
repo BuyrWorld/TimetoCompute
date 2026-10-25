@@ -38,23 +38,28 @@ function serve() {
         const realArt = `http://${req.headers.host}/Logo/logo-header.png`;
         res.writeHead(200, { 'content-type': 'application/json' });
         return res.end(JSON.stringify({
-          count: 3,
+          count: 4,
           items: [
             {
-              headline: 'A story with its own artwork', url: 'https://example.com/a',
+              headline: 'IREN expands Childress with its own artwork', url: 'https://example.com/a',
               source: 'Benzinga', datetime: Math.floor(Date.now() / 1000) - 3600,
               image: realArt, symbols: ['IREN']
             },
             {
-              headline: 'A Yahoo story with the house placeholder', url: 'https://example.com/b',
+              headline: 'CoreWeave and Nebius trade higher on Yahoo placeholder day', url: 'https://example.com/b',
               source: 'Yahoo', datetime: Math.floor(Date.now() / 1000) - 7200,
               image: 'https://s.yimg.com/rz/stage/p/yahoo_finance_en-US_h_p_finance_2.png',
               symbols: ['CRWV', 'NBIS']
             },
             {
-              headline: 'A story with no image at all', url: 'https://example.com/c',
+              headline: 'TSMC warns of tight advanced-packaging supply', url: 'https://example.com/c',
               source: 'SeekingAlpha', datetime: Math.floor(Date.now() / 1000) - 86400,
-              image: null, symbols: ['WULF']
+              image: null, symbols: ['TSM']
+            },
+            {
+              headline: 'Elon Musk delivers spectacular news for rocket investors', url: 'https://example.com/d',
+              source: 'Yahoo', datetime: Math.floor(Date.now() / 1000) - 600,
+              image: null, symbols: ['NVDA']
             }
           ]
         }));
@@ -131,7 +136,7 @@ const run = async () => {
   check('the homepage has exactly one h1 and it is the proposition',
     h1s.length === 1 && /ground to the app/.test(h1s[0]), JSON.stringify(h1s));
   const cols = await page.$$eval('.cxcol', els => els.length);
-  check('the chain shows all ten stages', cols === 10, `${cols}`);
+  check('the chain shows nine illustrated columns', cols === 9, `${cols}`);
 
   await page.click('[data-co="nvidia"]');
   await new Promise(r => setTimeout(r, 250));
@@ -186,45 +191,40 @@ const run = async () => {
   check('the 404 is branded and offers recovery routes',
     /isn.t here/i.test(nf.h1) && nf.nav && nf.search && nf.routes >= 5, JSON.stringify(nf));
 
-  /* ---- news feed ---- */
+  /* ---- AI news hub ---- */
   await page.goto(base + '/news/', { waitUntil: 'networkidle0' });
   await new Promise(r => setTimeout(r, 400));
+  const hub = await page.$$eval('.nhstory', els => els.map(e => ({
+    h: e.querySelector('.nhstoryh').textContent,
+    img: (e.querySelector('.nhimg') || {}).src || null,
+    touches: [...e.querySelectorAll('.nhtag-op')].map(t => t.firstChild.textContent.trim())
+  })));
+  check('the hub shows only stories that name a company on the map', hub.length === 3 && !hub.some(x => /Musk/.test(x.h)),
+    hub.map(x => x.h).join(' | '));
+  const own = hub.find(x => /artwork/.test(x.h));
+  check('a story with its own artwork keeps it', own && /logo-header\.png$/.test(own.img || ''), JSON.stringify(own));
+  const yahoo = hub.find(x => /placeholder/.test(x.h));
+  check('a publisher house placeholder is not shown as story art', yahoo && yahoo.img === null, JSON.stringify(yahoo));
+  const tsmc = hub.find(x => /TSMC/.test(x.h));
+  check('a chip story reaches the neoclouds through disclosed links',
+    tsmc && ['IREN', 'CoreWeave', 'Nebius'].every(n => tsmc.touches.includes(n)), JSON.stringify(tsmc && tsmc.touches));
+  const hexes = await page.$$eval('.nhstory .nhhex img', els => els.length);
+  check('each mapped story carries its stage art', hexes >= 3, `${hexes}`);
 
-  const cards = await page.$$eval('.newscard', els => els.length);
-  check('the news feed renders a card per story', cards === 3, `${cards}`);
+  await page.click('[data-filter="stage-1"]');
+  await new Promise(r => setTimeout(r, 150));
+  const proc = await page.$$eval('.nhstory', els => els.length);
+  const stagePressed = await page.$eval('[data-filter="stage-1"]', el => el.getAttribute('aria-pressed'));
+  check('a stage filter narrows the stories and says it is on', proc === 1 && stagePressed === 'true', `${proc} ${stagePressed}`);
 
-  const imgs = await page.$$eval('.newscard', els => els.map(e => {
-    const i = e.querySelector('.newsimg');
-    return i ? { src: i.getAttribute('src'), brand: i.classList.contains('is-brand'), alt: i.getAttribute('alt') } : null;
+  await page.click('[data-mkind="image"]');
+  await new Promise(r => setTimeout(r, 150));
+  const models = await page.evaluate(() => ({
+    shown: [...document.querySelectorAll('.nhmodel')].filter(m => !m.hidden).map(m => m.dataset.kind),
+    provs: [...document.querySelectorAll('.nhprov')].filter(p => !p.hidden).length
   }));
-
-  check('a story with its own artwork keeps it',
-    imgs[0] && /\/Logo\/logo-header\.png$/.test(imgs[0].src) && !imgs[0].brand,
-    JSON.stringify(imgs[0]));
-
-  check('a publisher house placeholder is replaced by the local mark',
-    imgs[1] && imgs[1].src === '/assets/news-yahoo.png' && imgs[1].brand,
-    JSON.stringify(imgs[1]));
-  check('the replacement mark names its publisher for screen readers',
-    imgs[1] && /yahoo/i.test(imgs[1].alt || ''), imgs[1] && imgs[1].alt);
-
-  check('a story with no image and no known mark shows no picture',
-    imgs[2] === null, JSON.stringify(imgs[2]));
-
-  const brandFit = await page.$eval('.newsimg.is-brand', el => {
-    const cs = getComputedStyle(el);
-    return { fit: cs.objectFit, bg: cs.backgroundColor };
-  });
-  check('the mark is contained rather than cropped', brandFit.fit === 'contain', JSON.stringify(brandFit));
-
-  const external = await page.$$eval('.newscard img', els =>
-    els.map(e => e.getAttribute('src')).filter(s => /^https?:/.test(s)).length);
-  check('only genuine story artwork is fetched from an external host', external === 1, `${external}`);
-
-  await page.select('#newsCompany', 'IREN');
-  await new Promise(r => setTimeout(r, 200));
-  const filtered = await page.$$eval('.newscard', els => els.length);
-  check('the news company filter narrows the feed', filtered === 1, `${filtered}`);
+  check('the model filter shows only that kind, and hides empty providers',
+    models.shown.length > 0 && models.shown.every(k => k === 'image') && models.provs < 10, JSON.stringify(models));
 
   /* ---- sites directory filters and restores ---- */
   await page.goto(base + '/sites/', { waitUntil: 'networkidle0' });
@@ -466,8 +466,8 @@ const run = async () => {
     palClosed && focusRestored === 'palOpen', `closed=${palClosed} focus=${focusRestored}`);
 
   /* ---- nav marks exactly one destination current ---- */
-  for (const [route, expect] of [['/sites/', '/sites/'], ['/companies/', '/companies/'],
-    ['/news/', '/ai-news/']]) {
+  for (const [route, expect] of [['/companies/', '/companies/'], ['/news/', '/news/'],
+    ['/ai-news/', '/news/']]) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const current = await page.$$eval('[aria-current="page"]', els =>
       els.filter(e => e.classList.contains('navlink')).map(e => e.getAttribute('href')));
@@ -476,7 +476,7 @@ const run = async () => {
   }
 
   // A route demoted to the utility menu still says where you are.
-  for (const route of ['/catalysts/', '/explainers/', '/intelligence/']) {
+  for (const route of ['/sites/', '/catalysts/', '/explainers/', '/intelligence/']) {
     await page.goto(base + route, { waitUntil: 'networkidle0' });
     const marked = await page.$$eval('.umenubtn[aria-current="page"]', els =>
       els.map(e => e.getAttribute('href')));

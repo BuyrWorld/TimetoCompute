@@ -11,6 +11,7 @@ import { CHAIN_STAGES } from '../data/chainstages.js';
 import { CHAIN_COMPANIES, CHAIN_LINKS, LINK_KINDS, USE_CAVEAT } from '../data/chain.js';
 import { SOURCE_BY_ID } from '../data/sources.js';
 import { esc } from './lib/format.js';
+import { cutout, opticsStyle, HEX_FRAME as FRAME } from './chain-ui.js';
 
 /** Everything the client needs, and nothing else: companies, links, the cited documents. */
 export function chainExplorerData() {
@@ -33,30 +34,61 @@ export function chainExplorerData() {
   };
 }
 
+/**
+ * Nine visual columns over ten data stages: power and cooling share one,
+ * because they share one illustration and are usually bought together.
+ * Each column carries the pack's hexagon art — the visual the homepage had
+ * before the October simplification, kept because readers preferred it.
+ */
+export const CX_COLUMNS = [
+  { stages: ['materials'], art: 'materials', frame: 'lime' },
+  { stages: ['processes'], art: 'wafer', frame: 'lime' },
+  { stages: ['photonics'], art: 'photonics', frame: 'cyan' },
+  { stages: ['compute'], art: 'chips-hbm', frame: 'lime' },
+  { stages: ['power', 'cooling'], art: 'power-cooling', frame: 'amber', label: 'Power and cooling',
+    plain: 'getting electricity in and taking the heat back out' },
+  { stages: ['facility'], art: 'ai-factory', frame: 'lime' },
+  { stages: ['operators'], art: 'server-rack', frame: 'cyan' },
+  { stages: ['buyers'], art: 'accepted', frame: 'lime' },
+  { stages: ['applications'], art: 'revenue', frame: 'lime' }
+];
+
 export function chainExplorer() {
-  const byStage = s => CHAIN_COMPANIES.filter(c => c.stage === s.id);
+  const byStage = id => CHAIN_COMPANIES.filter(c => c.stage === id);
   const degree = id => CHAIN_LINKS.filter(l => l.from === id || l.to === id).length;
+  const stage = id => CHAIN_STAGES.find(s => s.id === id);
 
   return `<section class="cx" aria-labelledby="cx-h">
   <div class="cxhead">
     <h2 class="cxh" id="cx-h">The AI supply chain</h2>
     <p class="cxhint" id="cxHint">Tap any company to light up who supplies it and who it sells to.</p>
   </div>
-  <div class="cxtrack" role="list">
-    ${CHAIN_STAGES.map(s => `<div class="cxcol" role="listitem" data-stage="${esc(s.id)}">
+  <div class="cxtrack cn-track" role="list" style="--cn-count:${CX_COLUMNS.length}">
+    ${CX_COLUMNS.map((col, i) => {
+      const first = stage(col.stages[0]);
+      const label = col.label || first.label;
+      const plain = col.plain || first.plain;
+      const cos = col.stages.flatMap(byStage);
+      return `<div class="cxcol cn-node" role="listitem" data-stage="${esc(col.stages.join(' '))}"
+        style="--i:${i};${opticsStyle(col.art)}">
       <div class="cxstage">
-        <span class="cxn">${s.n}</span>
-        <h3 class="cxlabel">${esc(s.label)}</h3>
-        <p class="cxplain">${esc(s.plain)}</p>
+        <span class="cn-art cxart" data-frame="${esc(col.frame)}">
+          ${FRAME}
+          <span class="cn-cut">${cutout(col.art, { alt: '', sizes: '(min-width: 1200px) 120px, 160px' })}</span>
+        </span>
+        <span class="cxn">${i + 1}</span>
+        <h3 class="cxlabel">${esc(label)}</h3>
+        <p class="cxplain">${esc(plain)}</p>
       </div>
       <ul class="cxlist">
-        ${byStage(s).map(c => `<li><button type="button" class="cxco press" data-co="${esc(c.id)}"
+        ${cos.map(c => `<li><button type="button" class="cxco press" data-co="${esc(c.id)}"
             aria-label="${esc(`${c.name}. ${c.makes} ${degree(c.id)} disclosed links. Open details.`)}">
           <span class="cxname">${esc(c.name)}</span>
           ${c.ticker ? `<span class="cxtick">${esc(c.ticker)}</span>` : ''}
         </button></li>`).join('')}
       </ul>
-    </div>`).join('')}
+    </div>`;
+    }).join('')}
   </div>
   <p class="cxnote">Every line between two companies quotes the filing that discloses it. Companies in
     neighbouring stages are not linked unless a document says so. ${esc(USE_CAVEAT)}</p>

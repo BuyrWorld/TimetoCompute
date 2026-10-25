@@ -70,11 +70,12 @@ export function stageAsset(asset, alt, opts = {}) {
 }
 
 /** The stage frame, as a themeable inline SVG so `currentColor` follows the state. */
-const FRAME = `<svg class="cn-frame" viewBox="0 0 220 240" aria-hidden="true" focusable="false">
+export const HEX_FRAME = `<svg class="cn-frame" viewBox="0 0 220 240" aria-hidden="true" focusable="false">
   <path d="M110 8 194 56v96l-84 48-84-48V56z" fill="none" stroke="currentColor" stroke-width="2"/>
   <path d="M110 18 185 61v86l-75 43-75-43V61z" fill="none" stroke="currentColor" stroke-opacity=".22"/>
   <circle cx="110" cy="8" r="3.5" fill="currentColor"/>
 </svg>`;
+const FRAME = HEX_FRAME;
 
 /**
  * One node in the chain.
@@ -191,18 +192,6 @@ export function flagshipHero(stages, coverage, story) {
             See what changed <span aria-hidden="true">&rarr;</span></a>
         </div>
 
-        <!-- The game is a way into the same subject for a reader who would
-             bounce off a research page. It sits below the two primary actions
-             rather than competing with them, and says plainly that it is a
-             simulation so nobody mistakes it for the tracked record. -->
-        <p class="fl-play">
-          <a class="fl-playlink press" href="/time-machine/">
-            <span class="fl-playglyph" aria-hidden="true">&#9654;</span>
-            Play the AI Time Machine
-          </a>
-          <span class="fl-playnote">Five campaigns, 34 real turning points, fictional capital.
-            Educational only.</span>
-        </p>
       </div>
 
       ${story.available ? `<aside class="fl-reaction" aria-labelledby="fl-react-h">

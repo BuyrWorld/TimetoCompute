@@ -33,15 +33,15 @@ import {
 } from './src/pages.js';
 import { allSites, companyPath, path as projectPath, siteStatus } from './src/lib/sites.js';
 import { chainExplorerData } from './src/chainx.js';
+import { newsHubBody, newsHubData } from './src/newshub.js';
+import { STAGE_ART } from './data/artpack.js';
 import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
 import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
 import { ART } from './data/artpack.js';
 import { explainerRoutes, explainerHref } from './src/lib/explain.js';
 import { explainerPageBody } from './src/explainer-page.js';
 import { aiCatalystsBody, aiNewsConfig } from './src/ainews-page.js';
-import { timeMachineBody } from './src/timemachine-page.js';
 import { chainMappingBody, chainMappingConfig } from './src/chainmap-page.js';
-import { checkTimeMachine, CAMPAIGNS, chapterCount } from './src/lib/timemachine.js';
 import { aiFactoryGraph } from './src/lib/corridor.js';
 import { passport } from './src/lib/passport.js';
 import {
@@ -117,10 +117,9 @@ console.log(`✓ data validation passed (${checks.warnings.length} warnings)`);
  */
 const NAV = [
   { id: 'today', label: 'Chain', href: '/', search: 'supply chain map home today' },
-  { id: 'sites', label: 'Sites', href: '/sites/', search: 'data centres megaprojects campuses' },
-  { id: 'companies', label: 'Companies', href: '/companies/' },
-  { id: 'ainews', label: 'News', href: '/ai-news/', also: ['news'] },
-  { id: 'timemachine', label: 'Play', href: '/time-machine/', search: 'AI Time Machine game play history simulation' }
+  { id: 'news', label: 'News', href: '/news/', also: ['ainews'], search: 'AI news stories neoclouds' },
+  { id: 'models', label: 'Models', href: '/news/#models', search: 'AI models GPT Claude Gemini Muse Grok DeepSeek Mistral Qwen' },
+  { id: 'companies', label: 'Companies', href: '/companies/' }
 ];
 
 /**
@@ -130,8 +129,8 @@ const NAV = [
  */
 const MOBILE_NAV = [
   { id: 'today', label: 'Chain', href: '/' },
-  { id: 'sites', label: 'Sites', href: '/sites/' },
-  { id: 'ainews', label: 'News', href: '/ai-news/' },
+  { id: 'news', label: 'News', href: '/news/' },
+  { id: 'companies', label: 'Companies', href: '/companies/' },
   { id: 'search', label: 'Search', action: 'palOpenMobile' }
 ];
 
@@ -141,6 +140,7 @@ const MOBILE_NAV = [
  * route must not become a page with no current marker anywhere.
  */
 const UTILITY_ROUTES = [
+  { id: 'sites', label: 'Data centres', href: '/sites/' },
   { id: 'chain', label: 'Detailed chain map', href: '/chain-mapping/' },
   { id: 'explainers', label: 'Explainers', href: '/explainers/' },
   { id: 'catalysts', label: 'Catalysts', href: '/catalysts/' },
@@ -779,9 +779,9 @@ function todayPage() {
       'from a company filing, with the latest news for each.',
     canonical: SITE + '/',
     body: todayBody(),
-    inlineData: { T2C_CHAIN: chainExplorerData() },
+    inlineData: { T2C_CHAIN: chainExplorerData(), T2C_NEWS: newsHubData() },
     active: 'today',
-    extraScripts: ['/chainx.js'],
+    extraScripts: ['/chainx.js', '/newshub.js'],
     structured: DATASET_LD()
   });
 }
@@ -927,13 +927,6 @@ function notFoundPage() {
  * one is what T2C has evidenced, the other is what other people have published.
  */
 /**
- * The AI Time Machine.
- *
- * Its own route rather than a modal or a tab, because it is a destination people
- * will link to. It keeps the site shell — header, footer, palette — so it reads
- * as part of TimeToCompute, and mounts its immersive game header inside.
- */
-/**
  * Chain Mapping — the research workspace.
  *
  * /chain/ keeps working and renders the stage-level supply-chain explorer it
@@ -954,19 +947,6 @@ function chainMappingPage() {
   });
 }
 
-function timeMachinePage() {
-  return page({
-    title: 'The AI Time Machine — play the AI infrastructure buildout | T2C',
-    description:
-      'Go back to the moment before the outcome. Five campaigns, ' + chapterCount() +
-      ' real turning points, three theses each, primary sources and a hard knowledge cutoff. ' +
-      'Educational only, using fictional capital.',
-    canonical: SITE + '/time-machine/',
-    body: timeMachineBody(),
-    active: 'timemachine',
-    extraScripts: ['/time-machine.js']
-  });
-}
 
 /**
  * AI news — the third-party wire.
@@ -978,14 +958,16 @@ function timeMachinePage() {
  * /news/ was the wire's original address and stays a working URL, rendering the
  * same page with a canonical pointing here so the two do not compete.
  */
-function aiNewsPage({ canonical = '/ai-news/', active = 'ainews' } = {}) {
+function aiNewsPage({ canonical = '/news/', active = 'ainews' } = {}) {
   return page({
-    title: 'AI news — live headlines for AI infrastructure | T2C',
+    title: 'AI news — the supply chain, the neoclouds and the latest models | T2C',
     description:
-      'Live third-party headlines for the AI infrastructure operators T2C tracks, plus sector ' +
-      'coverage. Shown as published and clearly separated from the sourced delivery record.',
+      'Live stories from every stage of the AI supply chain, which neoclouds and AI-infrastructure ' +
+      'operators each one touches, and the current models from every major provider.',
     canonical: SITE + canonical,
-    body: newsBody(),
+    body: newsHubBody(),
+    inlineData: { T2C_NEWS: newsHubData() },
+    extraScripts: ['/newshub.js'],
     active
   });
 }
@@ -996,7 +978,7 @@ function aiNewsPage({ canonical = '/ai-news/', active = 'ainews' } = {}) {
  * /news/ still sees the utility menu mark where they are.
  */
 function newsPage() {
-  return aiNewsPage({ canonical: '/ai-news/', active: 'news' });
+  return aiNewsPage({ canonical: '/news/', active: 'news' });
 }
 
 function intelligencePage() {
@@ -1870,7 +1852,6 @@ bytes += write('research/index.html', researchPage());
 bytes += write('sites/index.html', sitesPage());
 bytes += write('intelligence/index.html', intelligencePage());
 bytes += write('ai-news/index.html', aiNewsPage());
-bytes += write('time-machine/index.html', timeMachinePage());
 bytes += write('news/index.html', newsPage());
 bytes += write('chain/index.html', chainPage());
 bytes += write('chain-mapping/index.html', chainMappingPage());
@@ -1952,7 +1933,6 @@ const urls = [
      because a stage is the destination a reader is more likely to want. */
   { loc: SITE + '/chain-mapping/', priority: '0.9', freq: 'weekly' },
   { loc: SITE + '/ai-news/', priority: '0.9', freq: 'daily' },
-  { loc: SITE + '/time-machine/', priority: '0.8', freq: 'monthly' },
   ...explainerRoutes().map(({ explainer, href }) => ({
     loc: SITE + href,
     priority: explainer.kind === 'stage' ? '0.8' : '0.6',
@@ -1979,20 +1959,18 @@ bytes += write('favicon.svg',
 // One stylesheet ships: base tokens + components, concatenated so the page makes
 // a single CSS request and the cascade order is explicit.
 fs.writeFileSync(path.join(OUT, 'styles.css'),
-  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css', 'ainews.css', 'timemachine.css', 'chainmap.css', 'chainx.css']
+  ['styles.css', 'components.css', 'profile.css', 'shell.css', 'mission.css', 'editorial.css', 'chain.css', 'passport.css', 'explainer.css', 'ainews.css', 'chainmap.css', 'chainx.css']
     .map(f => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8')).join('\n'));
 fs.cpSync(path.join(ROOT, 'src', 'app.js'), path.join(OUT, 'app.js'));
 fs.cpSync(path.join(ROOT, 'src', 'sector-wire.js'), path.join(OUT, 'sector-wire.js'));
 fs.writeFileSync(path.join(OUT, 'lab-engine.js'), labEngineScript());
 fs.cpSync(path.join(ROOT, 'src', 'lab-ui.js'), path.join(OUT, 'lab-ui.js'));
-fs.cpSync(path.join(ROOT, 'src', 'timemachine-app.js'), path.join(OUT, 'time-machine.js'));
 fs.cpSync(path.join(ROOT, 'src', 'chainmap-app.js'), path.join(OUT, 'chain-mapping.js'));
 fs.cpSync(path.join(ROOT, 'src', 'chainx-app.js'), path.join(OUT, 'chainx.js'));
+fs.cpSync(path.join(ROOT, 'src', 'newshub-app.js'), path.join(OUT, 'newshub.js'));
 fs.cpSync(path.join(ROOT, 'src', 'sitenews-app.js'), path.join(OUT, 'site-news.js'));
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'chain-mapping'),
   path.join(OUT, 'assets', 't2c', 'chain-mapping'), { recursive: true });
-fs.cpSync(path.join(ROOT, 'assets', 'time-machine'),
-  path.join(OUT, 'assets', 'time-machine'), { recursive: true });
 /* Open Graph and Twitter card art. Copied like any other asset folder — the
    build enumerates these explicitly rather than copying assets/ wholesale, so a
    new subfolder ships only once it is named here. Without this line the social
@@ -2068,20 +2046,6 @@ fs.mkdirSync(path.join(OUT, 'assets', 't2c', 'images'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'icons'),
   path.join(OUT, 'assets', 't2c', 'icons'), { recursive: true });
 
-/* The game's own integrity gate. The check that matters most is no future
-   leakage: a briefing source published after its own knowledge cutoff would hand
-   the player evidence the historical decision-maker could not have had, which is
-   the one way this game could cheat without looking broken. */
-{
-  const errs = checkTimeMachine();
-  if (errs.length) {
-    console.error(`  FAIL: AI Time Machine data has ${errs.length} problem(s):`);
-    for (const e of errs.slice(0, 12)) console.error(`    ${e}`);
-    process.exit(1);
-  }
-  console.log(`  time machine: ${CAMPAIGNS.length} campaigns, ${chapterCount()} chapters, no future leakage`);
-}
-
 /* Every declared asset must exist before anything can reference it.
    `data/artpack.js` is the manifest; this proves the manifest matches the disk.
    A missing derivative is invisible in code review and shows up as a hole in a
@@ -2115,7 +2079,9 @@ for (const d of ['svg', 'animated']) {
 }
 fs.mkdirSync(path.join(OUT, 'assets', 't2c', 'responsive'), { recursive: true });
 let stageBytes = 0;
-for (const s of STAGES) {
+/* Every registered stage cutout, not only the seven delivery stages: the
+   supply-chain homepage uses nine. */
+for (const s of STAGE_ART.map(a => ({ asset: a.base.split('/').pop() }))) {
   for (const w of [192, 384, 768]) {
     const rel = `${s.asset}-${w}.webp`;
     fs.cpSync(path.join(ROOT, 'assets', 't2c', 'responsive', rel),

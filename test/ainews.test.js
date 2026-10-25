@@ -288,13 +288,12 @@ test('the page carries the headline it was asked for', () => {
 
 test('the wire and the record are two different pages', () => {
   const w = wire();
-  // The wire is real pulled headlines, not the sourced record.
-  assert.ok(w.includes('id="newsFeed"'), '/ai-news/ does not render the wire');
+  // The news hub is pulled headlines, kept apart from the sourced record.
+  assert.ok(w.includes('id="nhStories"'), '/ai-news/ does not render the news hub');
   assert.ok(!w.includes('id="anFeed"'), '/ai-news/ still carries the signal product');
-  assert.match(w, /These headlines are not T2C records/i, 'the wire does not warn what it is');
-  assert.ok(w.includes('href="/catalysts/"'), 'the wire does not point back at the record');
-  // And the record no longer pretends to be news.
-  assert.ok(!page().includes('id="newsFeed"'), '/catalysts/ still renders the wire');
+  assert.match(w, /Headlines are third-party and shown as published/i, 'the hub does not warn what its stories are');
+  assert.ok(w.includes('href="/intelligence/"'), 'the hub does not point back at the record');
+  assert.ok(!page().includes('id="nhStories"'), '/catalysts/ renders the news hub');
 });
 
 test('the wire is never presented as a T2C record', () => {
@@ -304,8 +303,9 @@ test('the wire is never presented as a T2C record', () => {
 });
 
 test('the wire has one canonical address, so the two do not compete', () => {
-  assert.match(read('news/index.html'), /rel="canonical" href="[^"]*\/ai-news\/"/,
-    '/news/ does not canonicalise to /ai-news/');
+  // October 2026: /news/ is the hub's address; /ai-news/ is kept and points at it.
+  assert.match(read('ai-news/index.html'), /rel="canonical" href="[^"]*\/news\/"/,
+    '/ai-news/ does not canonicalise to /news/');
 });
 
 /* ================= no invention ================= */
