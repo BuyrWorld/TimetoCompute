@@ -50,34 +50,51 @@
       '<span class="ecsess">' + esc(SESSION[e.session] || '') + '</span></li>';
   }
 
+  function render(ev, note) {
+    ev = ev.filter(function (e) { return e.category === 'earnings' && days(e.expectedAt) >= 0; })
+      .sort(function (a, b) { return a.expectedAt < b.expectedAt ? -1 : a.expectedAt > b.expectedAt ? 1 : 0; });
+    // One date per company in the headline cards: its next report.
+    var seen = {}, firsts = [], later = [];
+    ev.forEach(function (e) { if (!seen[e.ticker]) { seen[e.ticker] = 1; firsts.push(e); } else later.push(e); });
+    /* Operators (and NVIDIA) first: the neoclouds and AI-infrastructure
+       builders are what the site is about, and in a busy season eight supplier
+       dates would otherwise push every one of them below the fold. */
+    var isOp = function (e) { var r = byT[e.ticker] || {}; return r.stage === 'Operators' || r.lead; };
+    var ops = firsts.filter(isOp);
+    var rest = firsts.filter(function (e) { return !isOp(e); });
+    var top = rest.slice(0, 8);
+    later = rest.slice(8).concat(later).sort(function (a, b) { return a.expectedAt < b.expectedAt ? -1 : 1; });
+    var opsList = document.getElementById('ecOps');
+    if (opsList) opsList.innerHTML = ops.length ? ops.map(card).join('')
+      : '<li class="nhempty">No operator has a report scheduled in the next six months.</li>';
+    next.innerHTML = top.length ? top.map(card).join('')
+      : '<li class="nhempty">No other report is scheduled in the next six months.</li>';
+    if (meta) meta.textContent = firsts.length + ' companies with a scheduled report' + (note ? ' · ' + note : '');
+    var wrap = document.getElementById('ecLaterWrap');
+    wrap.hidden = !later.length;
+    document.getElementById('ecLaterCount').textContent = '(' + later.length + ')';
+    document.getElementById('ecLater').innerHTML = later.map(row).join('');
+  }
+
+  /* The build-time snapshot renders at once, so the calendar is never empty
+     while the live lookup runs or if it is rate-limited. Live data then
+     replaces a company's dates wherever the live lookup answered for it; a
+     company it missed keeps its snapshot dates. */
+  var snap = window.T2C_EARNINGS_SNAPSHOT;
+  var snapNote = snap && snap.asOf ? 'dates as of ' + new Date(snap.asOf).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
+  if (snap && snap.events && snap.events.length) render(snap.events, snapNote + ', refreshing');
+
   fetch('/api/catalysts?days=200&symbols=' + encodeURIComponent(D.map(function (r) { return r.t; }).join(',')))
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (j) {
-      var ev = (j.events || []).filter(function (e) { return e.category === 'earnings' && days(e.expectedAt) >= 0; });
-      // One date per company in the headline cards: its next report.
-      var seen = {}, firsts = [], later = [];
-      ev.forEach(function (e) { if (!seen[e.ticker]) { seen[e.ticker] = 1; firsts.push(e); } else later.push(e); });
-      /* Operators first: the neoclouds and AI-infrastructure builders are what
-         the site is about, and in a busy season eight supplier dates would
-         otherwise push every one of them below the fold. */
-      var isOp = function (e) { var r = byT[e.ticker] || {}; return r.stage === 'Operators' || r.lead; };
-      var ops = firsts.filter(isOp);
-      var rest = firsts.filter(function (e) { return !isOp(e); });
-      var top = rest.slice(0, 8);
-      later = rest.slice(8).concat(later).sort(function (a, b) { return a.expectedAt < b.expectedAt ? -1 : 1; });
-      var opsList = document.getElementById('ecOps');
-      if (opsList) opsList.innerHTML = ops.length ? ops.map(card).join('')
-        : '<li class="nhempty">No operator has a report scheduled in the next six months.</li>';
-      next.innerHTML = top.length ? top.map(card).join('')
-        : '<li class="nhempty">No other report is scheduled in the next six months.</li>';
-      if (meta) meta.textContent = firsts.length + ' companies with a scheduled report';
-      if (later.length) {
-        document.getElementById('ecLaterWrap').hidden = false;
-        document.getElementById('ecLaterCount').textContent = '(' + later.length + ')';
-        document.getElementById('ecLater').innerHTML = later.map(row).join('');
-      }
+      var live = (j.events || []).filter(function (e) { return e.category === 'earnings'; });
+      var answered = {};
+      live.forEach(function (e) { answered[e.ticker] = 1; });
+      var kept = snap && snap.events ? snap.events.filter(function (e) { return !answered[e.ticker]; }) : [];
+      render(live.concat(kept), kept.length ? 'live, with some ' + snapNote : 'live');
     })
     .catch(function () {
+      if (snap && snap.events && snap.events.length) { render(snap.events, snapNote); return; }
       if (meta) meta.textContent = 'Unavailable';
       next.innerHTML = '<li class="nhempty">Earnings dates are unavailable right now.</li>';
     });

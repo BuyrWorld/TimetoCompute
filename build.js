@@ -35,6 +35,7 @@ import { allSites, companyPath, path as projectPath, siteStatus } from './src/li
 import { chainExplorerData } from './src/chainx.js';
 import { newsHubBody, newsHubData } from './src/newshub.js';
 import { earningsData } from './src/earnings.js';
+import { earningsSnapshot } from './src/lib/earnings-snapshot.js';
 import { STAGE_ART } from './data/artpack.js';
 import { ASSETS, ASSET_WIDTHS, ASSET_NATIVE_WIDTH } from './src/lib/assets.js';
 import { STAGES, chainState, chainCoverage } from './src/lib/chain.js';
@@ -822,7 +823,7 @@ function catalystsPage() {
       'by the dated events still ahead.',
     canonical: SITE + '/catalysts/',
     body: catalystsBody(),
-    inlineData: { T2C_CATALYSTS: catalystPayload(), T2C_EARNINGS: earningsData() },
+    inlineData: { T2C_CATALYSTS: catalystPayload(), T2C_EARNINGS: earningsData(), T2C_EARNINGS_SNAPSHOT: EARNINGS_SNAPSHOT },
     extraScripts: ['/earnings.js'],
     active: 'catalysts'
   });
@@ -1849,6 +1850,14 @@ let bytes = 0;
 bytes += write('index.html', todayPage());
 bytes += write('track/index.html', trackPage());
 bytes += write('companies/index.html', companiesPage());
+/* Earnings dates, fetched slowly at build time so the calendar is complete
+   the moment it loads; see src/lib/earnings-snapshot.js. Operators first. */
+const EARNINGS_SNAPSHOT = await (async () => {
+  const lead = new Set(['IREN', 'CRWV', 'NBIS', 'WULF', 'KEEL', 'APLD', 'CIFR', 'NVDA']);
+  const tickers = earningsData().map(r => r.t).sort((a, b) => (lead.has(b) ? 1 : 0) - (lead.has(a) ? 1 : 0));
+  try { return await earningsSnapshot(tickers, { log: m => console.log(m) }); }
+  catch (e) { console.log(`  earnings snapshot: skipped (${e.message})`); return null; }
+})();
 bytes += write('catalysts/index.html', catalystsPage());
 bytes += write('research/index.html', researchPage());
 bytes += write('sites/index.html', sitesPage());
