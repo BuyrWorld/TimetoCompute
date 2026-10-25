@@ -314,8 +314,29 @@ const run = async () => {
      has them, rather than here where the harness lands on whichever card is
      first and that site may legitimately have none. */
 
-  /* ---- company page: score, path, x-ray ---- */
+  /* ---- company page: tabs ---- */
   await page.goto(base + '/companies/iren/', { waitUntil: 'networkidle0' });
+  const coTabs = await page.evaluate(() => ({
+    overview: !document.getElementById('overview').hidden,
+    record: !document.getElementById('record').hidden,
+    pos: !!document.querySelector('.copos .copnode')
+  }));
+  check('a company page opens on its overview with the full record behind a tab', coTabs.overview && !coTabs.record, JSON.stringify(coTabs));
+  check('a company page shows where it sits in the chain', coTabs.pos);
+  await page.click('#tab-sites');
+  const onSites = await page.evaluate(() => ({ sites: !document.getElementById('sites').hidden, overview: !document.getElementById('overview').hidden,
+    hash: location.hash, cards: document.querySelectorAll('#sites .sitecard').length }));
+  check('the Sites tab shows the site cards and names itself in the URL', onSites.sites && !onSites.overview && onSites.hash === '#sites' && onSites.cards > 0, JSON.stringify(onSites));
+  await page.focus('#tab-sites');
+  await page.keyboard.press('ArrowRight');
+  const kbd = await page.evaluate(() => document.activeElement.id + ' ' + !document.getElementById('news').hidden);
+  check('arrow keys move between company tabs', kbd === 'tab-news true', kbd);
+  await page.click('.coscore');
+  const ring = await page.evaluate(() => !document.getElementById('record').hidden);
+  check('the Reality Score ring opens the record that explains it', ring);
+
+  /* ---- company page: score, path, x-ray (in the Record tab) ---- */
+  await page.goto(base + '/companies/iren/#record', { waitUntil: 'networkidle0' });
   const scoreShown = await page.$eval('.scoreval', el => el.textContent.trim());
   check('a scored company shows its number', /^\d+$/.test(scoreShown), scoreShown);
 
@@ -335,7 +356,7 @@ const run = async () => {
   /* ---- estimates are marked, and can be switched off ----
      On Keel's page: IREN's billing estimate went away once its 10-K disclosed
      a real billing figure, which is the estimate rule working as intended. */
-  await page.goto(base + '/companies/keel/', { waitUntil: 'networkidle0' });
+  await page.goto(base + '/companies/keel/#record', { waitUntil: 'networkidle0' });
   const estOn = await page.$$eval('[data-estimate]', els =>
     els.filter(e => getComputedStyle(e).display !== 'none').length);
   check('estimates are visible by default', estOn > 0, `${estOn}`);

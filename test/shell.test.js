@@ -100,20 +100,13 @@ test('every previously published route still resolves', () => {
     'a published site page was deleted along with the tab');
 });
 
-test('site detail lives on the company page now that the tab is gone', () => {
+test('a company page reaches every one of its sites from the Sites tab', () => {
   const html = read('companies/iren/index.html');
-  assert.match(html, /<h2>Data centres<\/h2>/,
-    'the company page does not present its data centres');
-  // Every card reaches the site's own page, so the detail is a way in, not a
-  // dead end.
-  const links = [...html.matchAll(/class="projmore press" href="([^"]+)"/g)].map(m => m[1]);
-  assert.ok(links.length > 0, 'no data-centre card links to its site page');
-  for (const h of links) {
-    assert.ok(exists(h.replace(/^\//, '') + 'index.html'), `${h} is a dead link`);
-  }
-  assert.ok(html.includes('>Data centres<'), 'the section nav still calls them Projects');
+  assert.match(html, /id="sites" role="tabpanel"/, 'the company page has no Sites tab');
+  const links = [...html.matchAll(/class="sitecard press" href="([^"]+)"/g)].map(m => m[1]);
+  assert.ok(links.length > 0, 'no site card links to its site page');
+  for (const h of links) assert.ok(exists(h.replace(/^\//, '') + 'index.html'), `${h} is a dead link`);
 });
-
 test('a branded 404 exists and offers real recovery routes', () => {
   assert.ok(exists('404.html'), 'no 404 page was built');
   const html = read('404.html');
@@ -516,19 +509,14 @@ test('every wide table can scroll inside its own container', () => {
   }
 });
 
-test('the company page carries a section navigation whose targets all exist', () => {
+test('the company page tabs each control a panel that exists', () => {
   const html = read('companies/iren/index.html');
-  const nav = html.match(/<nav class="secnav"[\s\S]*?<\/nav>/);
-  assert.ok(nav, 'no section navigation on the company page');
-  const ids = [...nav[0].matchAll(/href="#([a-z-]+)"/g)].map(m => m[1]);
-  assert.ok(ids.length >= 4, 'section navigation is too thin to be useful');
-  for (const id of ids) {
-    assert.ok(html.includes(`id="${id}"`), `section navigation points at #${id}, which is not on the page`);
-  }
+  const nav = html.match(/<nav class="cotabs"[\s\S]*?<\/nav>/);
+  assert.ok(nav, 'no tab bar on the company page');
+  const ids = [...nav[0].matchAll(/aria-controls="([a-z-]+)"/g)].map(m => m[1]);
+  assert.deepEqual(ids, ['overview', 'sites', 'news', 'record', 'sources']);
+  for (const id of ids) assert.match(html, new RegExp(`id="${id}"[^>]*role="tabpanel"`), `#${id} is not a tab panel`);
 });
-
-/* ================= your own calls stay yours ================= */
-
 test('a saved call never leaves the browser', () => {
   const app = fs.readFileSync(path.join(DIST, 'app.js'), 'utf8');
   const block = app.slice(app.indexOf('CALLS_KEY'), app.indexOf('sticky section navigation'));

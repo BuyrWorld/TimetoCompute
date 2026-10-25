@@ -33,6 +33,7 @@ import {
 } from './src/pages.js';
 import { allSites, companyPath, path as projectPath, siteStatus } from './src/lib/sites.js';
 import { chainExplorerData } from './src/chainx.js';
+import { companyHero, chainPosition, tabBar, overviewPanel, sitesPanel, newsPanel } from './src/companyhero.js';
 import { CHAIN_COMPANIES } from './data/chain.js';
 import { newsHubBody, newsHubData } from './src/newshub.js';
 import { earningsData } from './src/earnings.js';
@@ -55,7 +56,7 @@ import { signals, todaySet } from './src/lib/signals.js';
 import { signalIndex } from './src/lib/today.js';
 import { realityScore, FACTORS, MIN_WEIGHT_COVERAGE, THIN_SAMPLE } from './src/lib/score.js';
 import {
-  scorePanel, capacityTruth, contractXray, pathTrack, estimateBlock, revenueCalculator
+  scorePanel, capacityTruth, contractXray, pathTrack, estimateBlock, revenueCalculator, siteCard
 } from './src/mission-ui.js';
 import {
   companyEstimates, estimateCoverage, estimateRevenueRate,
@@ -1250,6 +1251,9 @@ function companyPage(c) {
   ];
 
   const score = realityScore(c);
+  const coSites = allSites().filter(sv => (sv.project?.companyId || sv.companyId) === c.id);
+  const coCats = (CATALYSTS_BY_COMPANY[c.id] || []).filter(k => k.status !== 'completed' && k.status !== 'cancelled')
+    .sort((a, b) => String(a.expectedAt || a.expectedWindowStart || '9').localeCompare(String(b.expectedAt || b.expectedWindowStart || '9')));
   const cpath = companyPath(c.id);
   const reached = cpath.filter(s => s.status === 'complete');
 
@@ -1279,11 +1283,18 @@ function companyPage(c) {
     <span aria-hidden="true">/</span> <span aria-current="page">${esc(c.name)}</span>
   </nav>
 
-  ${investmentSnapshot(c, v)}
+  ${companyHero(c, v, { score, earnings: EARNINGS_SNAPSHOT?.events || [], sites: coSites })}
+  ${chainPosition(c)}
+  ${tabBar()}
+  ${overviewPanel(c, v, { freshness: FRESHNESS, cats: coCats })}
+  ${sitesPanel(coSites, siteCard)}
+  ${newsPanel(c)}
 
-  <nav class="secnav" aria-label="Sections of this page">
-    ${sections.map(([id, label]) => `<a class="press" href="#${id}">${esc(label)}</a>`).join('')}
-  </nav>
+  ${/* RECORD: the full detail, unchanged — the passport, Reality Score build,
+        path, capacity, the story, every measure with its evidence, targets,
+        contracts, changes and catalysts. It used to be the whole page. */''}
+  <section class="copanel" id="record" role="tabpanel" aria-labelledby="tab-record">
+  <h2 class="vh">Record</h2>
 
   ${(() => {
     const pp = passport(c);
@@ -1354,7 +1365,7 @@ function companyPage(c) {
         element with the same id made the anchor ambiguous. */''}
   ${storybook(v)}
 
-  <section class="panel" id="record">
+  <section class="panel" id="capacity-record">
     <div class="ph"><h2>Capacity record</h2><span class="meta">Every value with its evidence</span></div>
     <div class="tw"><table class="rectable">
       <thead><tr><th scope="col">Measure</th><th scope="col">Value and evidence</th></tr></thead>
@@ -1373,10 +1384,7 @@ function companyPage(c) {
     <div class="tw"><table class="rectable"><tbody>${historyRows}</tbody></table></div>
   </section>` : ''}
 
-  <section class="panel" id="projects">
-    <div class="ph"><h2>Data centres</h2><span class="meta">${v.projects.length} recorded</span></div>
-    <div class="projgrid">${projects}</div>
-  </section>
+  ${/* Data centres moved to the Sites tab as status cards. */''}
 
   ${contracts.length ? `<section class="mpanel" id="contracts">
     <div class="mhead">
@@ -1425,7 +1433,9 @@ function companyPage(c) {
 
   ${PROFILE_BY_ID[c.id] ? aboutPanel(PROFILE_BY_ID[c.id]) : ''}
 
-  <section class="panel" id="sources">
+  </section>
+
+  <section class="panel copanel" id="sources" role="tabpanel" aria-labelledby="tab-sources">
     <div class="ph"><h2>Sources</h2><span class="meta">${sources.length} documents</span></div>
     <div class="pb">${sources.length ? `<ul class="srclist">${sources.map(s => `<li>
       <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>
@@ -1436,12 +1446,14 @@ function companyPage(c) {
 </div>`;
 
   return page({
-    title: `${c.name} (${c.ticker}) — AI infrastructure delivery | T2C`,
+    title: `${c.name} (${c.ticker}) — where it sits, its sites and the latest news | T2C`,
     description:
-      `${c.name} delivery tracking: secured power, customer-contracted capacity, energised critical IT ` +
-      `and accepted megawatts, each figure carrying its measurement basis and primary source.`,
+      `${c.name}: its place in the AI supply chain with the suppliers and customers its filings name, ` +
+      `live and contracted capacity, next results date, sites, news and the full sourced record.`,
     canonical: `${SITE}/companies/${c.slug}/`,
     body,
+    inlineData: { T2C_NEWS: newsHubData() },
+    extraScripts: ['/news-classify.js', '/newshub.js', '/company.js'],
     active: 'companies',
     structured: [organizationLd(PROFILE_BY_ID[c.id]), {
       '@context': 'https://schema.org',
@@ -1995,6 +2007,7 @@ fs.cpSync(path.join(ROOT, 'src', 'chainmap-app.js'), path.join(OUT, 'chain-mappi
 fs.cpSync(path.join(ROOT, 'src', 'chainx-app.js'), path.join(OUT, 'chainx.js'));
 fs.cpSync(path.join(ROOT, 'src', 'newshub-app.js'), path.join(OUT, 'newshub.js'));
 fs.cpSync(path.join(ROOT, 'src', 'news-classify.js'), path.join(OUT, 'news-classify.js'));
+fs.cpSync(path.join(ROOT, 'src', 'company-app.js'), path.join(OUT, 'company.js'));
 fs.cpSync(path.join(ROOT, 'src', 'earnings-app.js'), path.join(OUT, 'earnings.js'));
 fs.cpSync(path.join(ROOT, 'src', 'sitenews-app.js'), path.join(OUT, 'site-news.js'));
 fs.cpSync(path.join(ROOT, 'assets', 't2c', 'chain-mapping'),

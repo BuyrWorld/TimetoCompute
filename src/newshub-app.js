@@ -4,7 +4,11 @@
    operators (neoclouds and AI-infrastructure builders). */
 (function () {
   var D = window.T2C_NEWS;
-  var list = document.getElementById('nhStories');
+  /* Any number of story lists share one fetch: the hub's main list, the
+     homepage preview, and a company page's overview and news tab. A list
+     with data-only shows stories naming that company or touching it. */
+  var lists = [].slice.call(document.querySelectorAll('.nhstories[data-tickers]'));
+  var list = document.getElementById('nhStories') || lists[0];
   if (!D || !list) return;
 
   var byId = {};
@@ -102,8 +106,17 @@
       return true;
     });
     if (count) count.textContent = rows.length + ' stor' + (rows.length === 1 ? 'y' : 'ies');
-    var limit = +(list.getAttribute('data-limit') || 40);
-    list.innerHTML = rows.length ? rows.slice(0, limit).map(function (s) {
+    lists.forEach(function (L) { paint(L, rows); });
+  }
+
+  function paint(L, rows) {
+    var only = L.getAttribute('data-only');
+    if (only) rows = rows.filter(function (s) {
+      return s.named.indexOf(only) > -1 || s.ops.some(function (o) { return o.id === only; }) ||
+        s.named.some(function (id) { return D.links.some(function (l) { return (l.from === id && l.to === only) || (l.to === id && l.from === only); }); });
+    });
+    var limit = +(L.getAttribute('data-limit') || 40);
+    L.innerHTML = rows.length ? rows.slice(0, limit).map(function (s) {
       var st = D.stages[s.stages.filter(function (x) { return x > -1; })[0]];
       var when = s.datetime ? new Date(s.datetime * 1000).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
       return '<li class="nhstory nhtone-' + s.tone + '">' +
@@ -126,7 +139,8 @@
         '</div>' +
         (s.image ? '<img class="nhimg" src="' + esc(s.image) + '" alt="" loading="lazy" decoding="async" width="120" height="80" />' : '') +
       '</li>';
-    }).join('') : '<li class="nhempty">No story in this part of the chain in the last few days.</li>';
+    }).join('') : '<li class="nhempty">' + (only ? 'No story naming this company or its disclosed partners in the last few days.'
+      : 'No story in this part of the chain in the last few days.') + '</li>';
   }
 
   var moreBtn = document.getElementById('nhMore');
@@ -152,7 +166,9 @@
     });
   });
 
-  fetch('/api/news?symbols=' + encodeURIComponent(list.getAttribute('data-tickers')))
+  var wanted = [];
+  lists.forEach(function (L) { (L.getAttribute('data-tickers') || '').split(',').forEach(function (t) { if (t && wanted.indexOf(t) < 0) wanted.push(t); }); });
+  fetch('/api/news?symbols=' + encodeURIComponent(wanted.join(',')))
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (j) {
       var seen = {};
@@ -180,6 +196,6 @@
     })
     .catch(function () {
       if (count) count.textContent = 'Unavailable';
-      list.innerHTML = '<li class="nhempty">Live news is unavailable right now. The sourced record alongside is unaffected.</li>';
+      lists.forEach(function (L) { L.innerHTML = '<li class="nhempty">Live news is unavailable right now. The sourced record alongside is unaffected.</li>'; });
     });
 })();

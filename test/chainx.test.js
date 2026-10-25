@@ -206,3 +206,27 @@ test('stock-tip and valuation pieces are market commentary', () => {
     'Elon Musk Just Delivered Spectacular News for SpaceX Stock Investors'
   ]) assert.equal(classify(h), 'commentary', h);
 });
+
+/* ---- company pages ---- */
+
+test('a company page leads with where it sits, every link a disclosed one', () => {
+  const html = read('companies/iren/index.html');
+  assert.ok(html.indexOf('class="cohero"') < html.indexOf('class="copos"'), 'the hero does not lead');
+  assert.ok(html.indexOf('class="copos"') < html.indexOf('class="cotabs"'), 'where-it-sits does not come before the tabs');
+  const pos = html.slice(html.indexOf('class="copos"'), html.indexOf('class="cotabs"'));
+  for (const n of ['NVIDIA', 'Dell Technologies', 'Microsoft']) assert.ok(pos.includes(n), `${n} missing from where IREN sits`);
+  const linked = [...pos.matchAll(/href="\/\?entity=([a-z0-9-]+)"/g)].map(m => m[1]).filter(Boolean);
+  for (const id of linked.filter(x => x !== 'iren')) {
+    assert.ok(CHAIN_LINKS.some(l => (l.from === id && l.to === 'iren') || (l.from === 'iren' && l.to === id)),
+      `${id} is drawn next to IREN without a disclosed link`);
+  }
+});
+
+test('the company page is a fraction of its old height in markup', () => {
+  // The old page was ~11,500px; the overview now carries five figures and the
+  // chain position, and the full record sits behind its own tab.
+  const html = read('companies/iren/index.html');
+  assert.match(html, /class="cofacts"/);
+  assert.equal((html.match(/class="cofact"/g) || []).length + (html.match(/class="cofact" id=/g) || []).length >= 5, true);
+  assert.match(html, /id="record" role="tabpanel"/, 'the full record lost its tab');
+});
