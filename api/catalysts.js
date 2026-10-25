@@ -26,46 +26,27 @@ export default async function handler(req, res) {
   let reason = null;
   let failed = 0;
 
-  /* A failed lookup (rate limit, outage) is never cached: it used to be kept
-     for the full six hours, so one burst could drop a company off the
-     calendar for the day. Throwing skips the cache write, and `cached`
-     serves any older good copy instead. */
-  const lookup = (key, params) => cached(key, TTL, async () => {
-    const c = await finnhub('/calendar/earnings', params);
-    if (!c.ok) throw Object.assign(new Error(c.reason || 'provider-error'), { reason: c.reason });
-    return { ok: true, rows: c.data?.earningsCalendar || [], reason: null };
-  }).catch(err => ({ ok: false, rows: [], reason: err.reason || err.message || 'provider-error' }));
-
-  /* ONE CALL PER MONTH, NOT PER COMPANY. The per-symbol fan-out made 35+
-     provider calls per refresh and ran into the free plan's rate limit. The
-     calendar without a symbol returns every company reporting in the range,
-     so the window is fetched month by month and filtered to the tickers
-     asked for. */
-  const wanted = new Set(symbols);
-  const bySym = new Map(symbols.map(s => [s, []]));
-  const chunks = [];
-  for (let t = Date.parse(from); t < Date.parse(to); t += 30 * 86400000) {
-    const a = new Date(t).toISOString().slice(0, 10);
-    const b = new Date(Math.min(t + 29 * 86400000, Date.parse(to))).toISOString().slice(0, 10);
-    chunks.push([a, b]);
-  }
-  const results = await Promise.all(chunks.map(([a, b]) => lookup(`earn:all:${a}:${b}`, { from: a, to: b })));
-  const chunkFailed = results.some(r => !r.ok);
-  for (const r of results) {
-    for (const e of r.rows) if (wanted.has(String(e.symbol).toUpperCase())) bySym.get(String(e.symbol).toUpperCase()).push(e);
-  }
-  /* A failed month is NOT retried company by company: if it failed because of
-     the rate limit, 35 more calls would only deepen it. The answer is marked
-     partial (short edge cache, so it is retried in minutes), and `cached`
-     already served the last good copy of that month where one exists. */
-  if (chunkFailed) {
-    failed = results.filter(r => !r.ok).length;
-    reason = results.find(r => !r.ok).reason;
-  }
-
-  for (const sym of symbols) {
-    const r = { ok: true, rows: bySym.get(sym) || [] };
-    if (!r.rows.length) { reason = reason || 'no-data'; continue; }
+  /* ONE LOOKUP PER COMPANY, SIX AT A TIME. The all-company calendar looked
+     cheaper but is truncated in earnings season — a month-long query dropped
+     IREN, Keel, TeraWulf and Cipher's November dates — so each ticker is
+     asked for directly. Running all 35 at once burst the free plan's rate
+     limit; a small pool keeps a refresh well inside it, and the hour-long
+     edge cache means a refresh happens about once an hour. */
+  const POOL = 6;
+  const queue = [...symbols];
+  const worker = async () => { for (let sym; (sym = queue.shift());) await one(sym); };
+  async function one(sym) {
+    /* A failed lookup (rate limit, outage) must not be cached: it used to be
+       kept for the full six hours, so one burst of traffic could drop a
+       company off the calendar for the rest of the day. Throwing skips the
+       cache write, and `cached` serves any older good copy instead. */
+    const r = await cached(`earn:${sym}:${from}`, TTL, async () => {
+      const c = await finnhub('/calendar/earnings', { from, to, symbol: sym });
+      if (!c.ok) throw Object.assign(new Error(c.reason || 'provider-error'), { reason: c.reason });
+      return { ok: true, rows: c.data?.earningsCalendar || [], reason: null };
+    }).catch(err => ({ ok: false, rows: [], reason: err.reason || err.message || 'provider-error' }));
+    if (!r.ok) failed += 1;
+    if (!r.ok || !r.rows.length) { reason = reason || r.reason || 'no-data'; return; }
     available = true;
     for (const e of r.rows) {
       if (!e.date) continue;
@@ -95,6 +76,7 @@ export default async function handler(req, res) {
       });
     }
   }
+  await Promise.all(Array.from({ length: Math.min(POOL, symbols.length) }, worker));
 
   events.sort((a, b) => String(a.expectedAt).localeCompare(String(b.expectedAt)));
 
